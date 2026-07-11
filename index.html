@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Thole Solutions</title>
+<link rel="icon" type="image/png" href="logo.png" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --paper: #F6F7FB;
+    --card: #FFFFFF;
+    --ink: #14162E;
+    --ink-soft: #565B78;
+    --ink-faint: #8B8FA8;
+    --line: #E1E3EE;
+    --accent: #1D1F91;
+    --accent-dark: #14166B;
+    --accent-soft: #E7E8F7;
+    --sky: #5CACF7;
+    --sky-soft: #E7F1FE;
+    --amber: #9C6B1F;
+    --amber-soft: #F5EBD8;
+    --danger: #A6432C;
+    --danger-soft: #F4E6E1;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: 'Inter', sans-serif; min-height: 100vh;
+  }
+  h1, h2, h3 { font-family: 'Source Serif 4', serif; font-weight: 600; margin: 0; }
+  .num { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+  button { font-family: 'Inter', sans-serif; cursor: pointer; }
+  .hidden { display: none !important; }
+
+  /* ---------- AUTH ---------- */
+  #auth-screen { max-width: 420px; margin: 0 auto; padding: 60px 20px; }
+  .brand-mark { width: 44px; height: 44px; border-radius: 10px; overflow: hidden; margin-bottom: 18px; }
+  .brand-mark img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  #auth-screen h1 { font-size: 26px; margin-bottom: 4px; }
+  #auth-screen p.sub { color: var(--ink-soft); font-size: 14px; margin: 6px 0 26px; }
+  label { display: block; font-size: 12px; color: var(--ink-soft); margin: 14px 0 4px; }
+  input, select, textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px;
+    background: white; font-size: 15px; font-family: 'Inter', sans-serif; color: var(--ink);
+  }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+  .btn-primary { width: 100%; margin-top: 20px; padding: 12px; border: none; border-radius: 6px; background: var(--accent); color: white; font-size: 15px; font-weight: 500; }
+  .btn-primary:hover { background: var(--accent-dark); }
+  .switch { text-align: center; margin-top: 18px; font-size: 13px; color: var(--ink-soft); }
+  .switch a { color: var(--accent); cursor: pointer; text-decoration: underline; }
+  .error { background: var(--danger-soft); color: var(--danger); padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-top: 14px; }
+
+  /* ---------- APP SHELL ---------- */
+  #app-screen { display: flex; min-height: 100vh; }
+  aside {
+    width: 220px; background: var(--card); border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; flex-shrink: 0;
+  }
+  .side-header { padding: 22px 18px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
+  .side-header img { width: 32px; height: 32px; border-radius: 7px; flex-shrink: 0; }
+  .side-header .biz { font-family: 'Source Serif 4', serif; font-weight: 600; font-size: 15px; line-height: 1.2; }
+  .side-header .type-tag { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+  nav { flex: 1; padding: 14px 10px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 7px;
+    font-size: 14px; color: var(--ink-soft); cursor: pointer; margin-bottom: 2px;
+  }
+  .nav-item:hover { background: var(--paper); color: var(--ink); }
+  .nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+  .nav-icon { width: 18px; text-align: center; font-size: 15px; }
+  .side-footer { padding: 14px 18px; border-top: 1px solid var(--line); }
+  .user-name { font-size: 13px; font-weight: 500; }
+  .user-role { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; }
+  .logout-link { font-size: 12px; color: var(--ink-faint); text-decoration: underline; cursor: pointer; margin-top: 6px; display: inline-block; }
+
+  main { flex: 1; padding: 32px 40px; overflow-y: auto; max-width: 980px; }
+  .page-header { margin-bottom: 24px; }
+  .page-header h2 { font-size: 22px; }
+  .page-header p { color: var(--ink-soft); font-size: 13px; margin-top: 4px; }
+  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 12px; flex-wrap: wrap; }
+  .btn-small { padding: 9px 16px; border: none; border-radius: 6px; background: var(--accent); color: white; font-size: 13px; font-weight: 500; }
+  .btn-small:hover { background: var(--accent-dark); }
+  .btn-ghost { padding: 9px 16px; border: 1px solid var(--line); border-radius: 6px; background: none; color: var(--ink-soft); font-size: 13px; }
+
+  /* metric cards */
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 28px; }
+  .metric-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .metric-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); margin-bottom: 6px; }
+  .metric-card .value { font-size: 24px; font-weight: 600; }
+  .metric-card.warn .value { color: var(--danger); }
+
+  /* ledger table */
+  .ledger { background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .ledger-head { display: grid; padding: 10px 18px; background: var(--paper); border-bottom: 1px solid var(--line); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-faint); }
+  .ledger-row { display: grid; padding: 13px 18px; border-bottom: 1px solid var(--line); align-items: center; font-size: 14px; }
+  .ledger-row:last-child { border-bottom: none; }
+  .cat-badge { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 20px; background: var(--sky-soft); color: var(--accent); text-transform: uppercase; letter-spacing: 0.03em; }
+  .low-tag { color: var(--danger); font-size: 12px; font-weight: 500; }
+  .empty-state { text-align: center; padding: 50px 20px; color: var(--ink-faint); font-size: 14px; }
+
+  /* modal */
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(28,28,30,0.4); display: flex; align-items: center; justify-content: center; z-index: 20; padding: 20px; }
+  .modal { background: var(--paper); width: 100%; max-width: 440px; border-radius: 12px; padding: 24px; max-height: 85vh; overflow-y: auto; }
+  .modal .close { text-align: right; font-size: 13px; color: var(--ink-soft); cursor: pointer; margin-bottom: 4px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  @media (max-width: 720px) {
+    #app-screen { flex-direction: column; }
+    aside { width: 100%; flex-direction: row; align-items: center; overflow-x: auto; }
+    .side-header, .side-footer { display: none; }
+    nav { display: flex; padding: 8px; }
+    main { padding: 20px; }
+    .field-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loading" style="text-align:center; padding:80px; color: var(--ink-faint);">Loading…</div>
+
+<!-- AUTH -->
+<div id="auth-screen" class="hidden">
+  <div class="brand-mark"><img src="logo.png" alt="Thole Solutions" /></div>
+  <h1 id="auth-title">Sign in</h1>
+  <p class="sub" id="auth-sub">Manage your business in one place.</p>
+
+  <div id="login-form">
+    <label>Email</label><input type="email" id="login-email" />
+    <label>Password</label><input type="password" id="login-password" />
+    <button class="btn-primary" onclick="handleLogin()">Sign in</button>
+    <div class="switch">New here? <a onclick="showSignup()">Redeem an invite code</a></div>
+  </div>
+
+  <div id="signup-form" class="hidden">
+    <label>Full name</label><input type="text" id="signup-name" />
+    <label>Invite code</label><input type="text" id="signup-code" placeholder="e.g. TEST-0001" />
+    <label>Email</label><input type="email" id="signup-email" />
+    <label>Password</label><input type="password" id="signup-password" placeholder="At least 6 characters" />
+    <button class="btn-primary" onclick="handleSignup()">Redeem & create account</button>
+    <div class="switch">Already have an account? <a onclick="showLogin()">Sign in</a></div>
+  </div>
+
+  <div id="auth-error" class="error hidden"></div>
+</div>
+
+<!-- APP -->
+<div id="app-screen" class="hidden">
+  <aside>
+    <div class="side-header">
+      <img src="logo.png" alt="" />
+      <div>
+        <div class="biz" id="biz-name">—</div>
+        <div class="type-tag" id="biz-type">—</div>
+      </div>
+    </div>
+    <nav>
+      <div class="nav-item active" data-tab="dashboard" onclick="switchTab('dashboard')"><span class="nav-icon">◆</span> Dashboard</div>
+      <div class="nav-item" data-tab="products" onclick="switchTab('products')"><span class="nav-icon">▤</span> Products & Stock</div>
+      <div class="nav-item" data-tab="sales" onclick="switchTab('sales')"><span class="nav-icon">✎</span> Sales</div>
+      <div class="nav-item" data-tab="customers" onclick="switchTab('customers')"><span class="nav-icon">◈</span> Customers</div>
+      <div class="nav-item" data-tab="payments" onclick="switchTab('payments')"><span class="nav-icon">◎</span> Payments</div>
+      <div class="nav-item" data-tab="expenses" onclick="switchTab('expenses')"><span class="nav-icon">▽</span> Expenses</div>
+    </nav>
+    <div class="side-footer">
+      <div class="user-name" id="user-name-display">—</div>
+      <div class="user-role" id="user-role-display">—</div>
+      <span class="logout-link" onclick="handleLogout()">Sign out</span>
+    </div>
+  </aside>
+
+  <main>
+    <!-- DASHBOARD -->
+    <section id="tab-dashboard" class="tab-panel">
+      <div class="page-header"><h2>Dashboard</h2><p>Overview of your workspace right now.</p></div>
+      <div class="metrics">
+        <div class="metric-card"><div class="label">Products</div><div class="value num" id="m-products">0</div></div>
+        <div class="metric-card warn"><div class="label">Low stock</div><div class="value num" id="m-lowstock">0</div></div>
+        <div class="metric-card"><div class="label">Sales recorded</div><div class="value num" id="m-sales">0</div></div>
+        <div class="metric-card"><div class="label">Revenue</div><div class="value num" id="m-revenue">0</div></div>
+        <div class="metric-card"><div class="label">Expenses</div><div class="value num" id="m-expenses">0</div></div>
+      </div>
+    </section>
+
+    <!-- PRODUCTS -->
+    <section id="tab-products" class="tab-panel hidden">
+      <div class="page-header"><h2>Products & Stock</h2><p>Your catalog and current stock on hand.</p></div>
+      <div class="toolbar">
+        <select id="cat-filter" onchange="renderProducts()"><option value="">All categories</option></select>
+        <button class="btn-small" onclick="openModal('product-modal')">+ Add product</button>
+      </div>
+      <div class="ledger" id="products-ledger"></div>
+    </section>
+
+    <!-- SALES -->
+    <section id="tab-sales" class="tab-panel hidden">
+      <div class="page-header"><h2>Sales</h2><p>Record a sale — stock updates automatically.</p></div>
+      <div class="toolbar">
+        <div></div>
+        <button class="btn-small" onclick="openSaleModal()">+ Record sale</button>
+      </div>
+      <div class="ledger" id="sales-ledger"></div>
+    </section>
+
+    <!-- CUSTOMERS -->
+    <section id="tab-customers" class="tab-panel hidden">
+      <div class="page-header"><h2>Customers</h2><p>People who buy from you.</p></div>
+      <div class="toolbar"><div></div><button class="btn-small" onclick="openModal('customer-modal')">+ Add customer</button></div>
+      <div class="ledger" id="customers-ledger"></div>
+    </section>
+
+    <!-- PAYMENTS -->
+    <section id="tab-payments" class="tab-panel hidden">
+      <div class="page-header"><h2>Payments</h2><p>Money received from customers.</p></div>
+      <div class="toolbar"><div></div><button class="btn-small" onclick="openModal('payment-modal')">+ Record payment</button></div>
+      <div class="ledger" id="payments-ledger"></div>
+    </section>
+
+    <!-- EXPENSES -->
+    <section id="tab-expenses" class="tab-panel hidden">
+      <div class="page-header"><h2>Expenses</h2><p>Overhead costs — rent, wages, utilities, supplies.</p></div>
+      <div class="toolbar"><div></div><button class="btn-small" onclick="openModal('expense-modal')">+ Add expense</button></div>
+      <div class="ledger" id="expenses-ledger"></div>
+    </section>
+  </main>
+</div>
+
+<!-- MODAL: Add product -->
+<div id="product-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="close" onclick="closeModal('product-modal')">Close</div>
+    <h3>Add product</h3>
+    <label>Name</label><input type="text" id="p-name" />
+    <label>Category</label><input type="text" id="p-category" list="cat-suggestions" placeholder="e.g. Mains, Drinks, Sides" />
+    <datalist id="cat-suggestions"></datalist>
+    <div class="field-row">
+      <div><label>Price</label><input type="number" id="p-price" /></div>
+      <div><label>Unit</label><input type="text" id="p-unit" placeholder="plate, kg, item" /></div>
+    </div>
+    <div class="field-row">
+      <div><label>Starting stock</label><input type="number" id="p-stock" placeholder="0" /></div>
+      <div><label>Low stock alert below</label><input type="number" id="p-threshold" placeholder="optional" /></div>
+    </div>
+    <button class="btn-primary" onclick="submitProduct()">Save product</button>
+    <div id="product-error" class="error hidden"></div>
+  </div>
+</div>
+
+<!-- MODAL: Record sale -->
+<div id="sale-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="close" onclick="closeModal('sale-modal')">Close</div>
+    <h3>Record a sale</h3>
+    <label>Product</label>
+    <select id="s-product" onchange="onSaleProductChange()"></select>
+    <div class="field-row">
+      <div><label>Quantity</label><input type="number" id="s-qty" value="1" /></div>
+      <div><label>Unit price</label><input type="number" id="s-price" /></div>
+    </div>
+    <label>Customer (optional)</label>
+    <select id="s-customer"><option value="">Walk-in / no customer</option></select>
+    <button class="btn-primary" onclick="submitSale()">Save sale</button>
+    <div id="sale-error" class="error hidden"></div>
+  </div>
+</div>
+
+<!-- MODAL: Add customer -->
+<div id="customer-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="close" onclick="closeModal('customer-modal')">Close</div>
+    <h3>Add customer</h3>
+    <label>Name</label><input type="text" id="c-name" />
+    <label>Phone</label><input type="text" id="c-phone" />
+    <button class="btn-primary" onclick="submitCustomer()">Save customer</button>
+    <div id="customer-error" class="error hidden"></div>
+  </div>
+</div>
+
+<!-- MODAL: Record payment -->
+<div id="payment-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="close" onclick="closeModal('payment-modal')">Close</div>
+    <h3>Record payment</h3>
+    <label>Customer</label>
+    <select id="pay-customer"></select>
+    <div class="field-row">
+      <div><label>Amount</label><input type="number" id="pay-amount" /></div>
+      <div><label>Method</label>
+        <select id="pay-method">
+          <option value="cash">Cash</option>
+          <option value="bank_transfer">Bank transfer</option>
+          <option value="mobile_money">Mobile money</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="submitPayment()">Save payment</button>
+    <div id="payment-error" class="error hidden"></div>
+  </div>
+</div>
+
+<!-- MODAL: Add expense -->
+<div id="expense-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="close" onclick="closeModal('expense-modal')">Close</div>
+    <h3>Add expense</h3>
+    <label>Category</label>
+    <select id="e-category">
+      <option value="rent">Rent</option>
+      <option value="utilities">Utilities</option>
+      <option value="wages">Wages</option>
+      <option value="supplies">Supplies</option>
+      <option value="other">Other</option>
+    </select>
+    <label>Description</label><input type="text" id="e-description" />
+    <div class="field-row">
+      <div><label>Amount</label><input type="number" id="e-amount" /></div>
+      <div><label>Date</label><input type="date" id="e-date" /></div>
+    </div>
+    <button class="btn-primary" onclick="submitExpense()">Save expense</button>
+    <div id="expense-error" class="error hidden"></div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // CONFIG
+  // ============================================================
+  const SUPABASE_URL = "https://ryzqbxcyxqolxwqktuoz.supabase.co";
+  const SUPABASE_ANON_KEY = "YOUR-ANON-KEY-HERE";
+
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let currentUser = null;
+  let membership = null; // { business_id, role, full_name, businesses: {...} }
+  let cache = { products: [], customers: [], sales: [], payments: [], expenses: [] };
+
+  function show(id) { document.getElementById(id).classList.remove("hidden"); }
+  function hide(id) { document.getElementById(id).classList.add("hidden"); }
+  function setError(id, msg) { const el = document.getElementById(id); el.textContent = msg; show(id); }
+  function clearError(id) { hide(id); }
+  function escapeHtml(str) { const d = document.createElement("div"); d.textContent = str ?? ""; return d.innerHTML; }
+  function money(n) { return Number(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function openModal(id) { show(id); }
+  function closeModal(id) {
+    hide(id);
+    document.querySelectorAll(`#${id} input`).forEach((i) => (i.value = ""));
+    const errId = id.replace("-modal", "-error");
+    if (document.getElementById(errId)) clearError(errId);
+  }
+
+  // ============================================================
+  // BOOT
+  // ============================================================
+  async function boot() {
+    const { data: { session } } = await sb.auth.getSession();
+    hide("loading");
+    if (!session) { show("auth-screen"); showLogin(); return; }
+    currentUser = session.user;
+    await checkMembership();
+  }
+
+  async function checkMembership() {
+    const { data, error } = await sb
+      .from("app_users")
+      .select("business_id, role, full_name, businesses(name, business_types(display_name))")
+      .eq("user_id", currentUser.id)
+      .maybeSingle();
+
+    if (error || !data) { show("auth-screen"); showSignup(); return; }
+    membership = data;
+    document.getElementById("biz-name").textContent = data.businesses.name;
+    document.getElementById("biz-type").textContent = data.businesses.business_types?.display_name ?? "";
+    document.getElementById("user-name-display").textContent = data.full_name || currentUser.email;
+    document.getElementById("user-role-display").textContent = data.role;
+    hide("auth-screen"); show("app-screen");
+    await loadEverything();
+  }
+
+  // ============================================================
+  // AUTH
+  // ============================================================
+  function showSignup() {
+    document.getElementById("auth-title").textContent = "Join your business";
+    document.getElementById("auth-sub").textContent = "Enter the invite code your admin gave you.";
+    hide("login-form"); show("signup-form"); clearError("auth-error");
+  }
+  function showLogin() {
+    document.getElementById("auth-title").textContent = "Sign in";
+    document.getElementById("auth-sub").textContent = "Manage your business in one place.";
+    hide("signup-form"); show("login-form"); clearError("auth-error");
+  }
+  async function handleLogin() {
+    clearError("auth-error");
+    const email = document.getElementById("login-email").value.trim();
+    const password = document.getElementById("login-password").value;
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) return setError("auth-error", error.message);
+    currentUser = data.user;
+    await checkMembership();
+  }
+  async function handleSignup() {
+    clearError("auth-error");
+    const fullName = document.getElementById("signup-name").value.trim();
+    const code = document.getElementById("signup-code").value.trim();
+    const email = document.getElementById("signup-email").value.trim();
+    const password = document.getElementById("signup-password").value;
+    if (!fullName || !code) return setError("auth-error", "Full name and invite code are required.");
+
+    const { data, error } = await sb.auth.signUp({ email, password });
+    if (error) return setError("auth-error", error.message);
+    if (!data.session) return setError("auth-error", "Account created but not signed in — check if email confirmation is required.");
+
+    currentUser = data.user;
+    const { error: rpcErr } = await sb.rpc("redeem_invite_code", { p_invite_code: code, p_full_name: fullName });
+    if (rpcErr) return setError("auth-error", `Account created, but invite redemption failed: ${rpcErr.message}`);
+    await checkMembership();
+  }
+  async function handleLogout() {
+    await sb.auth.signOut();
+    currentUser = null; membership = null;
+    hide("app-screen"); showLogin(); show("auth-screen");
+  }
+
+  // ============================================================
+  // TABS
+  // ============================================================
+  function switchTab(tab) {
+    document.querySelectorAll(".tab-panel").forEach((el) => el.classList.add("hidden"));
+    document.getElementById(`tab-${tab}`).classList.remove("hidden");
+    document.querySelectorAll(".nav-item").forEach((el) => el.classList.toggle("active", el.dataset.tab === tab));
+  }
+
+  // ============================================================
+  // LOAD EVERYTHING
+  // ============================================================
+  async function loadEverything() {
+    await Promise.all([loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses()]);
+    renderDashboard();
+  }
+
+  function renderDashboard() {
+    document.getElementById("m-products").textContent = cache.products.length;
+    document.getElementById("m-lowstock").textContent = cache.products.filter(
+      (p) => p.stock_qty !== null && p.low_stock_threshold !== null && p.stock_qty <= p.low_stock_threshold
+    ).length;
+    document.getElementById("m-sales").textContent = cache.sales.length;
+    document.getElementById("m-revenue").textContent = money(cache.sales.reduce((s, o) => s + Number(o.total_amount), 0));
+    document.getElementById("m-expenses").textContent = money(cache.expenses.reduce((s, e) => s + Number(e.amount), 0));
+  }
+
+  // ============================================================
+  // PRODUCTS
+  // ============================================================
+  async function loadProducts() {
+    const { data } = await sb.from("products").select("*").eq("is_active", true).order("category").order("name");
+    cache.products = data ?? [];
+    const cats = [...new Set(cache.products.map((p) => p.category).filter(Boolean))];
+    document.getElementById("cat-filter").innerHTML =
+      `<option value="">All categories</option>` + cats.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+    document.getElementById("cat-suggestions").innerHTML = cats.map((c) => `<option value="${escapeHtml(c)}">`).join("");
+    renderProducts();
+  }
+
+  function renderProducts() {
+    const filter = document.getElementById("cat-filter").value;
+    const list = filter ? cache.products.filter((p) => p.category === filter) : cache.products;
+    const el = document.getElementById("products-ledger");
+    if (list.length === 0) { el.innerHTML = `<div class="empty-state">No products yet. Add your first one.</div>`; return; }
+
+    el.innerHTML =
+      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Product</div><div>Stock</div><div style="text-align:right">Price</div></div>` +
+      list.map((p) => {
+        const isLow = p.stock_qty !== null && p.low_stock_threshold !== null && p.stock_qty <= p.low_stock_threshold;
+        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr;">
+          <div>
+            <div>${escapeHtml(p.name)}</div>
+            ${p.category ? `<span class="cat-badge">${escapeHtml(p.category)}</span>` : ""}
+          </div>
+          <div class="${isLow ? "low-tag" : "num"}">${p.stock_qty !== null ? p.stock_qty + " " + escapeHtml(p.unit) : "—"}</div>
+          <div class="num" style="text-align:right">${money(p.price)}</div>
+        </div>`;
+      }).join("");
+  }
+
+  async function submitProduct() {
+    clearError("product-error");
+    const name = document.getElementById("p-name").value.trim();
+    const category = document.getElementById("p-category").value.trim() || null;
+    const price = parseFloat(document.getElementById("p-price").value);
+    const unit = document.getElementById("p-unit").value.trim() || "item";
+    const stock = document.getElementById("p-stock").value === "" ? null : parseFloat(document.getElementById("p-stock").value);
+    const threshold = document.getElementById("p-threshold").value === "" ? null : parseFloat(document.getElementById("p-threshold").value);
+
+    if (!name || isNaN(price)) return setError("product-error", "Name and price are required.");
+
+    const { error } = await sb.from("products").insert({
+      business_id: membership.business_id, name, category, price, unit, stock_qty: stock, low_stock_threshold: threshold,
+    });
+    if (error) return setError("product-error", error.message);
+    closeModal("product-modal");
+    await loadProducts();
+    renderDashboard();
+  }
+
+  // ============================================================
+  // SALES — recording one deducts stock + logs a stock_movement
+  // ============================================================
+  async function openSaleModal() {
+    const productSelect = document.getElementById("s-product");
+    productSelect.innerHTML = cache.products.map((p) => `<option value="${p.id}">${escapeHtml(p.name)} (stock: ${p.stock_qty ?? "—"})</option>`).join("");
+    onSaleProductChange();
+    const customerSelect = document.getElementById("s-customer");
+    customerSelect.innerHTML = `<option value="">Walk-in / no customer</option>` + cache.customers.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
+    openModal("sale-modal");
+  }
+  function onSaleProductChange() {
+    const productId = document.getElementById("s-product").value;
+    const product = cache.products.find((p) => p.id === productId);
+    if (product) document.getElementById("s-price").value = product.price;
+  }
+  async function submitSale() {
+    clearError("sale-error");
+    const productId = document.getElementById("s-product").value;
+    const qty = parseFloat(document.getElementById("s-qty").value);
+    const price = parseFloat(document.getElementById("s-price").value);
+    const customerId = document.getElementById("s-customer").value || null;
+    const product = cache.products.find((p) => p.id === productId);
+
+    if (!product || isNaN(qty) || qty <= 0 || isNaN(price)) return setError("sale-error", "Check the product, quantity, and price.");
+
+    const total = qty * price;
+    const { data: order, error: orderErr } = await sb.from("orders").insert({
+      business_id: membership.business_id, customer_id: customerId, created_by: currentUser.id, status: "completed", total_amount: total,
+    }).select().single();
+    if (orderErr) return setError("sale-error", orderErr.message);
+
+    const { error: itemErr } = await sb.from("order_items").insert({
+      order_id: order.id, product_id: productId, quantity: qty, unit_price: price,
+    });
+    if (itemErr) return setError("sale-error", itemErr.message);
+
+    if (product.stock_qty !== null) {
+      const newStock = product.stock_qty - qty;
+      await sb.from("products").update({ stock_qty: newStock }).eq("id", productId);
+      await sb.from("stock_movements").insert({
+        business_id: membership.business_id, item_type: "product", product_id: productId,
+        quantity_change: -qty, reason: "sale", reference_type: "order", reference_id: order.id, created_by: currentUser.id,
+      });
+    }
+
+    closeModal("sale-modal");
+    await Promise.all([loadProducts(), loadSales()]);
+    renderDashboard();
+  }
+
+  async function loadSales() {
+    const { data } = await sb.from("orders").select("*, customers(name)").order("created_at", { ascending: false }).limit(50);
+    cache.sales = data ?? [];
+    const el = document.getElementById("sales-ledger");
+    if (cache.sales.length === 0) { el.innerHTML = `<div class="empty-state">No sales recorded yet.</div>`; return; }
+    el.innerHTML =
+      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Customer</div><div>Date</div><div style="text-align:right">Total</div></div>` +
+      cache.sales.map((o) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr;">
+        <div>${o.customers ? escapeHtml(o.customers.name) : "Walk-in"}</div>
+        <div style="color:var(--ink-faint); font-size:12px;">${new Date(o.created_at).toLocaleDateString()}</div>
+        <div class="num" style="text-align:right">${money(o.total_amount)}</div>
+      </div>`).join("");
+  }
+
+  // ============================================================
+  // CUSTOMERS
+  // ============================================================
+  async function loadCustomers() {
+    const { data } = await sb.from("customers").select("*").order("name");
+    cache.customers = data ?? [];
+    const el = document.getElementById("customers-ledger");
+    if (cache.customers.length === 0) { el.innerHTML = `<div class="empty-state">No customers yet.</div>`; return; }
+    el.innerHTML =
+      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Name</div><div>Phone</div></div>` +
+      cache.customers.map((c) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr;">
+        <div>${escapeHtml(c.name)}</div><div style="color:var(--ink-faint)">${escapeHtml(c.phone ?? "—")}</div>
+      </div>`).join("");
+  }
+  async function submitCustomer() {
+    clearError("customer-error");
+    const name = document.getElementById("c-name").value.trim();
+    const phone = document.getElementById("c-phone").value.trim() || null;
+    if (!name) return setError("customer-error", "Name is required.");
+    const { error } = await sb.from("customers").insert({ business_id: membership.business_id, name, phone });
+    if (error) return setError("customer-error", error.message);
+    closeModal("customer-modal");
+    await loadCustomers();
+  }
+
+  // ============================================================
+  // PAYMENTS
+  // ============================================================
+  async function loadPayments() {
+    const { data } = await sb.from("payments").select("*, customers(name)").eq("direction", "in").order("created_at", { ascending: false }).limit(50);
+    cache.payments = data ?? [];
+    const el = document.getElementById("payments-ledger");
+    if (cache.payments.length === 0) { el.innerHTML = `<div class="empty-state">No payments recorded yet.</div>`; return; }
+    el.innerHTML =
+      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Customer</div><div>Method</div><div style="text-align:right">Amount</div></div>` +
+      cache.payments.map((p) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr;">
+        <div>${p.customers ? escapeHtml(p.customers.name) : "—"}</div>
+        <div style="color:var(--ink-faint); font-size:12px; text-transform:capitalize;">${escapeHtml(p.method.replace("_"," "))}</div>
+        <div class="num" style="text-align:right">${money(p.amount)}</div>
+      </div>`).join("");
+  }
+  async function submitPayment() {
+    clearError("payment-error");
+    const customerId = document.getElementById("pay-customer").value;
+    const amount = parseFloat(document.getElementById("pay-amount").value);
+    const method = document.getElementById("pay-method").value;
+    if (!customerId || isNaN(amount) || amount <= 0) return setError("payment-error", "Select a customer and a valid amount.");
+    const { error } = await sb.from("payments").insert({
+      business_id: membership.business_id, direction: "in", party_type: "customer", customer_id: customerId, amount, method, created_by: currentUser.id,
+    });
+    if (error) return setError("payment-error", error.message);
+    closeModal("payment-modal");
+    await loadPayments();
+  }
+  // populate payment customer dropdown whenever the modal opens
+  document.getElementById("payment-modal").addEventListener("transitionstart", () => {}); // no-op safeguard
+  const origOpenModal = openModal;
+  window.openModal = function (id) {
+    if (id === "payment-modal") {
+      document.getElementById("pay-customer").innerHTML = cache.customers.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
+    }
+    origOpenModal(id);
+  };
+
+  // ============================================================
+  // EXPENSES
+  // ============================================================
+  async function loadExpenses() {
+    const { data } = await sb.from("expenses").select("*").order("expense_date", { ascending: false }).limit(50);
+    cache.expenses = data ?? [];
+    const el = document.getElementById("expenses-ledger");
+    if (cache.expenses.length === 0) { el.innerHTML = `<div class="empty-state">No expenses recorded yet.</div>`; return; }
+    el.innerHTML =
+      `<div class="ledger-head" style="grid-template-columns: 1fr 2fr 1fr;"><div>Category</div><div>Description</div><div style="text-align:right">Amount</div></div>` +
+      cache.expenses.map((e) => `<div class="ledger-row" style="grid-template-columns: 1fr 2fr 1fr;">
+        <div><span class="cat-badge" style="background:var(--amber-soft); color:var(--amber);">${escapeHtml(e.category)}</span></div>
+        <div style="color:var(--ink-soft); font-size:13px;">${escapeHtml(e.description ?? "—")}</div>
+        <div class="num" style="text-align:right">${money(e.amount)}</div>
+      </div>`).join("");
+  }
+  async function submitExpense() {
+    clearError("expense-error");
+    const category = document.getElementById("e-category").value;
+    const description = document.getElementById("e-description").value.trim() || null;
+    const amount = parseFloat(document.getElementById("e-amount").value);
+    const date = document.getElementById("e-date").value || new Date().toISOString().slice(0, 10);
+    if (isNaN(amount) || amount <= 0) return setError("expense-error", "Enter a valid amount.");
+    const { error } = await sb.from("expenses").insert({
+      business_id: membership.business_id, category, description, amount, expense_date: date, created_by: currentUser.id,
+    });
+    if (error) return setError("expense-error", error.message);
+    closeModal("expense-modal");
+    await loadExpenses();
+    renderDashboard();
+  }
+
+  boot();
+</script>
+
+</body>
+</html>

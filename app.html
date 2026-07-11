@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thole Solutions Workspace</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Smooth transitions for responsive layout elements */
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen font-sans">
+
+    <div id="auth-container" class="flex items-center justify-center min-h-screen px-4 fade-in">
+        <div class="bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-700">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl font-bold tracking-wider">TS</div>
+                <h2 class="text-2xl font-bold tracking-tight">Thole Solutions</h2>
+                <p class="text-gray-400 text-sm mt-1" id="auth-subtitle">Sign in to manage your workspace</p>
+            </div>
+
+            <div id="auth-alert" class="hidden p-3 rounded-lg text-sm mb-4 bg-red-900/50 border border-red-700 text-red-200"></div>
+
+            <form id="auth-form" onsubmit="handleAuth(event)">
+                <div class="space-y-4">
+                    <div id="onboard-fields" class="hidden space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Full Name</label>
+                            <input type="text" id="auth-fullname" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Invite Code</label>
+                            <input type="text" id="auth-invite" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 placeholder-gray-600" placeholder="e.g. RETAIL-CODE-123">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Email Address</label>
+                        <input type="email" id="auth-email" required class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Password</label>
+                        <input type="password" id="auth-password" required class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500">
+                    </div>
+
+                    <button type="submit" id="auth-submit-btn" class="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-semibold py-3 rounded-xl transition duration-200 shadow-lg shadow-blue-900/30 mt-2 cursor-pointer">
+                        Sign In
+                    </button>
+                </div>
+            </form>
+
+            <div class="text-center mt-6 text-sm">
+                <a href="#" id="auth-toggle-link" onclick="toggleAuthMode(event)" class="text-blue-400 hover:underline">New to a business? Redeem Invite Code</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-container" class="hidden min-h-screen flex flex-col md:flex-row fade-in">
+        
+        <header class="md:hidden bg-gray-800 border-b border-gray-700 px-4 py-3 flex items-center justify-between z-20">
+            <span class="font-bold text-lg tracking-wider text-blue-400">Thole Solutions</span>
+            <button onclick="toggleMobileMenu()" class="text-gray-400 hover:text-white focus:outline-none cursor-pointer">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            </button>
+        </header>
+
+        <aside id="sidebar" class="hidden md:flex flex-col w-full md:w-64 bg-gray-800 border-r border-gray-700 text-gray-300 z-10 shrink-0">
+            <div class="p-6 border-b border-gray-700 hidden md:block">
+                <h1 class="text-xl font-bold tracking-wider text-white">Thole Solutions</h1>
+                <p class="text-xs text-gray-400 mt-1" id="business-name-display">Loading profile...</p>
+            </div>
+            <nav class="flex-1 p-4 space-y-1">
+                <a href="#" onclick="switchTab(event, 'dashboard')" class="tab-link flex items-center gap-3 px-4 py-3 rounded-xl font-medium bg-gray-900 text-white transition">
+                    Dashboard
+                </a>
+                <a href="#" onclick="switchTab(event, 'products')" class="tab-link flex items-center gap-3 px-4 py-3 rounded-xl font-medium hover:bg-gray-750 hover:text-white transition">
+                    Products Inventory
+                </a>
+                <a href="#" onclick="switchTab(event, 'sales')" class="tab-link flex items-center gap-3 px-4 py-3 rounded-xl font-medium hover:bg-gray-750 hover:text-white transition">
+                    Sales Log
+                </a>
+            </nav>
+            <div class="p-4 border-t border-gray-700 flex items-center justify-between bg-gray-850">
+                <div class="truncate mr-2">
+                    <p class="text-sm font-semibold text-white truncate" id="user-name-display">User Name</p>
+                    <p class="text-xs text-gray-400 capitalize" id="user-role-display">Staff</p>
+                </div>
+                <button onclick="logout()" class="text-gray-400 hover:text-red-400 transition p-2 rounded-lg cursor-pointer" title="Log Out">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                </button>
+            </div>
+        </aside>
+
+        <main class="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
+            
+            <section id="tab-dashboard" class="tab-content space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold tracking-tight text-white">Overview Workspace</h2>
+                        <p class="text-gray-400 text-sm">Real-time status updates across your tenant metrics.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-md">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Total Registered Products</p>
+                        <h3 class="text-3xl font-bold text-white" id="metric-products-count">0</h3>
+                    </div>
+                    <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-md">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Completed Business Transactions</p>
+                        <h3 class="text-3xl font-bold text-emerald-400" id="metric-sales-count">0</h3>
+                    </div>
+                    <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-md sm:col-span-2 lg:col-span-1">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Total Business Revenue</p>
+                        <h3 class="text-3xl font-bold text-blue-400" id="metric-revenue">$0.00</h3>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tab-products" class="tab-content hidden space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold tracking-tight text-white">Products Inventory</h2>
+                        <p class="text-gray-400 text-sm">Create and inspect your direct retail product catalog rows.</p>
+                    </div>
+                </div>
+
+                <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 shadow-md">
+                    <form id="product-form" onsubmit="createProduct(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Product Name</label>
+                            <input type="text" id="prod-name" required class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Retail Unit Price ($)</label>
+                            <input type="number" step="0.01" id="prod-price" required class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm py-2 px-4 rounded-xl transition shadow-md shadow-blue-900/20 cursor-pointer">
+                            + Add Product Row
+                        </button>
+                    </form>
+                </div>
+
+                <div class="bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden shadow-md">
+                    <div class="overflow-x-auto w-full">
+                        <table class="w-full text-left border-collapse min-w-[500px]">
+                            <thead>
+                                <tr class="bg-gray-850 text-xs font-semibold uppercase text-gray-400 border-b border-gray-700">
+                                    <th class="py-4 px-6">Database Key ID</th>
+                                    <th class="py-4 px-6">Item Name</th>
+                                    <th class="py-4 px-6 text-right">Standard Unit Retail Price</th>
+                                </tr>
+                            </thead>
+                            <tbody id="products-table-body" class="divide-y divide-gray-700 text-sm text-gray-300">
+                                <tr>
+                                    <td colspan="3" class="py-8 px-6 text-center text-gray-500">No matching record data rows verified yet.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tab-sales" class="tab-content hidden space-y-6">
+                <div>
+                    <h2 class="text-2xl font-bold tracking-tight text-white">Sales Log Transactions</h2>
+                    <p class="text-gray-400 text-sm">Direct ledger data entries for logged customer transactions.</p>
+                </div>
+                <div class="bg-gray-800 rounded-2xl border border-gray-700 p-6 text-center text-gray-500 text-sm shadow-md">
+                    Ready to track orders. Create your product items rows first to enable transactions.
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        // Directly embedding your live credentials safely inside client-side JS parameters
+        const SUPABASE_URL = "https://qehgsomtcionbovlqgyi.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFlaGdzb210Y2lvbmJvdmxxZ3lpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2ODA4ODQsImV4cCI6MjA5OTI1Njg4NH0.QydTydc8wbbhRhwiNpWCqA74m52MZ3RcgKJOmf538us";
+
+        // Global initialized database client connector - Fix applied here
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let isSignUpMode = false;
+
+        // Verify active login token cache immediately upon runtime
+        document.addEventListener("DOMContentLoaded", async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            handleSessionRoute(session);
+
+            // Establish listener state to capture logout/login event shifts instantly
+            supabase.auth.onAuthStateChange((_event, session) => {
+                handleSessionRoute(session);
+            });
+        });
+
+        function handleSessionRoute(session) {
+            const authCont = document.getElementById("auth-container");
+            const appCont = document.getElementById("app-container");
+
+            if (session) {
+                authCont.classList.add("hidden");
+                appCont.classList.remove("hidden");
+                loadUserDataProfile();
+            } else {
+                appCont.classList.add("hidden");
+                authCont.classList.remove("hidden");
+            }
+        }
+
+        // Handle Form Submissions (Sign In or Sign Up via Invite Redemption)
+        async function handleAuth(e) {
+            e.preventDefault();
+            showAlert(""); // Clear prior messages
+            
+            const email = document.getElementById("auth-email").value.trim();
+            const password = document.getElementById("auth-password").value;
+            const fullName = document.getElementById("auth-fullname").value.trim();
+            const inviteCode = document.getElementById("auth-invite").value.trim();
+
+            if (isSignUpMode) {
+                // Execute Step 1: Standard User Creation
+                const { data: authData, error: authErr } = await supabase.auth.signUp({ email, password });
+                if (authErr) return showAlert(authErr.message);
+
+                if (authData?.user) {
+                    // Execute Step 2: Redeem invite code via SQL Function RPC Hook
+                    const { data: rpcData, error: rpcErr } = await supabase.rpc('redeem_invite_code', {
+                        p_invite_code: inviteCode,
+                        p_full_name: fullName
+                    });
+
+                    if (rpcErr) {
+                        showAlert(`User created, but invite redemption failed: ${rpcErr.message}`);
+                    } else {
+                        location.reload(); // Reload to initialize complete workspace view data
+                    }
+                }
+            } else {
+                // Direct Sign In Logic
+                const { error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) showAlert(error.message);
+            }
+        }
+
+        // Load multi-tenant relational application parameters from profiles and businesses tables
+        async function loadUserDataProfile() {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                // Grab user profile membership row (Enabled by own_membership RLS policy)
+                const { data: profile, error: profErr } = await supabase.from('app_users').select('*, businesses(*)').single();
+                
+                if (profile) {
+                    document.getElementById("user-name-display").innerText = profile.full_name || user.email;
+                    document.getElementById("user-role-display").innerText = profile.role;
+                    if (profile.businesses) {
+                        document.getElementById("business-name-display").innerText = profile.businesses.name;
+                    }
+                    loadInventoryCatalog(); // Pull core metrics data sets next
+                }
+            } catch (err) {
+                console.error("Profile resolution sequence exception caught:", err);
+            }
+        }
+
+        // Pull core products table records matching tenant workspace
+        async function loadInventoryCatalog() {
+            const { data: products, error } = await supabase.from('products').select('*').eq('is_active', true);
+            if (error) return console.error(error.message);
+
+            // Populate dashboard snapshot metric parameters
+            document.getElementById("metric-products-count").innerText = products ? products.length : 0;
+
+            const tbody = document.getElementById("products-table-body");
+            if (!products || products.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="py-8 px-6 text-center text-gray-500">No matching record data rows verified yet.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = products.map(p => `
+                <tr class="hover:bg-gray-750/50 transition">
+                    <td class="py-4 px-6 font-mono text-xs text-gray-500">${p.id.substring(0,8)}...</td>
+                    <td class="py-4 px-6 text-white font-medium">${p.name}</td>
+                    <td class="py-4 px-6 text-right font-semibold text-emerald-400">$${parseFloat(p.price).toFixed(2)}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Post new product item row inside active business entity workspace
+        async function createProduct(e) {
+            e.preventDefault();
+            const name = document.getElementById("prod-name").value.trim();
+            const price = parseFloat(document.getElementById("prod-price").value);
+
+            // Fetch contextual active user profile profile parameters first
+            const { data: profile } = await supabase.from('app_users').select('business_id').single();
+
+            if (profile?.business_id) {
+                const { error } = await supabase.from('products').insert([
+                    { business_id: profile.business_id, name: name, price: price }
+                ]);
+
+                if (error) {
+                    alert(`Insertion Error Event: ${error.message}`);
+                } else {
+                    document.getElementById("product-form").reset();
+                    loadInventoryCatalog(); // Re-render table elements mapping updates
+                }
+            }
+        }
+
+        // UI Management Utility Switches
+        function toggleAuthMode(e) {
+            e.preventDefault();
+            isSignUpMode = !isSignUpMode;
+            
+            const title = document.querySelector("#auth-container h2");
+            const subtitle = document.getElementById("auth-subtitle");
+            const submitBtn = document.getElementById("auth-submit-btn");
+            const toggleLink = document.getElementById("auth-toggle-link");
+            const onboardFields = document.getElementById("onboard-fields");
+
+            if (isSignUpMode) {
+                title.innerText = "Register Workspace";
+                subtitle.innerText = "Claim your enterprise invite authentication code";
+                submitBtn.innerText = "Redeem & Create Account";
+                toggleLink.innerText = "Already have an account? Sign In";
+                onboardFields.classList.remove("hidden");
+                document.getElementById("auth-fullname").required = true;
+                document.getElementById("auth-invite").required = true;
+            } else {
+                title.innerText = "Thole Solutions";
+                subtitle.innerText = "Sign in to manage your workspace";
+                submitBtn.innerText = "Sign In";
+                toggleLink.innerText = "New to a business? Redeem Invite Code";
+                onboardFields.classList.add("hidden");
+                document.getElementById("auth-fullname").required = false;
+                document.getElementById("auth-invite").required = false;
+            }
+        }
+
+        // Fix applied here to pass event parameter correctly
+        function switchTab(event, tabId) {
+            document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
+            document.getElementById(`tab-${tabId}`).classList.remove("hidden");
+
+            // Update tab visual indicator styling parameters
+            document.querySelectorAll(".tab-link").forEach(el => {
+                el.classList.remove("bg-gray-900", "text-white");
+                el.classList.add("hover:bg-gray-750", "hover:text-white");
+            });
+            event.currentTarget.classList.add("bg-gray-900", "text-white");
+            event.currentTarget.classList.remove("hover:bg-gray-750", "hover:text-white");
+            
+            // Close mobile menu drawer automatically post switch invocation event
+            if(window.innerWidth < 768) {
+                document.getElementById("sidebar").classList.add("hidden");
+            }
+        }
+
+        function toggleMobileMenu() {
+            const sidebar = document.getElementById("sidebar");
+            sidebar.classList.toggle("hidden");
+            sidebar.classList.toggle("flex");
+        }
+
+        function showAlert(msg) {
+            const box = document.getElementById("auth-alert");
+            if(msg) {
+                box.innerText = msg;
+                box.classList.remove("hidden");
+            } else {
+                box.classList.add("hidden");
+            }
+        }
+
+        async function logout() {
+            await supabase.auth.signOut();
+            location.reload();
+        }
+    </script>
+</body>
+</html>

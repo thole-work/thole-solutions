@@ -157,7 +157,7 @@
     <label>Email</label><input type="email" id="login-email" />
     <label>Password</label><input type="password" id="login-password" />
     <button class="btn-primary" onclick="handleLogin()">Sign in</button>
-    <div class="switch">New here? <a onclick="showSignup()">Redeem an invite code</a></div>
+    <div class="switch">New here? <a onclick="showSignup()">Redeem an invite code</a> or <a onclick="showNewBusiness()">start a new business</a></div>
   </div>
 
   <div id="signup-form" class="hidden">
@@ -169,7 +169,34 @@
     <div class="switch">Already have an account? <a onclick="showLogin()">Sign in</a></div>
   </div>
 
+  <div id="newbiz-form" class="hidden">
+    <label>Your name</label><input type="text" id="nb-name" />
+    <label>Business name</label><input type="text" id="nb-business-name" />
+    <label>Business type</label>
+    <select id="nb-business-type">
+      <option value="retail">Retail shop</option>
+      <option value="restaurant">Restaurant</option>
+      <option value="salon">Salon / service</option>
+      <option value="factory">Factory / production</option>
+    </select>
+    <label>Email</label><input type="email" id="nb-email" />
+    <label>Password</label><input type="password" id="nb-password" placeholder="At least 6 characters" />
+    <button class="btn-primary" onclick="handleCreateBusiness()">Create business & account</button>
+    <div class="switch">Already have an account? <a onclick="showLogin()">Sign in</a></div>
+  </div>
+
   <div id="auth-error" class="error hidden"></div>
+</div>
+
+<!-- Shown once, right after a new business is created — the owner's
+     one chance to see and copy their invite code before moving on. -->
+<div id="invite-reveal-screen" class="hidden" style="max-width: 420px; margin: 0 auto; padding: 60px 20px; text-align:center;">
+  <div class="brand-mark" style="margin:0 auto 18px;"><img src="logo.png" alt="Thole Solutions" /></div>
+  <h1>You're all set</h1>
+  <p class="sub">Share this code with your staff so they can join:</p>
+  <div class="num" style="font-size:28px; font-weight:600; letter-spacing:0.05em; background:var(--accent-soft); color:var(--accent); padding:16px; border-radius:10px; margin:16px 0;" id="invite-code-display">—</div>
+  <p class="sub" style="margin-top:0;">They'll enter it under "Redeem an invite code" when they sign up.</p>
+  <button class="btn-primary" onclick="finishInviteReveal()">Go to dashboard</button>
 </div>
 
 <!-- ONBOARDING (invite code) — shown when logged in but no business yet -->
@@ -540,12 +567,46 @@
   function showSignup() {
     document.getElementById("auth-title").textContent = "Join your business";
     document.getElementById("auth-sub").textContent = "Enter the invite code your admin gave you.";
-    hide("login-form"); show("signup-form"); clearError("auth-error");
+    hide("login-form"); hide("newbiz-form"); show("signup-form"); clearError("auth-error");
+  }
+  function showNewBusiness() {
+    document.getElementById("auth-title").textContent = "Start your business";
+    document.getElementById("auth-sub").textContent = "You'll be the owner — set up your team after.";
+    hide("login-form"); hide("signup-form"); show("newbiz-form"); clearError("auth-error");
   }
   function showLogin() {
     document.getElementById("auth-title").textContent = "Sign in";
     document.getElementById("auth-sub").textContent = "Manage your business in one place.";
-    hide("signup-form"); show("login-form"); clearError("auth-error");
+    hide("signup-form"); hide("newbiz-form"); show("login-form"); clearError("auth-error");
+  }
+
+  async function handleCreateBusiness() {
+    clearError("auth-error");
+    const fullName = document.getElementById("nb-name").value.trim();
+    const businessName = document.getElementById("nb-business-name").value.trim();
+    const businessType = document.getElementById("nb-business-type").value;
+    const email = document.getElementById("nb-email").value.trim();
+    const password = document.getElementById("nb-password").value;
+    if (!fullName || !businessName) return setError("auth-error", "Your name and a business name are required.");
+
+    const { data, error } = await sb.auth.signUp({ email, password });
+    if (error) return setError("auth-error", error.message);
+    if (!data.session) return setError("auth-error", "Account created but not signed in — check if email confirmation is required.");
+
+    currentUser = data.user;
+    const { data: code, error: rpcErr } = await sb.rpc("create_business", {
+      p_business_name: businessName, p_business_type_key: businessType, p_full_name: fullName,
+    });
+    if (rpcErr) return setError("auth-error", `Account created, but business setup failed: ${rpcErr.message}`);
+
+    hide("auth-screen");
+    document.getElementById("invite-code-display").textContent = code;
+    show("invite-reveal-screen");
+  }
+
+  async function finishInviteReveal() {
+    hide("invite-reveal-screen");
+    await checkMembership();
   }
   async function handleLogin() {
     clearError("auth-error");

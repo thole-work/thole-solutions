@@ -255,6 +255,7 @@
       <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases')"><span class="nav-icon">▥</span> Purchase Orders</div>
       <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team')"><span class="nav-icon">☺</span> Team</div>
       <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports')"><span class="nav-icon">▲</span> Reports</div>
+      <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials')"><span class="nav-icon">◑</span> Raw Materials</div>
       <div class="nav-item mobile-more-btn" onclick="toggleMoreMenu()"><span class="nav-icon">☰</span> More</div>
     </nav>
     <div class="side-footer">
@@ -274,6 +275,7 @@
     <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases'); toggleMoreMenu();"><span class="nav-icon">▥</span> Purchase Orders</div>
     <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team'); toggleMoreMenu();"><span class="nav-icon">☺</span> Team</div>
     <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports'); toggleMoreMenu();"><span class="nav-icon">▲</span> Reports</div>
+    <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials'); toggleMoreMenu();"><span class="nav-icon">◑</span> Raw Materials</div>
   </div>
   <div id="mobile-more-backdrop" onclick="toggleMoreMenu()"></div>
 
@@ -369,6 +371,16 @@
       <div class="ledger" id="top-products-ledger" style="margin-bottom:22px;"></div>
       <h3 style="font-size:14px; margin-bottom:10px;">Low stock</h3>
       <div class="ledger" id="low-stock-ledger"></div>
+    </section>
+
+    <!-- RAW MATERIALS -->
+    <section id="tab-materials" class="tab-panel hidden">
+      <div class="page-header"><h2>Raw Materials</h2><p>Ingredients or components used to make your products.</p></div>
+      <div class="toolbar">
+        <button class="btn-small" onclick="openProduceModal()">Produce</button>
+        <button class="btn-small" onclick="openModal('material-modal')">+ Add raw material</button>
+      </div>
+      <div class="ledger" id="materials-ledger"></div>
     </section>
   </main>
 </div>
@@ -504,6 +516,56 @@
   </div>
 </div>
 
+<!-- MODAL: Add/edit raw material -->
+<div id="material-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="close" onclick="closeModal('material-modal')">Close</div>
+    <h3 id="material-modal-title">Add raw material</h3>
+    <label>Name</label><input type="text" id="m-name" />
+    <div class="field-row">
+      <div><label>Unit</label><input type="text" id="m-unit" placeholder="kg, litre, piece" /></div>
+      <div><label>Cost per unit</label><input type="number" id="m-cost" /></div>
+    </div>
+    <div class="field-row">
+      <div><label>Starting stock</label><input type="number" id="m-stock" placeholder="0" /></div>
+      <div><label>Low stock alert below</label><input type="number" id="m-threshold" placeholder="optional" /></div>
+    </div>
+    <button class="btn-primary" id="material-submit-btn" onclick="submitMaterial()">Save raw material</button>
+    <button class="btn-ghost hidden" id="material-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('raw_materials', 'material-modal')">Delete raw material</button>
+    <div id="material-error" class="error hidden"></div>
+  </div>
+</div>
+
+<!-- MODAL: Recipe editor (opened from a product) -->
+<div id="recipe-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="close" onclick="closeModal('recipe-modal')">Close</div>
+    <h3>Recipe for <span id="recipe-product-name"></span></h3>
+    <p style="font-size:12px; color:var(--ink-faint); margin-top:-6px;">How much of each raw material makes ONE unit of this product.</p>
+    <div id="recipe-items-list" style="margin:14px 0;"></div>
+    <div class="field-row">
+      <div><label>Raw material</label><select id="ri-material"></select></div>
+      <div><label>Qty per unit</label><input type="number" id="ri-qty" /></div>
+    </div>
+    <button class="btn-primary" onclick="addRecipeItem()">Add to recipe</button>
+    <div id="recipe-error" class="error hidden"></div>
+  </div>
+</div>
+
+<!-- MODAL: Produce (consume raw materials, add finished stock) -->
+<div id="produce-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="close" onclick="closeModal('produce-modal')">Close</div>
+    <h3>Produce</h3>
+    <label>Product</label>
+    <select id="prod-product" onchange="onProduceProductChange()"></select>
+    <label>Batch quantity</label><input type="number" id="prod-qty" value="1" onchange="onProduceProductChange()" />
+    <div id="produce-requirements" style="margin:14px 0; font-size:13px; color:var(--ink-soft);"></div>
+    <button class="btn-primary" onclick="submitProduce()">Produce</button>
+    <div id="produce-error" class="error hidden"></div>
+  </div>
+</div>
+
 <script>
   // ============================================================
   // CONFIG
@@ -515,8 +577,9 @@
 
   let currentUser = null;
   let membership = null; // { business_id, role, full_name, businesses: {...} }
-  let cache = { products: [], customers: [], sales: [], payments: [], expenses: [], suppliers: [], purchases: [] };
+  let cache = { products: [], customers: [], sales: [], payments: [], expenses: [], suppliers: [], purchases: [], materials: [] };
   let editingRecord = null; // { table: 'products', id: '...' } — null means "adding new"
+  let businessTypeKey = null;
 
   function show(id) { document.getElementById(id).classList.remove("hidden"); }
   function hide(id) { document.getElementById(id).classList.add("hidden"); }
@@ -563,7 +626,7 @@
   async function checkMembership() {
     const { data, error } = await sb
       .from("app_users")
-      .select("business_id, role, full_name, businesses(name, invite_code, business_types(display_name))")
+      .select("business_id, role, full_name, businesses(name, invite_code, business_types(display_name, type_key))")
       .eq("user_id", currentUser.id)
       .maybeSingle();
 
@@ -579,8 +642,19 @@
     document.getElementById("user-name-display").textContent = data.full_name || currentUser.email;
     document.getElementById("user-role-display").textContent = data.role;
     applyRolePermissions(data.role);
+    applyBusinessTypeVisibility(data.businesses.business_types?.type_key);
     hide("auth-screen"); hide("onboarding-screen"); show("app-screen");
     await loadEverything();
+  }
+
+  function applyBusinessTypeVisibility(typeKey) {
+    businessTypeKey = typeKey;
+    const needsRawMaterials = typeKey === "restaurant" || typeKey === "factory";
+    // matches BOTH the sidebar item and its duplicate in the mobile
+    // overflow panel, since both share the same data-tab attribute
+    document.querySelectorAll('.nav-item[data-tab="materials"]').forEach((el) => {
+      el.classList.toggle("hidden", !needsRawMaterials);
+    });
   }
 
   // ============================================================
@@ -602,6 +676,8 @@
     // products (inventory/pricing changes stay owner/manager-only).
     const addProductBtn = document.querySelector('button[onclick="openModal(\'product-modal\')"]');
     if (addProductBtn) addProductBtn.classList.toggle("hidden", isStaff);
+    const addMaterialBtn = document.querySelector('button[onclick="openModal(\'material-modal\')"]');
+    if (addMaterialBtn) addMaterialBtn.classList.toggle("hidden", isStaff);
   }
 
   // ============================================================
@@ -722,7 +798,7 @@
   // LOAD EVERYTHING
   // ============================================================
   async function loadEverything() {
-    await Promise.all([loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses(), loadSuppliers(), loadPurchases()]);
+    await Promise.all([loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses(), loadSuppliers(), loadPurchases(), loadMaterials()]);
     if (membership.role === "owner") await loadTeam();
     if (membership.role === "owner" || membership.role === "manager") await loadReports();
     renderDashboard();
@@ -761,10 +837,12 @@
       `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Product</div><div>Stock</div><div style="text-align:right">Price</div></div>` +
       list.map((p) => {
         const isLow = p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold);
+        const showRecipeLink = businessTypeKey === "restaurant" || businessTypeKey === "factory";
         return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr; cursor:pointer;" onclick="openEditProduct('${p.id}')">
           <div>
             <div>${escapeHtml(p.name)}</div>
             ${p.category ? `<span class="cat-badge">${escapeHtml(p.category)}</span>` : ""}
+            ${showRecipeLink ? `<span style="color:var(--accent); font-size:11px; text-decoration:underline; margin-left:8px;" onclick="event.stopPropagation(); openRecipeModal('${p.id}')">Recipe</span>` : ""}
           </div>
           <div class="${isLow ? "low-tag" : "num"}">${p.stock_qty !== null ? p.stock_qty + " " + escapeHtml(p.unit) : "—"}</div>
           <div class="num" style="text-align:right">${money(p.price)}</div>
@@ -1311,6 +1389,169 @@
     const original = btn.textContent;
     btn.textContent = "Copied!";
     setTimeout(() => (btn.textContent = original), 1200);
+  }
+
+  // ============================================================
+  // RAW MATERIALS
+  // ============================================================
+  async function loadMaterials() {
+    const { data } = await sb.from("raw_materials").select("*").order("name");
+    cache.materials = data ?? [];
+    const el = document.getElementById("materials-ledger");
+    if (!el) return;
+    if (cache.materials.length === 0) { el.innerHTML = `<div class="empty-state">No raw materials yet.</div>`; return; }
+    el.innerHTML =
+      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Name</div><div>Stock</div></div>` +
+      cache.materials.map((m) => {
+        const isLow = m.low_stock_threshold !== null && Number(m.stock_qty) <= Number(m.low_stock_threshold);
+        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr; cursor:pointer;" onclick="openEditMaterial('${m.id}')">
+          <div>${escapeHtml(m.name)}</div>
+          <div class="${isLow ? "low-tag" : "num"}">${m.stock_qty} ${escapeHtml(m.unit)}</div>
+        </div>`;
+      }).join("");
+  }
+
+  function openEditMaterial(materialId) {
+    const m = cache.materials.find((x) => x.id === materialId);
+    if (!m) return;
+    editingRecord = { table: "raw_materials", id: m.id };
+    document.getElementById("material-modal-title").textContent = "Edit raw material";
+    document.getElementById("material-submit-btn").textContent = "Save changes";
+    document.getElementById("material-delete-btn").classList.remove("hidden");
+    document.getElementById("m-name").value = m.name;
+    document.getElementById("m-unit").value = m.unit;
+    document.getElementById("m-cost").value = m.cost_per_unit ?? "";
+    document.getElementById("m-stock").value = m.stock_qty ?? "";
+    document.getElementById("m-threshold").value = m.low_stock_threshold ?? "";
+    openModal("material-modal");
+  }
+
+  async function submitMaterial() {
+    clearError("material-error");
+    const name = document.getElementById("m-name").value.trim();
+    const unit = document.getElementById("m-unit").value.trim() || "unit";
+    const cost = document.getElementById("m-cost").value === "" ? 0 : parseFloat(document.getElementById("m-cost").value);
+    const stock = document.getElementById("m-stock").value === "" ? 0 : parseFloat(document.getElementById("m-stock").value);
+    const threshold = document.getElementById("m-threshold").value === "" ? null : parseFloat(document.getElementById("m-threshold").value);
+    if (!name) return setError("material-error", "Name is required.");
+
+    const payload = { name, unit, cost_per_unit: cost, stock_qty: stock, low_stock_threshold: threshold };
+    const { error } = editingRecord
+      ? await sb.from("raw_materials").update(payload).eq("id", editingRecord.id)
+      : await sb.from("raw_materials").insert({ business_id: membership.business_id, ...payload });
+
+    if (error) return setError("material-error", error.message);
+    closeModal("material-modal");
+    await loadMaterials();
+  }
+
+  // ============================================================
+  // RECIPES — how much of each raw material makes one unit of a product
+  // ============================================================
+  let recipeProductId = null;
+
+  async function openRecipeModal(productId) {
+    recipeProductId = productId;
+    const p = cache.products.find((x) => x.id === productId);
+    document.getElementById("recipe-product-name").textContent = p ? p.name : "";
+    document.getElementById("ri-material").innerHTML = cache.materials.map((m) => `<option value="${m.id}">${escapeHtml(m.name)} (${escapeHtml(m.unit)})</option>`).join("");
+    await renderRecipeItems();
+    openModal("recipe-modal");
+  }
+
+  async function renderRecipeItems() {
+    const { data } = await sb.from("recipe_items").select("*, raw_materials(name, unit)").eq("product_id", recipeProductId);
+    const el = document.getElementById("recipe-items-list");
+    if (!data || data.length === 0) { el.innerHTML = `<div class="empty-state" style="padding:16px;">No recipe set yet.</div>`; return; }
+    el.innerHTML = data.map((ri) => `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--line);">
+      <div style="font-size:14px;">${escapeHtml(ri.raw_materials.name)}</div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="num">${ri.quantity_required} ${escapeHtml(ri.raw_materials.unit)}</span>
+        <span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="removeRecipeItem('${ri.id}')">Remove</span>
+      </div>
+    </div>`).join("");
+  }
+
+  async function addRecipeItem() {
+    clearError("recipe-error");
+    const materialId = document.getElementById("ri-material").value;
+    const qty = parseFloat(document.getElementById("ri-qty").value);
+    if (!materialId || isNaN(qty) || qty <= 0) return setError("recipe-error", "Pick a raw material and a valid quantity.");
+    const { error } = await sb.from("recipe_items").insert({ product_id: recipeProductId, raw_material_id: materialId, quantity_required: qty });
+    if (error) return setError("recipe-error", error.message);
+    document.getElementById("ri-qty").value = "";
+    await renderRecipeItems();
+  }
+
+  async function removeRecipeItem(recipeItemId) {
+    await sb.from("recipe_items").delete().eq("id", recipeItemId);
+    await renderRecipeItems();
+  }
+
+  // ============================================================
+  // PRODUCE — consume raw materials per recipe, add finished stock
+  // ============================================================
+  function openProduceModal() {
+    document.getElementById("prod-product").innerHTML = cache.products.map((p) => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("");
+    openModal("produce-modal");
+    onProduceProductChange();
+  }
+
+  async function onProduceProductChange() {
+    const productId = document.getElementById("prod-product").value;
+    const batchQty = parseFloat(document.getElementById("prod-qty").value) || 1;
+    const { data: recipe } = await sb.from("recipe_items").select("*, raw_materials(name, unit, stock_qty)").eq("product_id", productId);
+    const el = document.getElementById("produce-requirements");
+
+    if (!recipe || recipe.length === 0) { el.innerHTML = `<em>No recipe set for this product — add one from the Products tab first.</em>`; return; }
+
+    el.innerHTML = "<strong>This will use:</strong><br>" + recipe.map((ri) => {
+      const needed = Number(ri.quantity_required) * batchQty;
+      const available = Number(ri.raw_materials.stock_qty);
+      const short = needed > available;
+      return `<span style="${short ? "color:var(--danger); font-weight:500;" : ""}">${escapeHtml(ri.raw_materials.name)}: ${needed} ${escapeHtml(ri.raw_materials.unit)}${short ? ` (only ${available} available!)` : ""}</span>`;
+    }).join("<br>");
+  }
+
+  async function submitProduce() {
+    clearError("produce-error");
+    const productId = document.getElementById("prod-product").value;
+    const batchQty = parseFloat(document.getElementById("prod-qty").value);
+    if (isNaN(batchQty) || batchQty <= 0) return setError("produce-error", "Enter a valid batch quantity.");
+
+    const { data: recipe } = await sb.from("recipe_items").select("*, raw_materials(*)").eq("product_id", productId);
+    if (!recipe || recipe.length === 0) return setError("produce-error", "This product has no recipe set yet.");
+
+    for (const ri of recipe) {
+      const needed = Number(ri.quantity_required) * batchQty;
+      if (needed > Number(ri.raw_materials.stock_qty)) {
+        return setError("produce-error", `Not enough ${ri.raw_materials.name} — need ${needed}, have ${ri.raw_materials.stock_qty}.`);
+      }
+    }
+
+    for (const ri of recipe) {
+      const newQty = Number(ri.raw_materials.stock_qty) - Number(ri.quantity_required) * batchQty;
+      await sb.from("raw_materials").update({ stock_qty: newQty }).eq("id", ri.raw_material_id);
+      await sb.from("stock_movements").insert({
+        business_id: membership.business_id, item_type: "raw_material", raw_material_id: ri.raw_material_id,
+        quantity_change: -(Number(ri.quantity_required) * batchQty), reason: "production_consumption",
+        reference_type: "product", reference_id: productId, created_by: currentUser.id,
+      });
+    }
+
+    const product = cache.products.find((p) => p.id === productId);
+    if (product && product.stock_qty !== null) {
+      const newStock = Number(product.stock_qty) + batchQty;
+      await sb.from("products").update({ stock_qty: newStock }).eq("id", productId);
+      await sb.from("stock_movements").insert({
+        business_id: membership.business_id, item_type: "product", product_id: productId,
+        quantity_change: batchQty, reason: "production_output", reference_type: "product", reference_id: productId, created_by: currentUser.id,
+      });
+    }
+
+    closeModal("produce-modal");
+    await Promise.all([loadProducts(), loadMaterials()]);
+    renderDashboard();
   }
 
   boot();

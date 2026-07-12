@@ -127,8 +127,6 @@
     }
     .nav-icon { font-size: 18px; }
 
-    /* Bottom bar shows only the 3 primary items + More; everything
-       else lives in the slide-up overflow panel instead. */
     nav .nav-secondary { display: none; }
     .mobile-more-btn { display: flex; }
 
@@ -149,7 +147,6 @@
     main { padding: 16px 14px 90px; }
     .field-row { grid-template-columns: 1fr; }
 
-    /* Ledger rows become stacked cards instead of cramped grid columns */
     .ledger-head { display: none; }
     .ledger-row {
       display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px;
@@ -157,7 +154,6 @@
     }
     .ledger-row > div:first-child { flex: 1; min-width: 60%; }
 
-    /* Modals become full-screen sheets, easier to use on small screens */
     .modal-backdrop { align-items: flex-end; padding: 0; }
     .modal { max-width: 100%; border-radius: 16px 16px 0 0; max-height: 92vh; }
 
@@ -170,7 +166,6 @@
 
 <div id="loading" style="text-align:center; padding:80px; color: var(--ink-faint);">Loading…</div>
 
-<!-- AUTH -->
 <div id="auth-screen" class="hidden">
   <div class="brand-mark"><img src="logo.png" alt="Thole Solutions" /></div>
   <h1 id="auth-title">Sign in</h1>
@@ -211,8 +206,6 @@
   <div id="auth-error" class="error hidden"></div>
 </div>
 
-<!-- Shown once, right after a new business is created — the owner's
-     one chance to see and copy their invite code before moving on. -->
 <div id="invite-reveal-screen" class="hidden" style="max-width: 420px; margin: 0 auto; padding: 60px 20px; text-align:center;">
   <div class="brand-mark" style="margin:0 auto 18px;"><img src="logo.png" alt="Thole Solutions" /></div>
   <h1>You're all set</h1>
@@ -222,7 +215,6 @@
   <button class="btn-primary" onclick="finishInviteReveal()">Go to dashboard</button>
 </div>
 
-<!-- ONBOARDING (invite code) — shown when logged in but no business yet -->
 <div id="onboarding-screen" class="hidden" style="max-width: 420px; margin: 0 auto; padding: 60px 20px;">
   <div class="brand-mark"><img src="logo.png" alt="Thole Solutions" /></div>
   <h1>Join your business</h1>
@@ -234,7 +226,6 @@
   <div class="switch" style="margin-top:18px;"><a onclick="handleLogout()">Sign out and use a different account</a></div>
 </div>
 
-<!-- APP -->
 <div id="app-screen" class="hidden">
   <aside>
     <div class="side-header">
@@ -265,8 +256,6 @@
     </div>
   </aside>
 
-  <!-- Mobile-only overflow sheet — mirrors the secondary nav items,
-       slides up above the bottom bar when "More" is tapped. -->
   <div id="mobile-more-panel">
     <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers'); toggleMoreMenu();"><span class="nav-icon">◈</span> Customers</div>
     <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments'); toggleMoreMenu();"><span class="nav-icon">◎</span> Payments</div>
@@ -280,7 +269,6 @@
   <div id="mobile-more-backdrop" onclick="toggleMoreMenu()"></div>
 
   <main>
-    <!-- DASHBOARD -->
     <section id="tab-dashboard" class="tab-panel">
       <div class="page-header"><h2>Dashboard</h2><p>Overview of your workspace right now.</p></div>
       <div class="metrics">
@@ -292,7 +280,6 @@
       </div>
     </section>
 
-    <!-- PRODUCTS -->
     <section id="tab-products" class="tab-panel hidden">
       <div class="page-header"><h2>Products & Stock</h2><p>Your catalog and current stock on hand.</p></div>
       <div class="toolbar">
@@ -305,51 +292,74 @@
       <div class="ledger" id="products-ledger"></div>
     </section>
 
-    <!-- SALES -->
     <section id="tab-sales" class="tab-panel hidden">
       <div class="page-header"><h2>Sales</h2><p>Record a sale — stock updates automatically.</p></div>
       <div class="toolbar">
-        <input type="date" id="sales-date-filter" onchange="loadSales()" />
+        <div style="display:flex; gap:6px;">
+          <select id="sales-filter-mode" onchange="const f=document.getElementById('sales-date-filter'); f.type=this.value; f.value=''; loadSales();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:white;">
+            <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
+          </select>
+          <input type="date" id="sales-date-filter" onchange="loadSales()" placeholder="YYYY" />
+        </div>
         <button class="btn-small" onclick="openSaleModal()">+ Record sale</button>
       </div>
       <div class="ledger" id="sales-ledger"></div>
     </section>
 
-    <!-- CUSTOMERS -->
     <section id="tab-customers" class="tab-panel hidden">
       <div class="page-header"><h2>Customers</h2><p>People who buy from you.</p></div>
       <div class="toolbar"><div></div><button class="btn-small" onclick="openModal('customer-modal')">+ Add customer</button></div>
       <div class="ledger" id="customers-ledger"></div>
     </section>
 
-    <!-- PAYMENTS -->
     <section id="tab-payments" class="tab-panel hidden">
       <div class="page-header"><h2>Payments</h2><p>Money received from customers.</p></div>
-      <div class="toolbar"><input type="date" id="payments-date-filter" onchange="loadPayments()" /><button class="btn-small" onclick="openModal('payment-modal')">+ Record payment</button></div>
+      <div class="toolbar">
+        <div style="display:flex; gap:6px;">
+          <select id="payments-filter-mode" onchange="const f=document.getElementById('payments-date-filter'); f.type=this.value; f.value=''; loadPayments();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:white;">
+            <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
+          </select>
+          <input type="date" id="payments-date-filter" onchange="loadPayments()" placeholder="YYYY" />
+        </div>
+        <button class="btn-small" onclick="openModal('payment-modal')">+ Record payment</button>
+      </div>
       <div class="ledger" id="payments-ledger"></div>
     </section>
 
-    <!-- EXPENSES -->
     <section id="tab-expenses" class="tab-panel hidden">
       <div class="page-header"><h2>Expenses</h2><p>Overhead costs — rent, wages, utilities, supplies.</p></div>
-      <div class="toolbar"><input type="date" id="expenses-date-filter" onchange="loadExpenses()" /><button class="btn-small" onclick="openModal('expense-modal')">+ Add expense</button></div>
+      <div class="toolbar">
+        <div style="display:flex; gap:6px;">
+          <select id="expenses-filter-mode" onchange="const f=document.getElementById('expenses-date-filter'); f.type=this.value; f.value=''; loadExpenses();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:white;">
+            <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
+          </select>
+          <input type="date" id="expenses-date-filter" onchange="loadExpenses()" placeholder="YYYY" />
+        </div>
+        <button class="btn-small" onclick="openModal('expense-modal')">+ Add expense</button>
+      </div>
       <div class="ledger" id="expenses-ledger"></div>
     </section>
 
-    <!-- SUPPLIERS -->
     <section id="tab-suppliers" class="tab-panel hidden">
       <div class="page-header"><h2>Suppliers</h2><p>Who you buy from.</p></div>
       <div class="toolbar"><div></div><button class="btn-small" onclick="openModal('supplier-modal')">+ Add supplier</button></div>
       <div class="ledger" id="suppliers-ledger"></div>
     </section>
 
-    <!-- PURCHASE ORDERS -->
     <section id="tab-purchases" class="tab-panel hidden">
       <div class="page-header"><h2>Purchase Orders</h2><p>Restocking — this updates product stock automatically.</p></div>
-      <div class="toolbar"><input type="date" id="purchases-date-filter" onchange="loadPurchases()" /><button class="btn-small" onclick="openPurchaseModal()">+ New purchase</button></div>
+      <div class="toolbar">
+        <div style="display:flex; gap:6px;">
+          <select id="purchases-filter-mode" onchange="const f=document.getElementById('purchases-date-filter'); f.type=this.value; f.value=''; loadPurchases();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:white;">
+            <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
+          </select>
+          <input type="date" id="purchases-date-filter" onchange="loadPurchases()" placeholder="YYYY" />
+        </div>
+        <button class="btn-small" onclick="openPurchaseModal()">+ New purchase</button>
+      </div>
       <div class="ledger" id="purchases-ledger"></div>
     </section>
-    <!-- TEAM -->
+    
     <section id="tab-team" class="tab-panel hidden">
       <div class="page-header"><h2>Team</h2><p>Everyone with access to this business.</p></div>
       <div style="background:var(--accent-soft); border-radius:10px; padding:16px 18px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
@@ -363,7 +373,6 @@
       <p style="font-size:12px; color:var(--ink-faint); margin-top:14px;">Share this code with new staff — they use it under "Redeem an invite code" when they sign up. You can promote them to Manager here after.</p>
     </section>
 
-    <!-- REPORTS -->
     <section id="tab-reports" class="tab-panel hidden">
       <div class="page-header"><h2>Reports</h2><p>Revenue trends, best sellers, and stock to watch.</p></div>
       <div style="background:var(--card); border:1px solid var(--line); border-radius:10px; padding:18px; margin-bottom:22px;">
@@ -376,7 +385,6 @@
       <div class="ledger" id="low-stock-ledger"></div>
     </section>
 
-    <!-- RAW MATERIALS -->
     <section id="tab-materials" class="tab-panel hidden">
       <div class="page-header"><h2>Raw Materials</h2><p>Ingredients or components used to make your products.</p></div>
       <div class="toolbar">
@@ -388,7 +396,6 @@
   </main>
 </div>
 
-<!-- MODAL: Add product -->
 <div id="product-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('product-modal')">Close</div>
@@ -413,7 +420,6 @@
   </div>
 </div>
 
-<!-- MODAL: Record sale -->
 <div id="sale-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('sale-modal')">Close</div>
@@ -431,7 +437,6 @@
   </div>
 </div>
 
-<!-- MODAL: Add customer -->
 <div id="customer-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('customer-modal')">Close</div>
@@ -444,7 +449,6 @@
   </div>
 </div>
 
-<!-- MODAL: Record payment -->
 <div id="payment-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('payment-modal')">Close</div>
@@ -467,7 +471,6 @@
   </div>
 </div>
 
-<!-- MODAL: Add expense -->
 <div id="expense-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('expense-modal')">Close</div>
@@ -491,7 +494,6 @@
   </div>
 </div>
 
-<!-- MODAL: Add supplier -->
 <div id="supplier-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('supplier-modal')">Close</div>
@@ -504,7 +506,6 @@
   </div>
 </div>
 
-<!-- MODAL: New purchase order -->
 <div id="purchase-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('purchase-modal')">Close</div>
@@ -522,7 +523,6 @@
   </div>
 </div>
 
-<!-- MODAL: Add/edit raw material -->
 <div id="material-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('material-modal')">Close</div>
@@ -542,7 +542,6 @@
   </div>
 </div>
 
-<!-- MODAL: Recipe editor (opened from a product) -->
 <div id="recipe-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('recipe-modal')">Close</div>
@@ -558,7 +557,6 @@
   </div>
 </div>
 
-<!-- MODAL: Produce (consume raw materials, add finished stock) -->
 <div id="produce-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('produce-modal')">Close</div>
@@ -587,6 +585,39 @@
   let editingRecord = null; // { table: 'products', id: '...' } — null means "adding new"
   let businessTypeKey = null;
 
+  // HELPER: Translates Day/Week/Month/Year inputs into Supabase time ranges
+  function applyTimeFilter(query, val, mode, col = "created_at") {
+    if (!val) return query;
+    try {
+      if (mode === "date") {
+        if (col === "expense_date") return query.eq(col, val); 
+        return query.gte(col, `${val}T00:00:00`).lte(col, `${val}T23:59:59`);
+      } else if (mode === "month") {
+        const [y, m] = val.split('-');
+        const last = new Date(y, m, 0).getDate();
+        return query.gte(col, `${y}-${m}-01T00:00:00`).lte(col, `${y}-${m}-${last}T23:59:59`);
+      } else if (mode === "number") { // Year
+        return query.gte(col, `${val}-01-01T00:00:00`).lte(col, `${val}-12-31T23:59:59`);
+      } else if (mode === "week") {
+        const [y, w] = val.split('-W');
+        const simple = new Date(y, 0, 1 + (w - 1) * 7);
+        const dow = simple.getDay();
+        const start = new Date(simple);
+        start.setDate(simple.getDate() - dow + (dow === 0 ? -6 : 1));
+        const end = new Date(start);
+        end.setDate(start.getDate() + 6);
+
+        const pad = (n) => n.toString().padStart(2, '0');
+        const d1 = `${start.getFullYear()}-${pad(start.getMonth()+1)}-${pad(start.getDate())}`;
+        const d2 = `${end.getFullYear()}-${pad(end.getMonth()+1)}-${pad(end.getDate())}`;
+        return query.gte(col, `${d1}T00:00:00`).lte(col, `${d2}T23:59:59`);
+      }
+    } catch (e) {
+      console.error("Time filter error", e);
+    }
+    return query;
+  }
+
   function show(id) { document.getElementById(id).classList.remove("hidden"); }
   function hide(id) { document.getElementById(id).classList.add("hidden"); }
   function setError(id, msg) { const el = document.getElementById(id); el.textContent = msg; show(id); }
@@ -600,7 +631,6 @@
     document.querySelectorAll(`#${id} input`).forEach((i) => (i.value = ""));
     const errId = id.replace("-modal", "-error");
     if (document.getElementById(errId)) clearError(errId);
-    // reset edit-mode UI back to "add" state
     editingRecord = null;
     const prefix = id.replace("-modal", "");
     const deleteBtn = document.getElementById(`${prefix}-delete-btn`);
@@ -609,8 +639,6 @@
     if (duplicateBtn) duplicateBtn.classList.add("hidden");
   }
 
-  // Generic delete used by every modal's Delete button — asks for
-  // confirmation, deletes the row, refreshes the relevant list.
   async function deleteRecord(table, modalId) {
     if (!editingRecord || editingRecord.table !== table) return;
     if (!confirm("Delete this permanently? This can't be undone.")) return;
@@ -639,8 +667,6 @@
       .maybeSingle();
 
     if (error || !data) {
-      // Logged in, but not yet linked to a business — show the
-      // "finish joining" screen, NOT the signup form again.
       hide("auth-screen"); hide("app-screen"); show("onboarding-screen");
       return;
     }
@@ -658,15 +684,13 @@
   function applyBusinessTypeVisibility(typeKey) {
     businessTypeKey = typeKey;
     const needsRawMaterials = typeKey === "restaurant" || typeKey === "factory";
-    // matches BOTH the sidebar item and its duplicate in the mobile
-    // overflow panel, since both share the same data-tab attribute
     document.querySelectorAll('.nav-item[data-tab="materials"]').forEach((el) => {
       el.classList.toggle("hidden", !needsRawMaterials);
     });
   }
 
   // ============================================================
-  // ROLE PERMISSIONS — staff see day-to-day only, no financial tabs
+  // ROLE PERMISSIONS
   // ============================================================
   function applyRolePermissions(role) {
     const isStaff = role === "staff";
@@ -680,8 +704,6 @@
       const activeTab = document.querySelector(".nav-item.active")?.dataset.tab;
       if (["payments","expenses","suppliers","purchases","team","reports"].includes(activeTab)) switchTab("dashboard");
     }
-    // Staff can record sales and add customers, but not create new
-    // products (inventory/pricing changes stay owner/manager-only).
     const addProductBtn = document.querySelector('button[onclick="openModal(\'product-modal\')"]');
     if (addProductBtn) addProductBtn.classList.toggle("hidden", isStaff);
     const addMaterialBtn = document.querySelector('button[onclick="openModal(\'material-modal\')"]');
@@ -689,7 +711,7 @@
   }
 
   // ============================================================
-  // ONBOARDING (invite code redemption for an already-logged-in user)
+  // ONBOARDING
   // ============================================================
   async function handleRedeem() {
     const errEl = "ob-error";
@@ -774,9 +796,6 @@
     currentUser = data.user;
     const { error: rpcErr } = await sb.rpc("redeem_invite_code", { p_invite_code: code, p_full_name: fullName });
     if (rpcErr) {
-      // Account exists but redemption failed (e.g. bad code) — send
-      // them to the dedicated "finish joining" screen to retry,
-      // instead of leaving them on a dead-end signup form.
       hide("auth-screen"); show("onboarding-screen");
       return setError("ob-error", rpcErr.message);
     }
@@ -912,8 +931,6 @@
     const payload = { name, category, sku, cost_price: costPrice, price, unit, stock_qty: stock, low_stock_threshold: threshold };
 
     if (editingRecord) {
-      // If stock was changed by hand while editing, log it as an
-      // "adjustment" so the audit trail explains the jump.
       const original = cache.products.find((p) => p.id === editingRecord.id);
       const { error } = await sb.from("products").update(payload).eq("id", editingRecord.id);
       if (error) return setError("product-error", error.message);
@@ -934,7 +951,7 @@
   }
 
   // ============================================================
-  // SALES — recording one deducts stock + logs a stock_movement
+  // SALES
   // ============================================================
   async function openSaleModal() {
     const productSelect = document.getElementById("s-product");
@@ -986,8 +1003,10 @@
 
   async function loadSales() {
     const dateFilter = document.getElementById("sales-date-filter")?.value;
+    const mode = document.getElementById("sales-filter-mode")?.value || "date";
     let query = sb.from("orders").select("*, customers(name)").order("created_at", { ascending: false }).limit(50);
-    if (dateFilter) query = query.gte("created_at", `${dateFilter}T00:00:00`).lte("created_at", `${dateFilter}T23:59:59`);
+    query = applyTimeFilter(query, dateFilter, mode, "created_at");
+    
     const { data } = await query;
     cache.sales = data ?? [];
     const el = document.getElementById("sales-ledger");
@@ -1002,9 +1021,6 @@
       </div>`).join("");
   }
 
-  // Voiding a sale is NOT a simple delete — it must restore the stock
-  // that was deducted when the sale was recorded, and log that
-  // reversal in stock_movements, so the audit trail stays accurate.
   async function voidSale(orderId) {
     if (!confirm("Void this sale? Stock will be restored. This can't be undone.")) return;
 
@@ -1020,7 +1036,7 @@
         });
       }
     }
-    await sb.from("orders").delete().eq("id", orderId); // order_items cascade-delete automatically
+    await sb.from("orders").delete().eq("id", orderId);
 
     await Promise.all([loadProducts(), loadSales()]);
     renderDashboard();
@@ -1074,8 +1090,10 @@
   // ============================================================
   async function loadPayments() {
     const dateFilter = document.getElementById("payments-date-filter")?.value;
+    const mode = document.getElementById("payments-filter-mode")?.value || "date";
     let query = sb.from("payments").select("*, customers(name)").eq("direction", "in").order("created_at", { ascending: false }).limit(50);
-    if (dateFilter) query = query.gte("created_at", `${dateFilter}T00:00:00`).lte("created_at", `${dateFilter}T23:59:59`);
+    query = applyTimeFilter(query, dateFilter, mode, "created_at");
+
     const { data } = await query;
     cache.payments = data ?? [];
     const el = document.getElementById("payments-ledger");
@@ -1096,7 +1114,7 @@
     document.getElementById("payment-modal-title").textContent = "Edit payment";
     document.getElementById("payment-submit-btn").textContent = "Save changes";
     document.getElementById("payment-delete-btn").classList.remove("hidden");
-    openModal("payment-modal"); // populates the customer dropdown first
+    openModal("payment-modal"); 
     document.getElementById("pay-customer").value = p.customer_id;
     document.getElementById("pay-amount").value = p.amount;
     document.getElementById("pay-method").value = p.method;
@@ -1118,7 +1136,6 @@
     closeModal("payment-modal");
     await loadPayments();
   }
-  // populate payment customer dropdown whenever the modal opens fresh (add mode)
   const origOpenModal = openModal;
   window.openModal = function (id) {
     if (id === "payment-modal") {
@@ -1132,8 +1149,10 @@
   // ============================================================
   async function loadExpenses() {
     const dateFilter = document.getElementById("expenses-date-filter")?.value;
+    const mode = document.getElementById("expenses-filter-mode")?.value || "date";
     let query = sb.from("expenses").select("*").order("expense_date", { ascending: false }).limit(50);
-    if (dateFilter) query = query.eq("expense_date", dateFilter);
+    query = applyTimeFilter(query, dateFilter, mode, "expense_date");
+
     const { data } = await query;
     cache.expenses = data ?? [];
     const el = document.getElementById("expenses-ledger");
@@ -1225,7 +1244,7 @@
   }
 
   // ============================================================
-  // PURCHASE ORDERS — receiving stock, updates products + audit trail
+  // PURCHASE ORDERS
   // ============================================================
   function openPurchaseModal() {
     document.getElementById("po-product").innerHTML = cache.products.map((p) => `<option value="${p.id}">${escapeHtml(p.name)} (stock: ${p.stock_qty ?? "—"})</option>`).join("");
@@ -1270,8 +1289,10 @@
 
   async function loadPurchases() {
     const dateFilter = document.getElementById("purchases-date-filter")?.value;
+    const mode = document.getElementById("purchases-filter-mode")?.value || "date";
     let query = sb.from("purchase_orders").select("*, suppliers(name)").order("created_at", { ascending: false }).limit(50);
-    if (dateFilter) query = query.gte("created_at", `${dateFilter}T00:00:00`).lte("created_at", `${dateFilter}T23:59:59`);
+    query = applyTimeFilter(query, dateFilter, mode, "created_at");
+
     const { data } = await query;
     cache.purchases = data ?? [];
     const el = document.getElementById("purchases-ledger");
@@ -1287,8 +1308,6 @@
       </div>`).join("");
   }
 
-  // Voiding a purchase must REMOVE the stock it added (mirror of
-  // voidSale), and log that reversal for the audit trail.
   async function voidPurchase(poId) {
     if (!confirm("Void this purchase? Stock added will be removed. This can't be undone.")) return;
 
@@ -1304,14 +1323,14 @@
         });
       }
     }
-    await sb.from("purchase_orders").delete().eq("id", poId); // purchase_order_items cascade-delete automatically
+    await sb.from("purchase_orders").delete().eq("id", poId);
 
     await Promise.all([loadProducts(), loadPurchases()]);
     renderDashboard();
   }
 
   // ============================================================
-  // TEAM — owner only. Promote/demote roles, remove access.
+  // TEAM
   // ============================================================
   async function loadTeam() {
     document.getElementById("team-invite-code").textContent = membership.businesses.invite_code;
@@ -1357,7 +1376,7 @@
   }
 
   // ============================================================
-  // REPORTS — owner/manager only. Revenue trend, top sellers, low stock.
+  // REPORTS
   // ============================================================
   let revenueChartInstance = null;
 
@@ -1371,7 +1390,6 @@
     const canvas = document.getElementById("revenue-chart");
     if (!canvas) return;
 
-    // Build the last 14 days as labels, sum this business's orders per day.
     const days = [];
     const totals = [];
     for (let i = 13; i >= 0; i--) {
@@ -1503,7 +1521,7 @@
   }
 
   // ============================================================
-  // RECIPES — how much of each raw material makes one unit of a product
+  // RECIPES
   // ============================================================
   let recipeProductId = null;
 
@@ -1546,7 +1564,7 @@
   }
 
   // ============================================================
-  // PRODUCE — consume raw materials per recipe, add finished stock
+  // PRODUCE
   // ============================================================
   function openProduceModal() {
     document.getElementById("prod-product").innerHTML = cache.products.map((p) => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("");

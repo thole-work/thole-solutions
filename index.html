@@ -1,823 +1,600 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Thole Solutions</title>
-<link rel="icon" type="image/png" href="logo.png" />
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
-
-  :root {
-    --paper: #F6F7FB;
-    --card: #FFFFFF;
-    --ink: #14162E;
-    --ink-soft: #565B78;
-    --ink-faint: #8B8FA8;
-    --line: #E1E3EE;
-    --accent: #1D1F91;
-    --accent-dark: #14166B;
-    --accent-soft: #E7E8F7;
-    --sky: #5CACF7;
-    --sky-soft: #E7F1FE;
-    --amber: #9C6B1F;
-    --amber-soft: #F5EBD8;
-    --danger: #A6432C;
-    --danger-soft: #F4E6E1;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; background: var(--paper); color: var(--ink);
-    font-family: 'Inter', sans-serif; min-height: 100vh;
-  }
-  h1, h2, h3 { font-family: 'Source Serif 4', serif; font-weight: 600; margin: 0; }
-  .num { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
-  button { font-family: 'Inter', sans-serif; cursor: pointer; }
-  .hidden { display: none !important; }
-
-  /* ---------- AUTH ---------- */
-  #auth-screen { max-width: 420px; margin: 0 auto; padding: 60px 20px; }
-  .brand-mark { width: 44px; height: 44px; border-radius: 10px; overflow: hidden; margin-bottom: 18px; }
-  .brand-mark img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  #auth-screen h1 { font-size: 26px; margin-bottom: 4px; }
-  #auth-screen p.sub { color: var(--ink-soft); font-size: 14px; margin: 6px 0 26px; }
-  label { display: block; font-size: 12px; color: var(--ink-soft); margin: 14px 0 4px; }
-  input, select, textarea {
-    width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px;
-    background: white; font-size: 15px; font-family: 'Inter', sans-serif; color: var(--ink);
-  }
-  input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
-  .btn-primary { width: 100%; margin-top: 20px; padding: 12px; border: none; border-radius: 6px; background: var(--accent); color: white; font-size: 15px; font-weight: 500; }
-  .btn-primary:hover { background: var(--accent-dark); }
-  .switch { text-align: center; margin-top: 18px; font-size: 13px; color: var(--ink-soft); }
-  .switch a { color: var(--accent); cursor: pointer; text-decoration: underline; }
-  .error { background: var(--danger-soft); color: var(--danger); padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-top: 14px; }
-
-  /* ---------- APP SHELL ---------- */
-  #app-screen { display: flex; min-height: 100vh; }
-  aside {
-    width: 220px; background: var(--card); border-right: 1px solid var(--line);
-    display: flex; flex-direction: column; flex-shrink: 0;
-  }
-  .side-header { padding: 22px 18px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
-  .side-header img { width: 32px; height: 32px; border-radius: 7px; flex-shrink: 0; }
-  .side-header .biz { font-family: 'Source Serif 4', serif; font-weight: 600; font-size: 15px; line-height: 1.2; }
-  .side-header .type-tag { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
-  nav { flex: 1; padding: 14px 10px; }
-  .nav-item {
-    display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 7px;
-    font-size: 14px; color: var(--ink-soft); cursor: pointer; margin-bottom: 2px;
-  }
-  .nav-item:hover { background: var(--paper); color: var(--ink); }
-  .nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
-  .nav-icon { width: 18px; text-align: center; font-size: 15px; }
-  .side-footer { padding: 14px 18px; border-top: 1px solid var(--line); }
-  .user-name { font-size: 13px; font-weight: 500; }
-  .user-role { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; }
-  .logout-link { font-size: 12px; color: var(--ink-faint); text-decoration: underline; cursor: pointer; margin-top: 6px; display: inline-block; }
-
-  main { flex: 1; padding: 32px 40px; overflow-y: auto; max-width: 980px; }
-  .page-header { margin-bottom: 24px; }
-  .page-header h2 { font-size: 22px; }
-  .page-header p { color: var(--ink-soft); font-size: 13px; margin-top: 4px; }
-  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 12px; flex-wrap: wrap; }
-  .btn-small { padding: 9px 16px; border: none; border-radius: 6px; background: var(--accent); color: white; font-size: 13px; font-weight: 500; }
-  .btn-small:hover { background: var(--accent-dark); }
-  .btn-ghost { padding: 9px 16px; border: 1px solid var(--line); border-radius: 6px; background: none; color: var(--ink-soft); font-size: 13px; }
-
-  /* metric cards */
-  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 28px; }
-  .metric-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
-  .metric-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); margin-bottom: 6px; }
-  .metric-card .value { font-size: 24px; font-weight: 600; }
-  .metric-card.warn .value { color: var(--danger); }
-
-  /* ledger table */
-  .ledger { background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-  .ledger-head { display: grid; padding: 10px 18px; background: var(--paper); border-bottom: 1px solid var(--line); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-faint); }
-  .ledger-row { display: grid; padding: 13px 18px; border-bottom: 1px solid var(--line); align-items: center; font-size: 14px; }
-  .ledger-row:last-child { border-bottom: none; }
-  .cat-badge { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 20px; background: var(--sky-soft); color: var(--accent); text-transform: uppercase; letter-spacing: 0.03em; }
-  .low-tag { color: var(--danger); font-size: 12px; font-weight: 500; }
-  .empty-state { text-align: center; padding: 50px 20px; color: var(--ink-faint); font-size: 14px; }
-
-  /* modal */
-  .modal-backdrop { position: fixed; inset: 0; background: rgba(28,28,30,0.4); display: flex; align-items: center; justify-content: center; z-index: 20; padding: 20px; }
-  .modal { background: var(--paper); width: 100%; max-width: 440px; border-radius: 12px; padding: 24px; max-height: 85vh; overflow-y: auto; }
-  .modal .close { text-align: right; font-size: 13px; color: var(--ink-soft); cursor: pointer; margin-bottom: 4px; }
-  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-  @media (max-width: 720px) {
-    #app-screen { flex-direction: column; }
-    aside { width: 100%; flex-direction: row; align-items: center; overflow-x: auto; }
-    .side-header, .side-footer { display: none; }
-    nav { display: flex; padding: 8px; }
-    main { padding: 20px; }
-    .field-row { grid-template-columns: 1fr; }
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Thole Solutions</title>
+  <link rel="icon" type="image/png" href="logo.png" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    :root {
+      --paper: #F6F7FB;
+      --card: rgba(255,255,255,0.75);
+      --card-solid: #FFFFFF;
+      --ink: #14162E;
+      --ink-soft: #565B78;
+      --ink-faint: #8B8FA8;
+      --line: #E1E3EE;
+      --accent: #1D1F91;
+      --accent-dark: #14166B;
+      --accent-soft: #E7E8F7;
+      --sky: #5CACF7;
+      --amber: #9C6B1F;
+      --danger: #A6432C;
+      --danger-soft: #F4E6E1;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--paper); color: var(--ink);
+      display: flex; min-height: 100vh;
+    }
+    .sidebar {
+      width: 240px; background: var(--card); backdrop-filter: blur(10px);
+      border-right: 1px solid var(--line); position: sticky; top: 0; height: 100vh;
+      display: flex; flex-direction: column; flex-shrink: 0; z-index: 10;
+    }
+    .sidebar-header { padding: 1.5rem 1rem; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 0.75rem; }
+    .sidebar-header img { width: 36px; height: 36px; border-radius: 8px; }
+    .sidebar-header .biz { font-weight: 600; font-size: 0.95rem; }
+    .sidebar-header .biz-type { font-size: 0.7rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; }
+    .nav { flex: 1; padding: 0.75rem; overflow-y: auto; }
+    .nav-item {
+      display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.8rem; border-radius: 8px;
+      font-size: 0.9rem; color: var(--ink-soft); cursor: pointer; transition: background 0.2s;
+    }
+    .nav-item:hover { background: rgba(0,0,0,0.04); color: var(--ink); }
+    .nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+    .sidebar-footer { padding: 1rem; border-top: 1px solid var(--line); font-size: 0.8rem; }
+    .sidebar-footer .logout { color: var(--danger); cursor: pointer; }
+    main { flex: 1; padding: 1.5rem 2rem; max-width: 1200px; margin: 0 auto; width: 100%; overflow-y: auto; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .page-header { margin-bottom: 1.5rem; }
+    .page-header h2 { font-size: 1.6rem; font-weight: 600; }
+    .metrics {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem; margin-bottom: 1.5rem;
+    }
+    .metric-card {
+      background: var(--card-solid); border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .metric-card .label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); margin-bottom: 0.3rem; }
+    .metric-card .value { font-size: 1.6rem; font-weight: 600; }
+    .card {
+      background: var(--card-solid); border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 1rem; margin-bottom: 1rem;
+    }
+    .btn {
+      padding: 0.5rem 1rem; border: none; border-radius: 6px; background: var(--accent); color: white;
+      font-weight: 500; cursor: pointer; font-size: 0.85rem;
+    }
+    .btn:hover { background: var(--accent-dark); }
+    .btn-ghost { background: transparent; border: 1px solid var(--line); color: var(--ink-soft); }
+    .btn-danger { background: var(--danger); }
+    .btn-small { padding: 0.35rem 0.75rem; font-size: 0.75rem; }
+    input, select, textarea {
+      padding: 0.5rem 0.75rem; border: 1px solid var(--line); border-radius: 6px;
+      background: white; font-size: 0.9rem; width: 100%; margin-bottom: 0.5rem;
+    }
+    label { font-size: 0.8rem; color: var(--ink-soft); display: block; margin-bottom: 0.2rem; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td { padding: 0.5rem; text-align: left; border-bottom: 1px solid var(--line); }
+    th { color: var(--ink-faint); text-transform: uppercase; font-size: 0.7rem; }
+    .badge {
+      display: inline-block; padding: 0.2rem 0.5rem; border-radius: 20px; font-size: 0.7rem;
+      background: var(--accent-soft); color: var(--accent);
+    }
+    .badge.danger { background: var(--danger-soft); color: var(--danger); }
+    .badge.warning { background: #FFF3E0; color: #E65100; }
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex;
+      align-items: center; justify-content: center; z-index: 50;
+    }
+    .modal {
+      background: var(--paper); border-radius: 12px; padding: 1.5rem; width: 90%;
+      max-width: 500px; max-height: 85vh; overflow-y: auto;
+    }
+    .bottom-nav { display: none; }
+    @media (max-width: 768px) {
+      body { flex-direction: column; }
+      .sidebar { display: none; }
+      main { padding: 1rem 1rem 5rem; }
+      .bottom-nav {
+        display: flex; position: fixed; bottom: 0; left: 0; right: 0;
+        background: var(--card); backdrop-filter: blur(10px);
+        border-top: 1px solid var(--line); z-index: 20; justify-content: space-around; padding: 0.4rem 0;
+      }
+      .bottom-nav .nav-item { flex-direction: column; font-size: 0.65rem; gap: 0.2rem; padding: 0.3rem; }
+    }
+  </style>
 </head>
 <body>
-
-<div id="loading" style="text-align:center; padding:80px; color: var(--ink-faint);">Loading…</div>
-
-<!-- AUTH -->
-<div id="auth-screen" class="hidden">
-  <div class="brand-mark"><img src="logo.png" alt="Thole Solutions" /></div>
-  <h1 id="auth-title">Sign in</h1>
-  <p class="sub" id="auth-sub">Manage your business in one place.</p>
-
-  <div id="login-form">
-    <label>Email</label><input type="email" id="login-email" />
-    <label>Password</label><input type="password" id="login-password" />
-    <button class="btn-primary" onclick="handleLogin()">Sign in</button>
-    <div class="switch">New here? <a onclick="showSignup()">Redeem an invite code</a></div>
-  </div>
-
-  <div id="signup-form" class="hidden">
-    <label>Full name</label><input type="text" id="signup-name" />
-    <label>Invite code</label><input type="text" id="signup-code" placeholder="e.g. TEST-0001" />
-    <label>Email</label><input type="email" id="signup-email" />
-    <label>Password</label><input type="password" id="signup-password" placeholder="At least 6 characters" />
-    <button class="btn-primary" onclick="handleSignup()">Redeem & create account</button>
-    <div class="switch">Already have an account? <a onclick="showLogin()">Sign in</a></div>
-  </div>
-
-  <div id="auth-error" class="error hidden"></div>
-</div>
-
-<!-- ONBOARDING (invite code) — shown when logged in but no business yet -->
-<div id="onboarding-screen" class="hidden" style="max-width: 420px; margin: 0 auto; padding: 60px 20px;">
-  <div class="brand-mark"><img src="logo.png" alt="Thole Solutions" /></div>
-  <h1>Join your business</h1>
-  <p class="sub">You're signed in — just one more step. Ask your admin for your invite code.</p>
-  <label>Your name</label><input type="text" id="ob-name" />
-  <label>Invite code</label><input type="text" id="ob-code" placeholder="e.g. TEST-0001" />
-  <button class="btn-primary" onclick="handleRedeem()">Join business</button>
-  <div id="ob-error" class="error hidden"></div>
-  <div class="switch" style="margin-top:18px;"><a onclick="handleLogout()">Sign out and use a different account</a></div>
-</div>
-
-<!-- APP -->
-<div id="app-screen" class="hidden">
-  <aside>
-    <div class="side-header">
-      <img src="logo.png" alt="" />
-      <div>
-        <div class="biz" id="biz-name">—</div>
-        <div class="type-tag" id="biz-type">—</div>
-      </div>
-    </div>
-    <nav>
-      <div class="nav-item active" data-tab="dashboard" onclick="switchTab('dashboard')"><span class="nav-icon">◆</span> Dashboard</div>
-      <div class="nav-item" data-tab="products" onclick="switchTab('products')"><span class="nav-icon">▤</span> Products & Stock</div>
-      <div class="nav-item" data-tab="sales" onclick="switchTab('sales')"><span class="nav-icon">✎</span> Sales</div>
-      <div class="nav-item" data-tab="customers" onclick="switchTab('customers')"><span class="nav-icon">◈</span> Customers</div>
-      <div class="nav-item" data-tab="payments" onclick="switchTab('payments')"><span class="nav-icon">◎</span> Payments</div>
-      <div class="nav-item" data-tab="expenses" onclick="switchTab('expenses')"><span class="nav-icon">▽</span> Expenses</div>
-    </nav>
-    <div class="side-footer">
-      <div class="user-name" id="user-name-display">—</div>
-      <div class="user-role" id="user-role-display">—</div>
-      <span class="logout-link" onclick="handleLogout()">Sign out</span>
-    </div>
-  </aside>
-
-  <main>
-    <!-- DASHBOARD -->
-    <section id="tab-dashboard" class="tab-panel">
-      <div class="page-header"><h2>Dashboard</h2><p>Overview of your workspace right now.</p></div>
-      <div class="metrics">
-        <div class="metric-card"><div class="label">Products</div><div class="value num" id="m-products">0</div></div>
-        <div class="metric-card warn"><div class="label">Low stock</div><div class="value num" id="m-lowstock">0</div></div>
-        <div class="metric-card"><div class="label">Sales recorded</div><div class="value num" id="m-sales">0</div></div>
-        <div class="metric-card"><div class="label">Revenue</div><div class="value num" id="m-revenue">0</div></div>
-        <div class="metric-card"><div class="label">Expenses</div><div class="value num" id="m-expenses">0</div></div>
-      </div>
-    </section>
-
-    <!-- PRODUCTS -->
-    <section id="tab-products" class="tab-panel hidden">
-      <div class="page-header"><h2>Products & Stock</h2><p>Your catalog and current stock on hand.</p></div>
-      <div class="toolbar">
-        <select id="cat-filter" onchange="renderProducts()"><option value="">All categories</option></select>
-        <button class="btn-small" onclick="openModal('product-modal')">+ Add product</button>
-      </div>
-      <div class="ledger" id="products-ledger"></div>
-    </section>
-
-    <!-- SALES -->
-    <section id="tab-sales" class="tab-panel hidden">
-      <div class="page-header"><h2>Sales</h2><p>Record a sale — stock updates automatically.</p></div>
-      <div class="toolbar">
-        <div></div>
-        <button class="btn-small" onclick="openSaleModal()">+ Record sale</button>
-      </div>
-      <div class="ledger" id="sales-ledger"></div>
-    </section>
-
-    <!-- CUSTOMERS -->
-    <section id="tab-customers" class="tab-panel hidden">
-      <div class="page-header"><h2>Customers</h2><p>People who buy from you.</p></div>
-      <div class="toolbar"><div></div><button class="btn-small" onclick="openModal('customer-modal')">+ Add customer</button></div>
-      <div class="ledger" id="customers-ledger"></div>
-    </section>
-
-    <!-- PAYMENTS -->
-    <section id="tab-payments" class="tab-panel hidden">
-      <div class="page-header"><h2>Payments</h2><p>Money received from customers.</p></div>
-      <div class="toolbar"><div></div><button class="btn-small" onclick="openModal('payment-modal')">+ Record payment</button></div>
-      <div class="ledger" id="payments-ledger"></div>
-    </section>
-
-    <!-- EXPENSES -->
-    <section id="tab-expenses" class="tab-panel hidden">
-      <div class="page-header"><h2>Expenses</h2><p>Overhead costs — rent, wages, utilities, supplies.</p></div>
-      <div class="toolbar"><div></div><button class="btn-small" onclick="openModal('expense-modal')">+ Add expense</button></div>
-      <div class="ledger" id="expenses-ledger"></div>
-    </section>
-  </main>
-</div>
-
-<!-- MODAL: Add product -->
-<div id="product-modal" class="modal-backdrop hidden">
-  <div class="modal">
-    <div class="close" onclick="closeModal('product-modal')">Close</div>
-    <h3 id="product-modal-title">Add product</h3>
-    <label>Name</label><input type="text" id="p-name" />
-    <label>Category</label><input type="text" id="p-category" list="cat-suggestions" placeholder="e.g. Mains, Drinks, Sides" />
-    <datalist id="cat-suggestions"></datalist>
-    <div class="field-row">
-      <div><label>Price</label><input type="number" id="p-price" /></div>
-      <div><label>Unit</label><input type="text" id="p-unit" placeholder="plate, kg, item" /></div>
-    </div>
-    <div class="field-row">
-      <div><label>Starting stock</label><input type="number" id="p-stock" placeholder="0" /></div>
-      <div><label>Low stock alert below</label><input type="number" id="p-threshold" placeholder="optional" /></div>
-    </div>
-    <button class="btn-primary" id="product-submit-btn" onclick="submitProduct()">Save product</button>
-    <button class="btn-ghost hidden" id="product-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('products', 'product-modal')">Delete product</button>
-    <div id="product-error" class="error hidden"></div>
-  </div>
-</div>
-
-<!-- MODAL: Record sale -->
-<div id="sale-modal" class="modal-backdrop hidden">
-  <div class="modal">
-    <div class="close" onclick="closeModal('sale-modal')">Close</div>
-    <h3>Record a sale</h3>
-    <label>Product</label>
-    <select id="s-product" onchange="onSaleProductChange()"></select>
-    <div class="field-row">
-      <div><label>Quantity</label><input type="number" id="s-qty" value="1" /></div>
-      <div><label>Unit price</label><input type="number" id="s-price" /></div>
-    </div>
-    <label>Customer (optional)</label>
-    <select id="s-customer"><option value="">Walk-in / no customer</option></select>
-    <button class="btn-primary" onclick="submitSale()">Save sale</button>
-    <div id="sale-error" class="error hidden"></div>
-  </div>
-</div>
-
-<!-- MODAL: Add customer -->
-<div id="customer-modal" class="modal-backdrop hidden">
-  <div class="modal">
-    <div class="close" onclick="closeModal('customer-modal')">Close</div>
-    <h3 id="customer-modal-title">Add customer</h3>
-    <label>Name</label><input type="text" id="c-name" />
-    <label>Phone</label><input type="text" id="c-phone" />
-    <button class="btn-primary" id="customer-submit-btn" onclick="submitCustomer()">Save customer</button>
-    <button class="btn-ghost hidden" id="customer-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('customers', 'customer-modal')">Delete customer</button>
-    <div id="customer-error" class="error hidden"></div>
-  </div>
-</div>
-
-<!-- MODAL: Record payment -->
-<div id="payment-modal" class="modal-backdrop hidden">
-  <div class="modal">
-    <div class="close" onclick="closeModal('payment-modal')">Close</div>
-    <h3 id="payment-modal-title">Record payment</h3>
-    <label>Customer</label>
-    <select id="pay-customer"></select>
-    <div class="field-row">
-      <div><label>Amount</label><input type="number" id="pay-amount" /></div>
-      <div><label>Method</label>
-        <select id="pay-method">
-          <option value="cash">Cash</option>
-          <option value="bank_transfer">Bank transfer</option>
-          <option value="mobile_money">Mobile money</option>
-        </select>
-      </div>
-    </div>
-    <button class="btn-primary" id="payment-submit-btn" onclick="submitPayment()">Save payment</button>
-    <button class="btn-ghost hidden" id="payment-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('payments', 'payment-modal')">Delete payment</button>
-    <div id="payment-error" class="error hidden"></div>
-  </div>
-</div>
-
-<!-- MODAL: Add expense -->
-<div id="expense-modal" class="modal-backdrop hidden">
-  <div class="modal">
-    <div class="close" onclick="closeModal('expense-modal')">Close</div>
-    <h3 id="expense-modal-title">Add expense</h3>
-    <label>Category</label>
-    <select id="e-category">
-      <option value="rent">Rent</option>
-      <option value="utilities">Utilities</option>
-      <option value="wages">Wages</option>
-      <option value="supplies">Supplies</option>
-      <option value="other">Other</option>
-    </select>
-    <label>Description</label><input type="text" id="e-description" />
-    <div class="field-row">
-      <div><label>Amount</label><input type="number" id="e-amount" /></div>
-      <div><label>Date</label><input type="date" id="e-date" /></div>
-    </div>
-    <button class="btn-primary" id="expense-submit-btn" onclick="submitExpense()">Save expense</button>
-    <button class="btn-ghost hidden" id="expense-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('expenses', 'expense-modal')">Delete expense</button>
-    <div id="expense-error" class="error hidden"></div>
-  </div>
-</div>
+<div id="app"></div>
 
 <script>
-  // ============================================================
   // CONFIG
-  // ============================================================
   const SUPABASE_URL = "https://qehgsomtcionbovlqgyi.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFlaGdzb210Y2lvbmJvdmxxZ3lpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2ODA4ODQsImV4cCI6MjA5OTI1Njg4NH0.QydTydc8wbbhRhwiNpWCqA74m52MZ3RcgKJOmf538us";
-
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  let currentUser = null;
-  let membership = null; // { business_id, role, full_name, businesses: {...} }
-  let cache = { products: [], customers: [], sales: [], payments: [], expenses: [] };
-  let editingRecord = null; // { table: 'products', id: '...' } — null means "adding new"
+  let session = null, membership = null, businessId = null, userRole = null, activePage = 'dashboard';
+  let state = {
+    products: [], customers: [], suppliers: [], rawMaterials: [], recipes: [],
+    orders: [], payments: [], expenses: [], purchaseOrders: [], users: [],
+    cart: []
+  };
+  let editingId = null; // for modal edit mode
 
-  function show(id) { document.getElementById(id).classList.remove("hidden"); }
-  function hide(id) { document.getElementById(id).classList.add("hidden"); }
-  function setError(id, msg) { const el = document.getElementById(id); el.textContent = msg; show(id); }
-  function clearError(id) { hide(id); }
-  function escapeHtml(str) { const d = document.createElement("div"); d.textContent = str ?? ""; return d.innerHTML; }
-  function money(n) { return Number(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  // HELPERS
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => document.querySelectorAll(s);
+  const esc = (s) => { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; };
+  const fmoney = (n) => Number(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  function openModal(id) { show(id); }
-  function closeModal(id) {
-    hide(id);
-    document.querySelectorAll(`#${id} input`).forEach((i) => (i.value = ""));
-    const errId = id.replace("-modal", "-error");
-    if (document.getElementById(errId)) clearError(errId);
-    // reset edit-mode UI back to "add" state
-    editingRecord = null;
-    const prefix = id.replace("-modal", "");
-    const deleteBtn = document.getElementById(`${prefix}-delete-btn`);
-    if (deleteBtn) deleteBtn.classList.add("hidden");
-  }
-
-  // Generic delete used by every modal's Delete button — asks for
-  // confirmation, deletes the row, refreshes the relevant list.
-  async function deleteRecord(table, modalId) {
-    if (!editingRecord || editingRecord.table !== table) return;
-    if (!confirm("Delete this permanently? This can't be undone.")) return;
-    const { error } = await sb.from(table).delete().eq("id", editingRecord.id);
-    if (error) return setError(modalId.replace("-modal", "-error"), error.message);
-    closeModal(modalId);
-    await loadEverything();
-  }
-
-  // ============================================================
-  // BOOT
-  // ============================================================
   async function boot() {
-    const { data: { session } } = await sb.auth.getSession();
-    hide("loading");
-    if (!session) { show("auth-screen"); showLogin(); return; }
-    currentUser = session.user;
-    await checkMembership();
+    const { data: { session: s } } = await sb.auth.getSession();
+    if (!s) return showAuth();
+    session = s;
+    await loadMembership();
   }
-
-  async function checkMembership() {
+  async function loadMembership() {
     const { data, error } = await sb
-      .from("app_users")
-      .select("business_id, role, full_name, businesses(name, business_types(display_name))")
-      .eq("user_id", currentUser.id)
-      .maybeSingle();
-
-    if (error || !data) {
-      // Logged in, but not yet linked to a business — show the
-      // "finish joining" screen, NOT the signup form again.
-      hide("auth-screen"); hide("app-screen"); show("onboarding-screen");
-      return;
-    }
-    membership = data;
-    document.getElementById("biz-name").textContent = data.businesses.name;
-    document.getElementById("biz-type").textContent = data.businesses.business_types?.display_name ?? "";
-    document.getElementById("user-name-display").textContent = data.full_name || currentUser.email;
-    document.getElementById("user-role-display").textContent = data.role;
-    applyRolePermissions(data.role);
-    hide("auth-screen"); hide("onboarding-screen"); show("app-screen");
-    await loadEverything();
+      .from('app_users').select('business_id, role, full_name, businesses(name, business_types(display_name))')
+      .eq('user_id', session.user.id).maybeSingle();
+    if (error || !data) return showOnboarding();
+    membership = data; businessId = data.business_id; userRole = data.role;
+    renderApp();
   }
-
-  // ============================================================
-  // ROLE PERMISSIONS — staff see day-to-day only, no financial tabs
-  // ============================================================
-  function applyRolePermissions(role) {
-    const isStaff = role === "staff";
-    document.querySelectorAll('.nav-item[data-tab="payments"], .nav-item[data-tab="expenses"]').forEach((el) => {
-      el.classList.toggle("hidden", isStaff);
+    // ========== AUTH & ONBOARDING ==========
+  function showAuth() {
+    document.getElementById('app').innerHTML = `
+      <div style="max-width:400px;margin:auto;padding:3rem 1rem;">
+        <h1>Thole Solutions</h1>
+        <div id="login-form">
+          <input id="login-email" placeholder="Email" />
+          <input id="login-password" type="password" placeholder="Password" />
+          <button class="btn" onclick="doLogin()">Sign in</button>
+          <p style="margin-top:1rem;">New? <a onclick="toggleAuth()">Redeem invite code</a></p>
+        </div>
+        <div id="signup-form" style="display:none;">
+          <input id="signup-name" placeholder="Full name" />
+          <input id="signup-code" placeholder="Invite code" />
+          <input id="signup-email" placeholder="Email" />
+          <input id="signup-password" type="password" placeholder="Password" />
+          <button class="btn" onclick="doSignup()">Create account</button>
+          <p style="margin-top:1rem;"><a onclick="toggleAuth()">Back to sign in</a></p>
+        </div>
+        <div id="auth-error" style="color:red;margin-top:1rem;"></div>
+      </div>`;
+  }
+  window.toggleAuth = () => {
+    document.getElementById('login-form').style.display = document.getElementById('login-form').style.display === 'none' ? '' : 'none';
+    document.getElementById('signup-form').style.display = document.getElementById('signup-form').style.display === 'none' ? '' : 'none';
+    document.getElementById('auth-error').innerText = '';
+  };
+  window.doLogin = async () => {
+    const { data, error } = await sb.auth.signInWithPassword({
+      email: document.getElementById('login-email').value,
+      password: document.getElementById('login-password').value
     });
-    // If staff somehow has a hidden tab open (e.g. from a previous session), bounce them to Dashboard.
-    if (isStaff) {
-      const activeTab = document.querySelector(".nav-item.active")?.dataset.tab;
-      if (activeTab === "payments" || activeTab === "expenses") switchTab("dashboard");
+    if (error) return document.getElementById('auth-error').innerText = error.message;
+    session = data.session; loadMembership();
+  };
+  window.doSignup = async () => {
+    const name = document.getElementById('signup-name').value, code = document.getElementById('signup-code').value;
+    const { data, error } = await sb.auth.signUp({
+      email: document.getElementById('signup-email').value,
+      password: document.getElementById('signup-password').value
+    });
+    if (error) return document.getElementById('auth-error').innerText = error.message;
+    session = data.session;
+    const { error: rpcErr } = await sb.rpc('redeem_invite_code', { p_invite_code: code, p_full_name: name });
+    if (rpcErr) return document.getElementById('auth-error').innerText = rpcErr.message;
+    loadMembership();
+  };
+  function showOnboarding() {
+    document.getElementById('app').innerHTML = `
+      <div style="max-width:400px;margin:auto;padding:3rem 1rem;">
+        <h1>Join your business</h1>
+        <input id="ob-name" placeholder="Your name" />
+        <input id="ob-code" placeholder="Invite code" />
+        <button class="btn" onclick="doRedeem()">Join</button>
+        <div id="ob-error" style="color:red;"></div>
+      </div>`;
+  }
+  window.doRedeem = async () => {
+    const { error } = await sb.rpc('redeem_invite_code', {
+      p_invite_code: document.getElementById('ob-code').value,
+      p_full_name: document.getElementById('ob-name').value
+    });
+    if (error) return document.getElementById('ob-error').innerText = error.message;
+    loadMembership();
+  };
+  window.logout = async () => { await sb.auth.signOut(); location.reload(); };
+
+  // ========== APP SHELL ==========
+  function renderApp() {
+    document.getElementById('app').innerHTML = `
+      <div class="sidebar" id="sidebar">
+        <div class="sidebar-header"><img src="logo.png"/><div><div class="biz">${esc(membership.businesses.name)}</div><div class="biz-type">${esc(membership.businesses.business_types?.display_name || '')}</div></div></div>
+        <div class="nav" id="desktop-nav"></div>
+        <div class="sidebar-footer"><div>${esc(membership.full_name || session.user.email)}</div><div class="logout" onclick="logout()">Sign out</div></div>
+      </div>
+      <main id="main-content"></main>
+      <div class="bottom-nav" id="bottom-nav"></div>`;
+    buildNav();
+    loadAllData().then(() => switchPage('dashboard'));
+  }
+  function buildNav() {
+    const items = [
+      { page:'dashboard', icon:'📊', label:'Dashboard' },
+      { page:'products', icon:'📦', label:'Products' },
+      { page:'sales', icon:'🛒', label:'Sales' },
+      { page:'customers', icon:'👥', label:'Customers' },
+      { page:'suppliers', icon:'🚚', label:'Suppliers' },
+      { page:'purchase', icon:'📋', label:'Purchases' },
+      { page:'inventory', icon:'🧪', label:'Raw Materials' },
+      { page:'production', icon:'⚙️', label:'Production' },
+      { page:'payments', icon:'💳', label:'Payments' },
+      { page:'expenses', icon:'💰', label:'Expenses' },
+      { page:'users', icon:'👤', label:'Users', role:'owner' }
+    ].filter(i => !i.role || userRole === i.role);
+    const navHtml = items.map(i => `<div class="nav-item" data-page="${i.page}" onclick="switchPage('${i.page}')"><span>${i.icon}</span>${i.label}</div>`).join('');
+    document.getElementById('desktop-nav').innerHTML = navHtml;
+    document.getElementById('bottom-nav').innerHTML = items.slice(0,5).map(i => `<div class="nav-item" data-page="${i.page}" onclick="switchPage('${i.page}')"><span>${i.icon}</span>${i.label}</div>`).join('');
+  }
+  window.switchPage = (page) => {
+    activePage = page;
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.page === page));
+    renderPage(page);
+  };
+  async function loadAllData() {
+    const res = await Promise.all([
+      sb.from('products').select('*').eq('is_active',true).order('name'),
+      sb.from('customers').select('*').order('name'),
+      sb.from('suppliers').select('*').order('name'),
+      sb.from('raw_materials').select('*').order('name'),
+      sb.from('recipe_items').select('*, raw_materials(*), products(*)'),
+      sb.from('orders').select('*, customers(name)').order('created_at',{ascending:false}).limit(100),
+      sb.from('payments').select('*, customers(name), suppliers(name)').order('created_at',{ascending:false}).limit(100),
+      sb.from('expenses').select('*').order('expense_date',{ascending:false}).limit(100),
+      sb.from('purchase_orders').select('*, suppliers(name)').order('created_at',{ascending:false}).limit(50),
+      sb.from('app_users').select('*').eq('business_id',businessId)
+    ]);
+    state.products = res[0].data || []; state.customers = res[1].data || [];
+    state.suppliers = res[2].data || []; state.rawMaterials = res[3].data || [];
+    state.recipes = res[4].data || []; state.orders = res[5].data || [];
+    state.payments = res[6].data || []; state.expenses = res[7].data || [];
+    state.purchaseOrders = res[8].data || []; state.users = res[9].data || [];
+  }
+  function renderPage(page) {
+    const main = document.getElementById('main-content');
+    main.innerHTML = `<div class="page active" id="page-${page}"></div>`;
+    const container = document.getElementById(`page-${page}`);
+    switch(page) {
+      case 'dashboard': renderDashboard(container); break;
+      case 'products': renderProducts(container); break;
+      case 'sales': renderSales(container); break;
+      case 'customers': renderCustomers(container); break;
+      case 'suppliers': renderSuppliers(container); break;
+      case 'purchase': renderPurchaseOrders(container); break;
+      case 'inventory': renderRawMaterials(container); break;
+      case 'production': renderProduction(container); break;
+      case 'payments': renderPayments(container); break;
+      case 'expenses': renderExpenses(container); break;
+      case 'users': renderUsers(container); break;
     }
-    // Staff can record sales and add customers, but not create new
-    // products (inventory/pricing changes stay owner/manager-only).
-    const addProductBtn = document.querySelector('button[onclick="openModal(\'product-modal\')"]');
-    if (addProductBtn) addProductBtn.classList.toggle("hidden", isStaff);
   }
 
-  // ============================================================
-  // ONBOARDING (invite code redemption for an already-logged-in user)
-  // ============================================================
-  async function handleRedeem() {
-    const errEl = "ob-error";
-    clearError(errEl);
-    const fullName = document.getElementById("ob-name").value.trim();
-    const code = document.getElementById("ob-code").value.trim();
-    if (!fullName || !code) return setError(errEl, "Please fill in both fields.");
-
-    const { error } = await sb.rpc("redeem_invite_code", { p_invite_code: code, p_full_name: fullName });
-    if (error) return setError(errEl, error.message);
-    await checkMembership();
+  // ========== DASHBOARD ==========
+  function renderDashboard(container) {
+    const today = new Date().toISOString().slice(0,10);
+    const month = new Date().toISOString().slice(0,7);
+    const revToday = state.orders.filter(o => o.created_at.startsWith(today)).reduce((s,o)=>s+Number(o.total_amount),0);
+    const revMonth = state.orders.filter(o => o.created_at.startsWith(month)).reduce((s,o)=>s+Number(o.total_amount),0);
+    const expMonth = state.expenses.filter(e => e.expense_date.startsWith(month)).reduce((s,e)=>s+Number(e.amount),0);
+    const profit = revMonth - expMonth;
+    const lowStock = state.products.filter(p => p.stock_qty!=null && p.low_stock_threshold!=null && p.stock_qty<=p.low_stock_threshold).length;
+    const invValue = state.products.reduce((s,p)=>s+(Number(p.price)*(Number(p.stock_qty)||0)),0);
+    container.innerHTML = `
+      <div class="page-header"><h2>Dashboard</h2></div>
+      <div class="metrics">
+        <div class="metric-card"><div class="label">Revenue Today</div><div class="value">${fmoney(revToday)}</div></div>
+        <div class="metric-card"><div class="label">Revenue This Month</div><div class="value">${fmoney(revMonth)}</div></div>
+        <div class="metric-card"><div class="label">Expenses This Month</div><div class="value">${fmoney(expMonth)}</div></div>
+        <div class="metric-card"><div class="label">Profit This Month</div><div class="value">${fmoney(profit)}</div></div>
+        <div class="metric-card"><div class="label">Low Stock</div><div class="value" style="color:var(--danger)">${lowStock}</div></div>
+        <div class="metric-card"><div class="label">Inventory Value</div><div class="value">${fmoney(invValue)}</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card"><canvas id="salesChart" height="200"></canvas></div>
+        <div class="card"><canvas id="topProductsChart" height="200"></canvas></div>
+      </div>`;
+    setTimeout(() => {
+      const ctx = document.getElementById('salesChart')?.getContext('2d');
+      if(ctx) {
+        const days=[], data=[];
+        for(let i=6;i>=0;i--) {
+          const d = new Date(); d.setDate(d.getDate()-i);
+          const day = d.toISOString().slice(0,10);
+          days.push(d.toLocaleDateString('en',{weekday:'short'}));
+          data.push(state.orders.filter(o=>o.created_at.startsWith(day)).reduce((s,o)=>s+Number(o.total_amount),0));
+        }
+        new Chart(ctx, {type:'bar', data:{labels:days, datasets:[{label:'Revenue',data}]}});
+      }
+      // Top products from order_items (requires separate query – simplified)
+      const ctx2 = document.getElementById('topProductsChart')?.getContext('2d');
+      if(ctx2) new Chart(ctx2, {type:'doughnut', data:{labels:['Product A','Other'], datasets:[{data:[1,1]}]}});
+    },100);
   }
 
-  // ============================================================
-  // AUTH
-  // ============================================================
-  function showSignup() {
-    document.getElementById("auth-title").textContent = "Join your business";
-    document.getElementById("auth-sub").textContent = "Enter the invite code your admin gave you.";
-    hide("login-form"); show("signup-form"); clearError("auth-error");
-  }
-  function showLogin() {
-    document.getElementById("auth-title").textContent = "Sign in";
-    document.getElementById("auth-sub").textContent = "Manage your business in one place.";
-    hide("signup-form"); show("login-form"); clearError("auth-error");
-  }
-  async function handleLogin() {
-    clearError("auth-error");
-    const email = document.getElementById("login-email").value.trim();
-    const password = document.getElementById("login-password").value;
-    const { data, error } = await sb.auth.signInWithPassword({ email, password });
-    if (error) return setError("auth-error", error.message);
-    currentUser = data.user;
-    await checkMembership();
-  }
-  async function handleSignup() {
-    clearError("auth-error");
-    const fullName = document.getElementById("signup-name").value.trim();
-    const code = document.getElementById("signup-code").value.trim();
-    const email = document.getElementById("signup-email").value.trim();
-    const password = document.getElementById("signup-password").value;
-    if (!fullName || !code) return setError("auth-error", "Full name and invite code are required.");
-
-    const { data, error } = await sb.auth.signUp({ email, password });
-    if (error) return setError("auth-error", error.message);
-    if (!data.session) return setError("auth-error", "Account created but not signed in — check if email confirmation is required.");
-
-    currentUser = data.user;
-    const { error: rpcErr } = await sb.rpc("redeem_invite_code", { p_invite_code: code, p_full_name: fullName });
-    if (rpcErr) {
-      // Account exists but redemption failed (e.g. bad code) — send
-      // them to the dedicated "finish joining" screen to retry,
-      // instead of leaving them on a dead-end signup form.
-      hide("auth-screen"); show("onboarding-screen");
-      return setError("ob-error", rpcErr.message);
-    }
-    await checkMembership();
-  }
-  async function handleLogout() {
-    await sb.auth.signOut();
-    currentUser = null; membership = null;
-    hide("app-screen"); hide("onboarding-screen"); showLogin(); show("auth-screen");
-  }
-
-  // ============================================================
-  // TABS
-  // ============================================================
-  function switchTab(tab) {
-    document.querySelectorAll(".tab-panel").forEach((el) => el.classList.add("hidden"));
-    document.getElementById(`tab-${tab}`).classList.remove("hidden");
-    document.querySelectorAll(".nav-item").forEach((el) => el.classList.toggle("active", el.dataset.tab === tab));
-  }
-
-  // ============================================================
-  // LOAD EVERYTHING
-  // ============================================================
-  async function loadEverything() {
-    await Promise.all([loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses()]);
-    renderDashboard();
-  }
-
-  function renderDashboard() {
-    document.getElementById("m-products").textContent = cache.products.length;
-    document.getElementById("m-lowstock").textContent = cache.products.filter(
-      (p) => p.stock_qty !== null && p.low_stock_threshold !== null && p.stock_qty <= p.low_stock_threshold
-    ).length;
-    document.getElementById("m-sales").textContent = cache.sales.length;
-    document.getElementById("m-revenue").textContent = money(cache.sales.reduce((s, o) => s + Number(o.total_amount), 0));
-    document.getElementById("m-expenses").textContent = money(cache.expenses.reduce((s, e) => s + Number(e.amount), 0));
-  }
-
-  // ============================================================
-  // PRODUCTS
-  // ============================================================
-  async function loadProducts() {
-    const { data } = await sb.from("products").select("*").eq("is_active", true).order("category").order("name");
-    cache.products = data ?? [];
-    const cats = [...new Set(cache.products.map((p) => p.category).filter(Boolean))];
-    document.getElementById("cat-filter").innerHTML =
-      `<option value="">All categories</option>` + cats.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
-    document.getElementById("cat-suggestions").innerHTML = cats.map((c) => `<option value="${escapeHtml(c)}">`).join("");
-    renderProducts();
-  }
-
-  function renderProducts() {
-    const filter = document.getElementById("cat-filter").value;
-    const list = filter ? cache.products.filter((p) => p.category === filter) : cache.products;
-    const el = document.getElementById("products-ledger");
-    if (list.length === 0) { el.innerHTML = `<div class="empty-state">No products yet. Add your first one.</div>`; return; }
-
-    el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Product</div><div>Stock</div><div style="text-align:right">Price</div></div>` +
-      list.map((p) => {
-        const isLow = p.stock_qty !== null && p.low_stock_threshold !== null && p.stock_qty <= p.low_stock_threshold;
-        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr; cursor:pointer;" onclick="openEditProduct('${p.id}')">
-          <div>
-            <div>${escapeHtml(p.name)}</div>
-            ${p.category ? `<span class="cat-badge">${escapeHtml(p.category)}</span>` : ""}
+  // ========== PRODUCTS (with search, add/edit/delete, stock history) ==========
+  function renderProducts(container) {
+    const cats = [...new Set(state.products.map(p=>p.category).filter(Boolean))];
+    container.innerHTML = `
+      <div class="page-header"><h2>Products</h2></div>
+      <div style="display:flex;gap:0.5rem;margin-bottom:1rem;">
+        <input id="prod-search" placeholder="Search products..." oninput="renderProductList()" style="max-width:300px" />
+        <select id="cat-filter" onchange="renderProductList()"><option value="">All categories</option>${cats.map(c=>`<option>${esc(c)}</option>`).join('')}</select>
+        ${userRole!=='staff' ? `<button class="btn" onclick="openProductModal()">+ Add</button>` : ''}
+      </div>
+      <div id="product-list" class="grid-2" style="grid-template-columns: repeat(auto-fill, minmax(200px,1fr));"></div>
+      <div id="stock-history-modal" class="modal-overlay hidden"><div class="modal"><h3>Stock History</h3><div id="history-content"></div><button class="btn" onclick="closeModal('stock-history-modal')">Close</button></div></div>`;
+    window.renderProductList = () => {
+      const q = document.getElementById('prod-search').value.toLowerCase();
+      const cat = document.getElementById('cat-filter').value;
+      const filtered = state.products.filter(p => (cat==='' || p.category===cat) && p.name.toLowerCase().includes(q));
+      document.getElementById('product-list').innerHTML = filtered.map(p => `
+        <div class="card" style="padding:0.75rem;">
+          <div style="font-weight:600;">${esc(p.name)}</div>
+          <div style="font-size:0.8rem;color:var(--ink-faint);">${esc(p.category||'')}</div>
+          <div>Price: ${fmoney(p.price)}</div>
+          <div>Stock: ${p.stock_qty ?? '—'} ${esc(p.unit)}</div>
+          ${p.low_stock_threshold && p.stock_qty <= p.low_stock_threshold ? '<span class="badge danger">Low stock</span>' : ''}
+          <div style="margin-top:0.5rem; display:flex; gap:0.3rem;">
+            ${userRole!=='staff' ? `<button class="btn-small" onclick="openProductModal('${p.id}')">Edit</button><button class="btn-small btn-danger" onclick="deleteProduct('${p.id}')">Del</button>` : ''}
+            <button class="btn-small btn-ghost" onclick="showStockHistory('${p.id}')">History</button>
           </div>
-          <div class="${isLow ? "low-tag" : "num"}">${p.stock_qty !== null ? p.stock_qty + " " + escapeHtml(p.unit) : "—"}</div>
-          <div class="num" style="text-align:right">${money(p.price)}</div>
-        </div>`;
-      }).join("");
+        </div>`).join('');
+    };
+    renderProductList();
   }
-
-  function openEditProduct(productId) {
-    const p = cache.products.find((x) => x.id === productId);
-    if (!p) return;
-    editingRecord = { table: "products", id: p.id };
-    document.getElementById("product-modal-title").textContent = "Edit product";
-    document.getElementById("product-submit-btn").textContent = "Save changes";
-    document.getElementById("product-delete-btn").classList.remove("hidden");
-    document.getElementById("p-name").value = p.name;
-    document.getElementById("p-category").value = p.category ?? "";
-    document.getElementById("p-price").value = p.price;
-    document.getElementById("p-unit").value = p.unit;
-    document.getElementById("p-stock").value = p.stock_qty ?? "";
-    document.getElementById("p-threshold").value = p.low_stock_threshold ?? "";
-    openModal("product-modal");
-  }
-
-  async function submitProduct() {
-    clearError("product-error");
-    const name = document.getElementById("p-name").value.trim();
-    const category = document.getElementById("p-category").value.trim() || null;
-    const price = parseFloat(document.getElementById("p-price").value);
-    const unit = document.getElementById("p-unit").value.trim() || "item";
-    const stock = document.getElementById("p-stock").value === "" ? null : parseFloat(document.getElementById("p-stock").value);
-    const threshold = document.getElementById("p-threshold").value === "" ? null : parseFloat(document.getElementById("p-threshold").value);
-
-    if (!name || isNaN(price)) return setError("product-error", "Name and price are required.");
-
-    const payload = { name, category, price, unit, stock_qty: stock, low_stock_threshold: threshold };
-    const { error } = editingRecord
-      ? await sb.from("products").update(payload).eq("id", editingRecord.id)
-      : await sb.from("products").insert({ business_id: membership.business_id, ...payload });
-
-    if (error) return setError("product-error", error.message);
-    closeModal("product-modal");
-    await loadProducts();
-    renderDashboard();
-  }
-
-  // ============================================================
-  // SALES — recording one deducts stock + logs a stock_movement
-  // ============================================================
-  async function openSaleModal() {
-    const productSelect = document.getElementById("s-product");
-    productSelect.innerHTML = cache.products.map((p) => `<option value="${p.id}">${escapeHtml(p.name)} (stock: ${p.stock_qty ?? "—"})</option>`).join("");
-    onSaleProductChange();
-    const customerSelect = document.getElementById("s-customer");
-    customerSelect.innerHTML = `<option value="">Walk-in / no customer</option>` + cache.customers.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
-    openModal("sale-modal");
-  }
-  function onSaleProductChange() {
-    const productId = document.getElementById("s-product").value;
-    const product = cache.products.find((p) => p.id === productId);
-    if (product) document.getElementById("s-price").value = product.price;
-  }
-  async function submitSale() {
-    clearError("sale-error");
-    const productId = document.getElementById("s-product").value;
-    const qty = parseFloat(document.getElementById("s-qty").value);
-    const price = parseFloat(document.getElementById("s-price").value);
-    const customerId = document.getElementById("s-customer").value || null;
-    const product = cache.products.find((p) => p.id === productId);
-
-    if (!product || isNaN(qty) || qty <= 0 || isNaN(price)) return setError("sale-error", "Check the product, quantity, and price.");
-
-    const total = qty * price;
-    const { data: order, error: orderErr } = await sb.from("orders").insert({
-      business_id: membership.business_id, customer_id: customerId, created_by: currentUser.id, status: "completed", total_amount: total,
-    }).select().single();
-    if (orderErr) return setError("sale-error", orderErr.message);
-
-    const { error: itemErr } = await sb.from("order_items").insert({
-      order_id: order.id, product_id: productId, quantity: qty, unit_price: price,
-    });
-    if (itemErr) return setError("sale-error", itemErr.message);
-
-    if (product.stock_qty !== null) {
-      const newStock = product.stock_qty - qty;
-      await sb.from("products").update({ stock_qty: newStock }).eq("id", productId);
-      await sb.from("stock_movements").insert({
-        business_id: membership.business_id, item_type: "product", product_id: productId,
-        quantity_change: -qty, reason: "sale", reference_type: "order", reference_id: order.id, created_by: currentUser.id,
-      });
-    }
-
-    closeModal("sale-modal");
-    await Promise.all([loadProducts(), loadSales()]);
-    renderDashboard();
-  }
-
-  async function loadSales() {
-    const { data } = await sb.from("orders").select("*, customers(name)").order("created_at", { ascending: false }).limit(50);
-    cache.sales = data ?? [];
-    const el = document.getElementById("sales-ledger");
-    if (cache.sales.length === 0) { el.innerHTML = `<div class="empty-state">No sales recorded yet.</div>`; return; }
-    el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Customer</div><div>Date</div><div style="text-align:right">Total</div></div>` +
-      cache.sales.map((o) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr;">
-        <div>${o.customers ? escapeHtml(o.customers.name) : "Walk-in"}</div>
-        <div style="color:var(--ink-faint); font-size:12px;">${new Date(o.created_at).toLocaleDateString()}</div>
-        <div class="num" style="text-align:right">${money(o.total_amount)}</div>
-      </div>`).join("");
-  }
-
-  // ============================================================
-  // CUSTOMERS
-  // ============================================================
-  async function loadCustomers() {
-    const { data } = await sb.from("customers").select("*").order("name");
-    cache.customers = data ?? [];
-    const el = document.getElementById("customers-ledger");
-    if (cache.customers.length === 0) { el.innerHTML = `<div class="empty-state">No customers yet.</div>`; return; }
-    el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Name</div><div>Phone</div></div>` +
-      cache.customers.map((c) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr; cursor:pointer;" onclick="openEditCustomer('${c.id}')">
-        <div>${escapeHtml(c.name)}</div><div style="color:var(--ink-faint)">${escapeHtml(c.phone ?? "—")}</div>
-      </div>`).join("");
-  }
-
-  function openEditCustomer(customerId) {
-    const c = cache.customers.find((x) => x.id === customerId);
-    if (!c) return;
-    editingRecord = { table: "customers", id: c.id };
-    document.getElementById("customer-modal-title").textContent = "Edit customer";
-    document.getElementById("customer-submit-btn").textContent = "Save changes";
-    document.getElementById("customer-delete-btn").classList.remove("hidden");
-    document.getElementById("c-name").value = c.name ?? "";
-    document.getElementById("c-phone").value = c.phone ?? "";
-    openModal("customer-modal");
-  }
-
-  async function submitCustomer() {
-    clearError("customer-error");
-    const name = document.getElementById("c-name").value.trim();
-    const phone = document.getElementById("c-phone").value.trim() || null;
-    if (!name) return setError("customer-error", "Name is required.");
-
-    const payload = { name, phone };
-    const { error } = editingRecord
-      ? await sb.from("customers").update(payload).eq("id", editingRecord.id)
-      : await sb.from("customers").insert({ business_id: membership.business_id, ...payload });
-
-    if (error) return setError("customer-error", error.message);
-    closeModal("customer-modal");
-    await loadCustomers();
-  }
-
-  // ============================================================
-  // PAYMENTS
-  // ============================================================
-  async function loadPayments() {
-    const { data } = await sb.from("payments").select("*, customers(name)").eq("direction", "in").order("created_at", { ascending: false }).limit(50);
-    cache.payments = data ?? [];
-    const el = document.getElementById("payments-ledger");
-    if (cache.payments.length === 0) { el.innerHTML = `<div class="empty-state">No payments recorded yet.</div>`; return; }
-    el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Customer</div><div>Method</div><div style="text-align:right">Amount</div></div>` +
-      cache.payments.map((p) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr; cursor:pointer;" onclick="openEditPayment('${p.id}')">
-        <div>${p.customers ? escapeHtml(p.customers.name) : "—"}</div>
-        <div style="color:var(--ink-faint); font-size:12px; text-transform:capitalize;">${escapeHtml(p.method.replace("_"," "))}</div>
-        <div class="num" style="text-align:right">${money(p.amount)}</div>
-      </div>`).join("");
-  }
-
-  function openEditPayment(paymentId) {
-    const p = cache.payments.find((x) => x.id === paymentId);
-    if (!p) return;
-    editingRecord = { table: "payments", id: p.id };
-    document.getElementById("payment-modal-title").textContent = "Edit payment";
-    document.getElementById("payment-submit-btn").textContent = "Save changes";
-    document.getElementById("payment-delete-btn").classList.remove("hidden");
-    openModal("payment-modal"); // populates the customer dropdown first
-    document.getElementById("pay-customer").value = p.customer_id;
-    document.getElementById("pay-amount").value = p.amount;
-    document.getElementById("pay-method").value = p.method;
-  }
-
-  async function submitPayment() {
-    clearError("payment-error");
-    const customerId = document.getElementById("pay-customer").value;
-    const amount = parseFloat(document.getElementById("pay-amount").value);
-    const method = document.getElementById("pay-method").value;
-    if (!customerId || isNaN(amount) || amount <= 0) return setError("payment-error", "Select a customer and a valid amount.");
-
-    const payload = { customer_id: customerId, amount, method };
-    const { error } = editingRecord
-      ? await sb.from("payments").update(payload).eq("id", editingRecord.id)
-      : await sb.from("payments").insert({ business_id: membership.business_id, direction: "in", party_type: "customer", created_by: currentUser.id, ...payload });
-
-    if (error) return setError("payment-error", error.message);
-    closeModal("payment-modal");
-    await loadPayments();
-  }
-  // populate payment customer dropdown whenever the modal opens fresh (add mode)
-  const origOpenModal = openModal;
-  window.openModal = function (id) {
-    if (id === "payment-modal") {
-      document.getElementById("pay-customer").innerHTML = cache.customers.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
-    }
-    origOpenModal(id);
+  window.openProductModal = (id=null) => {
+    editingId = id;
+    const p = id ? state.products.find(x=>x.id===id) : null;
+    const modalHtml = `
+      <div class="modal-overlay" id="prod-modal"><div class="modal">
+        <h3>${id?'Edit':'Add'} Product</h3>
+        <input id="p-name" value="${esc(p?.name||'')}" placeholder="Name" />
+        <input id="p-category" value="${esc(p?.category||'')}" list="cat-list" placeholder="Category" />
+        <datalist id="cat-list">${[...new Set(state.products.map(x=>x.category).filter(Boolean))].map(c=>`<option>${esc(c)}</option>`).join('')}</datalist>
+        <div class="grid-2"><div><label>Price</label><input id="p-price" type="number" value="${p?.price||''}" /></div><div><label>Unit</label><input id="p-unit" value="${esc(p?.unit||'item')}" /></div></div>
+        <div class="grid-2"><div><label>Stock</label><input id="p-stock" type="number" value="${p?.stock_qty??''}" /></div><div><label>Low threshold</label><input id="p-threshold" type="number" value="${p?.low_stock_threshold??''}" /></div></div>
+        <div style="margin-top:1rem; display:flex; gap:0.5rem;">
+          <button class="btn" onclick="saveProduct()">Save</button>
+          <button class="btn-ghost" onclick="closeModal('prod-modal')">Cancel</button>
+        </div>
+      </div></div>`;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  };
+  window.saveProduct = async () => {
+    const payload = {
+      name: document.getElementById('p-name').value,
+      category: document.getElementById('p-category').value || null,
+      price: parseFloat(document.getElementById('p-price').value),
+      unit: document.getElementById('p-unit').value || 'item',
+      stock_qty: document.getElementById('p-stock').value === '' ? null : parseFloat(document.getElementById('p-stock').value),
+      low_stock_threshold: document.getElementById('p-threshold').value === '' ? null : parseFloat(document.getElementById('p-threshold').value)
+    };
+    if (editingId) await sb.from('products').update(payload).eq('id',editingId);
+    else await sb.from('products').insert({ business_id: businessId, ...payload });
+    closeModal('prod-modal'); await loadAllData(); renderPage('products');
+  };
+  window.deleteProduct = async (id) => { if(confirm('Delete?')) { await sb.from('products').update({is_active:false}).eq('id',id); await loadAllData(); renderPage('products'); } };
+  window.showStockHistory = async (productId) => {
+    const { data } = await sb.from('stock_movements').select('*').eq('product_id',productId).order('created_at',{ascending:false}).limit(20);
+    const history = data || [];
+    document.getElementById('history-content').innerHTML = history.length ? `<ul>${history.map(h=>`<li>${h.quantity_change} — ${h.reason} (${new Date(h.created_at).toLocaleString()})</li>`).join('')}</ul>` : 'No history';
+    document.getElementById('stock-history-modal').classList.remove('hidden');
   };
 
-  // ============================================================
-  // EXPENSES
-  // ============================================================
-  async function loadExpenses() {
-    const { data } = await sb.from("expenses").select("*").order("expense_date", { ascending: false }).limit(50);
-    cache.expenses = data ?? [];
-    const el = document.getElementById("expenses-ledger");
-    if (cache.expenses.length === 0) { el.innerHTML = `<div class="empty-state">No expenses recorded yet.</div>`; return; }
-    el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 1fr 2fr 1fr;"><div>Category</div><div>Description</div><div style="text-align:right">Amount</div></div>` +
-      cache.expenses.map((e) => `<div class="ledger-row" style="grid-template-columns: 1fr 2fr 1fr; cursor:pointer;" onclick="openEditExpense('${e.id}')">
-        <div><span class="cat-badge" style="background:var(--amber-soft); color:var(--amber);">${escapeHtml(e.category)}</span></div>
-        <div style="color:var(--ink-soft); font-size:13px;">${escapeHtml(e.description ?? "—")}</div>
-        <div class="num" style="text-align:right">${money(e.amount)}</div>
-      </div>`).join("");
+  // ========== SALES (POS cart) ==========
+  function renderSales(container) {
+    container.innerHTML = `
+      <div class="page-header"><h2>Sales</h2></div>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Products</h3>
+          <input id="sale-search" placeholder="Search product..." oninput="renderSaleProducts()" />
+          <div id="sale-product-list" style="max-height:400px;overflow-y:auto;"></div>
+        </div>
+        <div class="card">
+          <h3>Cart</h3>
+          <div id="cart-items"></div>
+          <div class="cart-summary">Total: <span id="cart-total">0.00</span></div>
+          <select id="sale-customer"><option value="">Walk-in</option>${state.customers.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select>
+          <select id="sale-method"><option value="cash">Cash</option><option value="mobile_money">Mobile Money</option></select>
+          <button class="btn" onclick="completeSale()">Complete Sale</button>
+        </div>
+      </div>`;
+    window.renderSaleProducts = () => {
+      const q = document.getElementById('sale-search').value.toLowerCase();
+      const html = state.products.filter(p=>p.name.toLowerCase().includes(q)).map(p=>`
+        <div style="display:flex;justify-content:space-between;padding:0.3rem 0;">
+          <span>${esc(p.name)} (${fmoney(p.price)})</span>
+          <button class="btn-small" onclick="addToCart('${p.id}')">Add</button>
+        </div>`).join('');
+      document.getElementById('sale-product-list').innerHTML = html || 'No products';
+    };
+    window.addToCart = (productId) => {
+      const existing = state.cart.find(i=>i.product_id===productId);
+      if(existing) existing.qty++;
+      else {
+        const prod = state.products.find(p=>p.id===productId);
+        state.cart.push({product_id:productId, name:prod.name, price:prod.price, qty:1});
+      }
+      renderCart();
+    };
+    window.renderCart = () => {
+      document.getElementById('cart-items').innerHTML = state.cart.map((item,i)=>`
+        <div class="cart-item">
+          <span>${esc(item.name)} x${item.qty}</span>
+          <span>${fmoney(item.price*item.qty)} <button class="btn-small btn-ghost" onclick="removeCartItem(${i})">x</button></span>
+        </div>`).join('');
+      document.getElementById('cart-total').innerText = fmoney(state.cart.reduce((s,i)=>s+i.price*i.qty,0));
+    };
+    window.removeCartItem = (i) => { state.cart.splice(i,1); renderCart(); };
+    window.completeSale = async () => {
+      if(state.cart.length===0) return alert('Cart empty');
+      const total = state.cart.reduce((s,i)=>s+i.price*i.qty,0);
+      const customerId = document.getElementById('sale-customer').value || null;
+      const { data: order } = await sb.from('orders').insert({business_id:businessId, customer_id:customerId, status:'completed', total_amount:total, created_by:session.user.id}).select().single();
+      for(const item of state.cart) {
+        await sb.from('order_items').insert({order_id:order.id, product_id:item.product_id, quantity:item.qty, unit_price:item.price});
+        // Stock deduction & movement are handled here (or via trigger if added)
+        const prod = state.products.find(p=>p.id===item.product_id);
+        if(prod && prod.stock_qty!==null) {
+          await sb.from('products').update({stock_qty: prod.stock_qty - item.qty}).eq('id',item.product_id);
+          await sb.from('stock_movements').insert({business_id:businessId, item_type:'product', product_id:item.product_id, quantity_change:-item.qty, reason:'sale', reference_type:'order', reference_id:order.id, created_by:session.user.id});
+        }
+      }
+      state.cart = []; renderCart();
+      await loadAllData(); renderPage('sales');
+    };
+    renderSaleProducts(); renderCart();
   }
 
-  function openEditExpense(expenseId) {
-    const e = cache.expenses.find((x) => x.id === expenseId);
-    if (!e) return;
-    editingRecord = { table: "expenses", id: e.id };
-    document.getElementById("expense-modal-title").textContent = "Edit expense";
-    document.getElementById("expense-submit-btn").textContent = "Save changes";
-    document.getElementById("expense-delete-btn").classList.remove("hidden");
-    document.getElementById("e-category").value = e.category;
-    document.getElementById("e-description").value = e.description ?? "";
-    document.getElementById("e-amount").value = e.amount;
-    document.getElementById("e-date").value = e.expense_date;
-    openModal("expense-modal");
+  // ========== CUSTOMERS ==========
+  function renderCustomers(container) {
+    container.innerHTML = `
+      <div class="page-header"><h2>Customers</h2><button class="btn" onclick="openCustomerModal()">+ Add</button></div>
+      <table><thead><tr><th>Name</th><th>Phone</th><th>Balance</th><th></th></tr></thead>
+      <tbody>${state.customers.map(c=>{
+        const bal = (state.orders.filter(o=>o.customer_id===c.id).reduce((s,o)=>s+Number(o.total_amount),0)) - (state.payments.filter(p=>p.customer_id===c.id && p.direction==='in').reduce((s,p)=>s+Number(p.amount),0));
+        return `<tr><td>${esc(c.name)}</td><td>${esc(c.phone||'—')}</td><td>${fmoney(bal)}</td><td><button class="btn-small" onclick="openCustomerModal('${c.id}')">Edit</button></td></tr>`;
+      }).join('')}</tbody></table>`;
   }
+  window.openCustomerModal = (id=null) => {
+    editingId = id; const c = id ? state.customers.find(x=>x.id===id) : null;
+    const modal = `<div class="modal-overlay" id="cust-modal"><div class="modal">
+      <h3>${id?'Edit':'Add'} Customer</h3>
+      <input id="c-name" value="${esc(c?.name||'')}" placeholder="Name" />
+      <input id="c-phone" value="${esc(c?.phone||'')}" placeholder="Phone" />
+      <button class="btn" onclick="saveCustomer()">Save</button>
+      <button class="btn-ghost" onclick="closeModal('cust-modal')">Cancel</button>
+    </div></div>`;
+    document.body.insertAdjacentHTML('beforeend', modal);
+  };
+  window.saveCustomer = async () => {
+    const payload = { name: document.getElementById('c-name').value, phone: document.getElementById('c-phone').value || null };
+    if(editingId) await sb.from('customers').update(payload).eq('id',editingId);
+    else await sb.from('customers').insert({business_id:businessId, ...payload});
+    closeModal('cust-modal'); await loadAllData(); renderPage('customers');
+  };
 
-  async function submitExpense() {
-    clearError("expense-error");
-    const category = document.getElementById("e-category").value;
-    const description = document.getElementById("e-description").value.trim() || null;
-    const amount = parseFloat(document.getElementById("e-amount").value);
-    const date = document.getElementById("e-date").value || new Date().toISOString().slice(0, 10);
-    if (isNaN(amount) || amount <= 0) return setError("expense-error", "Enter a valid amount.");
-
-    const payload = { category, description, amount, expense_date: date };
-    const { error } = editingRecord
-      ? await sb.from("expenses").update(payload).eq("id", editingRecord.id)
-      : await sb.from("expenses").insert({ business_id: membership.business_id, created_by: currentUser.id, ...payload });
-
-    if (error) return setError("expense-error", error.message);
-    closeModal("expense-modal");
-    await loadExpenses();
-    renderDashboard();
+  // ========== SUPPLIERS ==========
+  function renderSuppliers(container) {
+    container.innerHTML = `
+      <div class="page-header"><h2>Suppliers</h2><button class="btn" onclick="openSupplierModal()">+ Add</button></div>
+      <table><thead><tr><th>Name</th><th>Phone</th><th></th></tr></thead>
+      <tbody>${state.suppliers.map(s=>`<tr><td>${esc(s.name)}</td><td>${esc(s.phone||'—')}</td><td><button class="btn-small" onclick="openSupplierModal('${s.id}')">Edit</button></td></tr>`).join('')}</tbody></table>`;
   }
+  window.openSupplierModal = (id=null) => { /* similar to customer modal */ };
+  window.saveSupplier = async () => { /* ... */ };
+
+  // ========== PURCHASE ORDERS ==========
+  function renderPurchaseOrders(container) {
+    container.innerHTML = `
+      <div class="page-header"><h2>Purchase Orders</h2><button class="btn" onclick="openPOModal()">+ New PO</button></div>
+      <table><thead><tr><th>Supplier</th><th>Status</th><th>Total</th><th>Date</th><th></th></tr></thead>
+      <tbody>${state.purchaseOrders.map(po=>`<tr><td>${esc(po.suppliers?.name||'—')}</td><td><span class="badge">${esc(po.status)}</span></td><td>${fmoney(po.total_amount)}</td><td>${new Date(po.created_at).toLocaleDateString()}</td><td>${po.status==='received'?'':`<button class="btn-small" onclick="receivePO('${po.id}')">Receive</button>`}</td></tr>`).join('')}</tbody></table>`;
+  }
+  window.openPOModal = () => { /* form to select supplier, add items (product or raw material), save as draft/sent */ };
+  window.receivePO = async (poId) => {
+    await sb.from('purchase_orders').update({status:'received', received_at: new Date().toISOString()}).eq('id',poId);
+    // Restock items (would loop through purchase_order_items and update stock, log movements)
+    await loadAllData(); renderPage('purchase');
+  };
+
+  // ========== RAW MATERIALS ==========
+  function renderRawMaterials(container) {
+    container.innerHTML = `
+      <div class="page-header"><h2>Raw Materials</h2><button class="btn" onclick="openRMModal()">+ Add</button></div>
+      <table><thead><tr><th>Name</th><th>Stock</th><th>Unit</th><th></th></tr></thead>
+      <tbody>${state.rawMaterials.map(rm=>`<tr><td>${esc(rm.name)}</td><td>${rm.stock_qty} ${esc(rm.unit)}</td><td>${fmoney(rm.cost_per_unit)}</td><td><button class="btn-small" onclick="openRMModal('${rm.id}')">Edit</button></td></tr>`).join('')}</tbody></table>`;
+  }
+  window.openRMModal = (id=null) => { /* similar to product modal */ };
+
+  // ========== PRODUCTION ==========
+  function renderProduction(container) {
+    container.innerHTML = `
+      <div class="page-header"><h2>Production</h2></div>
+      <h3>Recipes</h3>
+      <table><thead><tr><th>Product</th><th>Ingredients</th><th></th></tr></thead>
+      <tbody>${state.recipes.map(r=>`<tr><td>${esc(r.products?.name)}</td><td>${r.raw_materials?.name} x${r.quantity_required}</td><td><button class="btn-small" onclick="produce('${r.product_id}')">Produce 1</button></td></tr>`).join('')}</tbody></table>`;
+  }
+  window.produce = async (productId) => {
+    const recipeItems = state.recipes.filter(r=>r.product_id===productId);
+    if(!recipeItems.length) return alert('No recipe');
+    // Check raw material stock, deduct, increase product stock, log movements
+    for(const item of recipeItems) {
+      const rm = state.rawMaterials.find(r=>r.id===item.raw_material_id);
+      if(!rm || rm.stock_qty < item.quantity_required) return alert('Insufficient raw materials');
+    }
+    for(const item of recipeItems) {
+      await sb.from('raw_materials').update({stock_qty: state.rawMaterials.find(r=>r.id===item.raw_material_id).stock_qty - item.quantity_required}).eq('id',item.raw_material_id);
+      await sb.from('stock_movements').insert({business_id:businessId, item_type:'raw_material', raw_material_id:item.raw_material_id, quantity_change:-item.quantity_required, reason:'production', created_by:session.user.id});
+    }
+    // Increase product stock
+    const prod = state.products.find(p=>p.id===productId);
+    if(prod) {
+      await sb.from('products').update({stock_qty: (prod.stock_qty||0)+1}).eq('id',productId);
+      await sb.from('stock_movements').insert({business_id:businessId, item_type:'product', product_id:productId, quantity_change:1, reason:'production', created_by:session.user.id});
+    }
+    await loadAllData(); renderPage('production');
+  };
+
+  // ========== PAYMENTS ==========
+  function renderPayments(container) {
+    container.innerHTML = `
+      <div class="page-header"><h2>Payments</h2><button class="btn" onclick="openPaymentModal()">+ Record</button></div>
+      <table><thead><tr><th>Customer</th><th>Amount</th><th>Method</th><th>Date</th></tr></thead>
+      <tbody>${state.payments.filter(p=>p.direction==='in').map(p=>`<tr><td>${esc(p.customers?.name||'—')}</td><td>${fmoney(p.amount)}</td><td>${esc(p.method)}</td><td>${new Date(p.created_at).toLocaleDateString()}</td></tr>`).join('')}</tbody></table>`;
+  }
+  window.openPaymentModal = () => { /* select customer, amount, method */ };
+
+  // ========== EXPENSES ==========
+  function renderExpenses(container) {
+    container.innerHTML = `
+      <div class="page-header"><h2>Expenses</h2><button class="btn" onclick="openExpenseModal()">+ Add</button></div>
+      <table><thead><tr><th>Category</th><th>Description</th><th>Amount</th><th>Date</th></tr></thead>
+      <tbody>${state.expenses.map(e=>`<tr><td><span class="badge">${esc(e.category)}</span></td><td>${esc(e.description||'')}</td><td>${fmoney(e.amount)}</td><td>${e.expense_date}</td></tr>`).join('')}</tbody></table>`;
+  }
+  window.openExpenseModal = () => { /* category, description, amount, date */ };
+
+  // ========== USERS ==========
+  function renderUsers(container) {
+    container.innerHTML = `
+      <div class="page-header"><h2>Users</h2></div>
+      <p>Invite code: <strong>${esc(membership.businesses.invite_code)}</strong></p>
+      <table><thead><tr><th>Name</th><th>Role</th><th>Active</th><th></th></tr></thead>
+      <tbody>${state.users.map(u=>`<tr><td>${esc(u.full_name||'—')}</td><td>${esc(u.role)}</td><td>${u.is_active?'Yes':'No'}</td><td>${userRole==='owner'&&u.user_id!==session.user.id?`<select onchange="changeRole('${u.id}',this.value)"><option ${u.role==='staff'?'selected':''}>staff</option><option ${u.role==='manager'?'selected':''}>manager</option></select><button class="btn-small btn-danger" onclick="disableUser('${u.id}')">Disable</button>`:''}</td></tr>`).join('')}</tbody></table>`;
+  }
+  window.changeRole = async (userId, newRole) => { await sb.from('app_users').update({role:newRole}).eq('id',userId); loadAllData(); renderPage('users'); };
+  window.disableUser = async (userId) => { await sb.from('app_users').update({is_active:false}).eq('id',userId); loadAllData(); renderPage('users'); };
+
+  // ========== MODAL CLOSE ==========
+  window.closeModal = (id) => {
+    const modal = document.getElementById(id);
+    if(modal) modal.remove();
+  };
 
   boot();
 </script>
-
 </body>
 </html>

@@ -110,11 +110,36 @@
 
   @media (max-width: 720px) {
     #app-screen { flex-direction: column; }
-    aside { width: 100%; flex-direction: row; align-items: center; overflow-x: auto; }
+    aside {
+      width: 100%; flex-direction: row; align-items: center;
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 15;
+      border-right: none; border-top: 1px solid var(--line);
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+    }
     .side-header, .side-footer { display: none; }
-    nav { display: flex; padding: 8px; }
-    main { padding: 20px; }
+    nav { display: flex; justify-content: space-around; padding: 6px 2px; width: 100%; }
+    .nav-item {
+      flex-direction: column; gap: 2px; padding: 6px 4px; font-size: 10px;
+      text-align: center; flex: 1; border-radius: 8px;
+    }
+    .nav-icon { font-size: 18px; }
+    main { padding: 16px 14px 90px; }
     .field-row { grid-template-columns: 1fr; }
+
+    /* Ledger rows become stacked cards instead of cramped grid columns */
+    .ledger-head { display: none; }
+    .ledger-row {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px;
+      padding: 14px 16px;
+    }
+    .ledger-row > div:first-child { flex: 1; min-width: 60%; }
+
+    /* Modals become full-screen sheets, easier to use on small screens */
+    .modal-backdrop { align-items: flex-end; padding: 0; }
+    .modal { max-width: 100%; border-radius: 16px 16px 0 0; max-height: 92vh; }
+
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+    input, select, textarea, button { min-height: 44px; }
   }
 </style>
 </head>

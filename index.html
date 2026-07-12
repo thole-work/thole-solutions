@@ -982,12 +982,36 @@
     if (!el) return;
     if (cache.purchases.length === 0) { el.innerHTML = `<div class="empty-state">No purchases recorded yet.</div>`; return; }
     el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Supplier</div><div>Date</div><div style="text-align:right">Total</div></div>` +
-      cache.purchases.map((po) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr;">
+      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;"><div>Supplier</div><div>Date</div><div style="text-align:right">Total</div><div></div></div>` +
+      cache.purchases.map((po) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;">
         <div>${po.suppliers ? escapeHtml(po.suppliers.name) : "No supplier on file"}</div>
         <div style="color:var(--ink-faint); font-size:12px;">${new Date(po.created_at).toLocaleDateString()}</div>
         <div class="num" style="text-align:right">${money(po.total_amount)}</div>
+        <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidPurchase('${po.id}')">Void</span></div>
       </div>`).join("");
+  }
+
+  // Voiding a purchase must REMOVE the stock it added (mirror of
+  // voidSale), and log that reversal for the audit trail.
+  async function voidPurchase(poId) {
+    if (!confirm("Void this purchase? Stock added will be removed. This can't be undone.")) return;
+
+    const { data: items } = await sb.from("purchase_order_items").select("*").eq("purchase_order_id", poId);
+    for (const item of items ?? []) {
+      const product = cache.products.find((p) => p.id === item.product_id);
+      if (product && product.stock_qty !== null) {
+        const reducedQty = product.stock_qty - Number(item.quantity);
+        await sb.from("products").update({ stock_qty: reducedQty }).eq("id", item.product_id);
+        await sb.from("stock_movements").insert({
+          business_id: membership.business_id, item_type: "product", product_id: item.product_id,
+          quantity_change: -Number(item.quantity), reason: "purchase_voided", reference_type: "purchase_order", reference_id: poId, created_by: currentUser.id,
+        });
+      }
+    }
+    await sb.from("purchase_orders").delete().eq("id", poId); // purchase_order_items cascade-delete automatically
+
+    await Promise.all([loadProducts(), loadPurchases()]);
+    renderDashboard();
   }
 
   boot();

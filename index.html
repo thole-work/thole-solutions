@@ -6,6 +6,7 @@
 <title>Thole Solutions</title>
 <link rel="icon" type="image/png" href="logo.png" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
@@ -253,6 +254,7 @@
       <div class="nav-item nav-secondary" data-tab="suppliers" onclick="switchTab('suppliers')"><span class="nav-icon">▣</span> Suppliers</div>
       <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases')"><span class="nav-icon">▥</span> Purchase Orders</div>
       <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team')"><span class="nav-icon">☺</span> Team</div>
+      <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports')"><span class="nav-icon">▲</span> Reports</div>
       <div class="nav-item mobile-more-btn" onclick="toggleMoreMenu()"><span class="nav-icon">☰</span> More</div>
     </nav>
     <div class="side-footer">
@@ -271,6 +273,7 @@
     <div class="nav-item nav-secondary" data-tab="suppliers" onclick="switchTab('suppliers'); toggleMoreMenu();"><span class="nav-icon">▣</span> Suppliers</div>
     <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases'); toggleMoreMenu();"><span class="nav-icon">▥</span> Purchase Orders</div>
     <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team'); toggleMoreMenu();"><span class="nav-icon">☺</span> Team</div>
+    <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports'); toggleMoreMenu();"><span class="nav-icon">▲</span> Reports</div>
   </div>
   <div id="mobile-more-backdrop" onclick="toggleMoreMenu()"></div>
 
@@ -346,6 +349,19 @@
       <div class="page-header"><h2>Team</h2><p>Everyone with access to this business.</p></div>
       <div class="ledger" id="team-ledger"></div>
       <p style="font-size:12px; color:var(--ink-faint); margin-top:14px;">Share your invite code with new staff — they set their own role via the code, then you can promote them to Manager here.</p>
+    </section>
+
+    <!-- REPORTS -->
+    <section id="tab-reports" class="tab-panel hidden">
+      <div class="page-header"><h2>Reports</h2><p>Revenue trends, best sellers, and stock to watch.</p></div>
+      <div style="background:var(--card); border:1px solid var(--line); border-radius:10px; padding:18px; margin-bottom:22px;">
+        <h3 style="font-size:14px; margin-bottom:14px;">Revenue — last 14 days</h3>
+        <canvas id="revenue-chart" height="90"></canvas>
+      </div>
+      <h3 style="font-size:14px; margin-bottom:10px;">Top selling products</h3>
+      <div class="ledger" id="top-products-ledger" style="margin-bottom:22px;"></div>
+      <h3 style="font-size:14px; margin-bottom:10px;">Low stock</h3>
+      <div class="ledger" id="low-stock-ledger"></div>
     </section>
   </main>
 </div>
@@ -565,7 +581,7 @@
   // ============================================================
   function applyRolePermissions(role) {
     const isStaff = role === "staff";
-    document.querySelectorAll('.nav-item[data-tab="payments"], .nav-item[data-tab="expenses"], .nav-item[data-tab="suppliers"], .nav-item[data-tab="purchases"]').forEach((el) => {
+    document.querySelectorAll('.nav-item[data-tab="payments"], .nav-item[data-tab="expenses"], .nav-item[data-tab="suppliers"], .nav-item[data-tab="purchases"], .nav-item[data-tab="reports"]').forEach((el) => {
       el.classList.toggle("hidden", isStaff);
     });
     document.querySelectorAll('.nav-item[data-tab="team"]').forEach((el) => {
@@ -573,7 +589,7 @@
     });
     if (isStaff) {
       const activeTab = document.querySelector(".nav-item.active")?.dataset.tab;
-      if (["payments","expenses","suppliers","purchases","team"].includes(activeTab)) switchTab("dashboard");
+      if (["payments","expenses","suppliers","purchases","team","reports"].includes(activeTab)) switchTab("dashboard");
     }
     // Staff can record sales and add customers, but not create new
     // products (inventory/pricing changes stay owner/manager-only).
@@ -701,6 +717,7 @@
   async function loadEverything() {
     await Promise.all([loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses(), loadSuppliers(), loadPurchases()]);
     if (membership.role === "owner") await loadTeam();
+    if (membership.role === "owner" || membership.role === "manager") await loadReports();
     renderDashboard();
   }
 
@@ -1194,6 +1211,90 @@
     const { error } = await sb.from("app_users").delete().eq("user_id", userId);
     if (error) { alert(error.message); return; }
     await loadTeam();
+  }
+
+  // ============================================================
+  // REPORTS — owner/manager only. Revenue trend, top sellers, low stock.
+  // ============================================================
+  let revenueChartInstance = null;
+
+  async function loadReports() {
+    await renderRevenueChart();
+    await renderTopProducts();
+    renderLowStockReport();
+  }
+
+  async function renderRevenueChart() {
+    const canvas = document.getElementById("revenue-chart");
+    if (!canvas) return;
+
+    // Build the last 14 days as labels, sum this business's orders per day.
+    const days = [];
+    const totals = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      days.push(d.toLocaleDateString(undefined, { month: "short", day: "numeric" }));
+      const dayTotal = cache.sales
+        .filter((o) => o.created_at.slice(0, 10) === key)
+        .reduce((sum, o) => sum + Number(o.total_amount), 0);
+      totals.push(dayTotal);
+    }
+
+    if (revenueChartInstance) revenueChartInstance.destroy();
+    revenueChartInstance = new Chart(canvas, {
+      type: "bar",
+      data: { labels: days, datasets: [{ data: totals, backgroundColor: "#1D1F91", borderRadius: 4 }] },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } },
+      },
+    });
+  }
+
+  async function renderTopProducts() {
+    const el = document.getElementById("top-products-ledger");
+    if (!el) return;
+    const orderIds = cache.sales.map((o) => o.id);
+    if (orderIds.length === 0) { el.innerHTML = `<div class="empty-state">No sales yet.</div>`; return; }
+
+    const { data: items } = await sb.from("order_items").select("product_id, quantity, line_total").in("order_id", orderIds);
+    const agg = {};
+    for (const it of items ?? []) {
+      if (!agg[it.product_id]) agg[it.product_id] = { qty: 0, revenue: 0 };
+      agg[it.product_id].qty += Number(it.quantity);
+      agg[it.product_id].revenue += Number(it.line_total);
+    }
+    const top = Object.entries(agg)
+      .map(([pid, v]) => {
+        const p = cache.products.find((x) => x.id === pid);
+        return { name: p ? p.name : "Deleted product", ...v };
+      })
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
+
+    if (top.length === 0) { el.innerHTML = `<div class="empty-state">No sales yet.</div>`; return; }
+    el.innerHTML =
+      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Product</div><div>Qty sold</div><div style="text-align:right">Revenue</div></div>` +
+      top.map((t) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr;">
+        <div>${escapeHtml(t.name)}</div>
+        <div class="num">${t.qty}</div>
+        <div class="num" style="text-align:right">${money(t.revenue)}</div>
+      </div>`).join("");
+  }
+
+  function renderLowStockReport() {
+    const el = document.getElementById("low-stock-ledger");
+    if (!el) return;
+    const low = cache.products.filter((p) => p.stock_qty !== null && p.low_stock_threshold !== null && p.stock_qty <= p.low_stock_threshold);
+    if (low.length === 0) { el.innerHTML = `<div class="empty-state">Nothing low right now.</div>`; return; }
+    el.innerHTML =
+      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Product</div><div>Stock left</div></div>` +
+      low.map((p) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr;">
+        <div>${escapeHtml(p.name)}</div>
+        <div class="low-tag">${p.stock_qty} ${escapeHtml(p.unit)}</div>
+      </div>`).join("");
   }
 
   boot();

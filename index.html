@@ -347,8 +347,15 @@
     <!-- TEAM -->
     <section id="tab-team" class="tab-panel hidden">
       <div class="page-header"><h2>Team</h2><p>Everyone with access to this business.</p></div>
+      <div style="background:var(--accent-soft); border-radius:10px; padding:16px 18px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div>
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); margin-bottom:4px;">Invite code</div>
+          <div class="num" style="font-size:20px; font-weight:600; color:var(--accent);" id="team-invite-code">—</div>
+        </div>
+        <button class="btn-ghost" onclick="copyInviteCode()">Copy</button>
+      </div>
       <div class="ledger" id="team-ledger"></div>
-      <p style="font-size:12px; color:var(--ink-faint); margin-top:14px;">Share your invite code with new staff — they set their own role via the code, then you can promote them to Manager here.</p>
+      <p style="font-size:12px; color:var(--ink-faint); margin-top:14px;">Share this code with new staff — they use it under "Redeem an invite code" when they sign up. You can promote them to Manager here after.</p>
     </section>
 
     <!-- REPORTS -->
@@ -556,7 +563,7 @@
   async function checkMembership() {
     const { data, error } = await sb
       .from("app_users")
-      .select("business_id, role, full_name, businesses(name, business_types(display_name))")
+      .select("business_id, role, full_name, businesses(name, invite_code, business_types(display_name))")
       .eq("user_id", currentUser.id)
       .maybeSingle();
 
@@ -724,7 +731,7 @@
   function renderDashboard() {
     document.getElementById("m-products").textContent = cache.products.length;
     document.getElementById("m-lowstock").textContent = cache.products.filter(
-      (p) => p.stock_qty !== null && p.low_stock_threshold !== null && p.stock_qty <= p.low_stock_threshold
+      (p) => p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold)
     ).length;
     document.getElementById("m-sales").textContent = cache.sales.length;
     document.getElementById("m-revenue").textContent = money(cache.sales.reduce((s, o) => s + Number(o.total_amount), 0));
@@ -753,7 +760,7 @@
     el.innerHTML =
       `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Product</div><div>Stock</div><div style="text-align:right">Price</div></div>` +
       list.map((p) => {
-        const isLow = p.stock_qty !== null && p.low_stock_threshold !== null && p.stock_qty <= p.low_stock_threshold;
+        const isLow = p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold);
         return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr; cursor:pointer;" onclick="openEditProduct('${p.id}')">
           <div>
             <div>${escapeHtml(p.name)}</div>
@@ -841,7 +848,7 @@
     if (itemErr) return setError("sale-error", itemErr.message);
 
     if (product.stock_qty !== null) {
-      const newStock = product.stock_qty - qty;
+      const newStock = Number(product.stock_qty) - qty;
       await sb.from("products").update({ stock_qty: newStock }).eq("id", productId);
       await sb.from("stock_movements").insert({
         business_id: membership.business_id, item_type: "product", product_id: productId,
@@ -879,7 +886,7 @@
     for (const item of items ?? []) {
       const product = cache.products.find((p) => p.id === item.product_id);
       if (product && product.stock_qty !== null) {
-        const restoredQty = product.stock_qty + Number(item.quantity);
+        const restoredQty = Number(product.stock_qty) + Number(item.quantity);
         await sb.from("products").update({ stock_qty: restoredQty }).eq("id", item.product_id);
         await sb.from("stock_movements").insert({
           business_id: membership.business_id, item_type: "product", product_id: item.product_id,
@@ -1116,7 +1123,7 @@
     if (itemErr) return setError("purchase-error", itemErr.message);
 
     if (product.stock_qty !== null) {
-      const newStock = product.stock_qty + qty;
+      const newStock = Number(product.stock_qty) + qty;
       await sb.from("products").update({ stock_qty: newStock }).eq("id", productId);
       await sb.from("stock_movements").insert({
         business_id: membership.business_id, item_type: "product", product_id: productId,
@@ -1154,7 +1161,7 @@
     for (const item of items ?? []) {
       const product = cache.products.find((p) => p.id === item.product_id);
       if (product && product.stock_qty !== null) {
-        const reducedQty = product.stock_qty - Number(item.quantity);
+        const reducedQty = Number(product.stock_qty) - Number(item.quantity);
         await sb.from("products").update({ stock_qty: reducedQty }).eq("id", item.product_id);
         await sb.from("stock_movements").insert({
           business_id: membership.business_id, item_type: "product", product_id: item.product_id,
@@ -1172,6 +1179,7 @@
   // TEAM — owner only. Promote/demote roles, remove access.
   // ============================================================
   async function loadTeam() {
+    document.getElementById("team-invite-code").textContent = membership.businesses.invite_code;
     const { data } = await sb.from("app_users").select("*").order("created_at");
     const el = document.getElementById("team-ledger");
     if (!el) return;
@@ -1287,7 +1295,7 @@
   function renderLowStockReport() {
     const el = document.getElementById("low-stock-ledger");
     if (!el) return;
-    const low = cache.products.filter((p) => p.stock_qty !== null && p.low_stock_threshold !== null && p.stock_qty <= p.low_stock_threshold);
+    const low = cache.products.filter((p) => p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold));
     if (low.length === 0) { el.innerHTML = `<div class="empty-state">Nothing low right now.</div>`; return; }
     el.innerHTML =
       `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Product</div><div>Stock left</div></div>` +
@@ -1295,6 +1303,14 @@
         <div>${escapeHtml(p.name)}</div>
         <div class="low-tag">${p.stock_qty} ${escapeHtml(p.unit)}</div>
       </div>`).join("");
+  }
+
+  function copyInviteCode() {
+    navigator.clipboard.writeText(membership.businesses.invite_code);
+    const btn = event.target;
+    const original = btn.textContent;
+    btn.textContent = "Copied!";
+    setTimeout(() => (btn.textContent = original), 1200);
   }
 
   boot();

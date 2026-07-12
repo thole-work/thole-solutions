@@ -660,12 +660,37 @@
     const el = document.getElementById("sales-ledger");
     if (cache.sales.length === 0) { el.innerHTML = `<div class="empty-state">No sales recorded yet.</div>`; return; }
     el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Customer</div><div>Date</div><div style="text-align:right">Total</div></div>` +
-      cache.sales.map((o) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr;">
+      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;"><div>Customer</div><div>Date</div><div style="text-align:right">Total</div><div></div></div>` +
+      cache.sales.map((o) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;">
         <div>${o.customers ? escapeHtml(o.customers.name) : "Walk-in"}</div>
         <div style="color:var(--ink-faint); font-size:12px;">${new Date(o.created_at).toLocaleDateString()}</div>
         <div class="num" style="text-align:right">${money(o.total_amount)}</div>
+        <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidSale('${o.id}')">Void</span></div>
       </div>`).join("");
+  }
+
+  // Voiding a sale is NOT a simple delete — it must restore the stock
+  // that was deducted when the sale was recorded, and log that
+  // reversal in stock_movements, so the audit trail stays accurate.
+  async function voidSale(orderId) {
+    if (!confirm("Void this sale? Stock will be restored. This can't be undone.")) return;
+
+    const { data: items } = await sb.from("order_items").select("*").eq("order_id", orderId);
+    for (const item of items ?? []) {
+      const product = cache.products.find((p) => p.id === item.product_id);
+      if (product && product.stock_qty !== null) {
+        const restoredQty = product.stock_qty + Number(item.quantity);
+        await sb.from("products").update({ stock_qty: restoredQty }).eq("id", item.product_id);
+        await sb.from("stock_movements").insert({
+          business_id: membership.business_id, item_type: "product", product_id: item.product_id,
+          quantity_change: Number(item.quantity), reason: "sale_voided", reference_type: "order", reference_id: orderId, created_by: currentUser.id,
+        });
+      }
+    }
+    await sb.from("orders").delete().eq("id", orderId); // order_items cascade-delete automatically
+
+    await Promise.all([loadProducts(), loadSales()]);
+    renderDashboard();
   }
 
   // ============================================================

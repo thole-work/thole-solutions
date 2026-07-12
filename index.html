@@ -147,6 +147,18 @@
   <div id="auth-error" class="error hidden"></div>
 </div>
 
+<!-- ONBOARDING (invite code) — shown when logged in but no business yet -->
+<div id="onboarding-screen" class="hidden" style="max-width: 420px; margin: 0 auto; padding: 60px 20px;">
+  <div class="brand-mark"><img src="logo.png" alt="Thole Solutions" /></div>
+  <h1>Join your business</h1>
+  <p class="sub">You're signed in — just one more step. Ask your admin for your invite code.</p>
+  <label>Your name</label><input type="text" id="ob-name" />
+  <label>Invite code</label><input type="text" id="ob-code" placeholder="e.g. TEST-0001" />
+  <button class="btn-primary" onclick="handleRedeem()">Join business</button>
+  <div id="ob-error" class="error hidden"></div>
+  <div class="switch" style="margin-top:18px;"><a onclick="handleLogout()">Sign out and use a different account</a></div>
+</div>
+
 <!-- APP -->
 <div id="app-screen" class="hidden">
   <aside>
@@ -232,7 +244,7 @@
 <div id="product-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('product-modal')">Close</div>
-    <h3>Add product</h3>
+    <h3 id="product-modal-title">Add product</h3>
     <label>Name</label><input type="text" id="p-name" />
     <label>Category</label><input type="text" id="p-category" list="cat-suggestions" placeholder="e.g. Mains, Drinks, Sides" />
     <datalist id="cat-suggestions"></datalist>
@@ -244,7 +256,8 @@
       <div><label>Starting stock</label><input type="number" id="p-stock" placeholder="0" /></div>
       <div><label>Low stock alert below</label><input type="number" id="p-threshold" placeholder="optional" /></div>
     </div>
-    <button class="btn-primary" onclick="submitProduct()">Save product</button>
+    <button class="btn-primary" id="product-submit-btn" onclick="submitProduct()">Save product</button>
+    <button class="btn-ghost hidden" id="product-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('products', 'product-modal')">Delete product</button>
     <div id="product-error" class="error hidden"></div>
   </div>
 </div>
@@ -271,10 +284,11 @@
 <div id="customer-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('customer-modal')">Close</div>
-    <h3>Add customer</h3>
+    <h3 id="customer-modal-title">Add customer</h3>
     <label>Name</label><input type="text" id="c-name" />
     <label>Phone</label><input type="text" id="c-phone" />
-    <button class="btn-primary" onclick="submitCustomer()">Save customer</button>
+    <button class="btn-primary" id="customer-submit-btn" onclick="submitCustomer()">Save customer</button>
+    <button class="btn-ghost hidden" id="customer-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('customers', 'customer-modal')">Delete customer</button>
     <div id="customer-error" class="error hidden"></div>
   </div>
 </div>
@@ -283,7 +297,7 @@
 <div id="payment-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('payment-modal')">Close</div>
-    <h3>Record payment</h3>
+    <h3 id="payment-modal-title">Record payment</h3>
     <label>Customer</label>
     <select id="pay-customer"></select>
     <div class="field-row">
@@ -296,7 +310,8 @@
         </select>
       </div>
     </div>
-    <button class="btn-primary" onclick="submitPayment()">Save payment</button>
+    <button class="btn-primary" id="payment-submit-btn" onclick="submitPayment()">Save payment</button>
+    <button class="btn-ghost hidden" id="payment-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('payments', 'payment-modal')">Delete payment</button>
     <div id="payment-error" class="error hidden"></div>
   </div>
 </div>
@@ -305,7 +320,7 @@
 <div id="expense-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('expense-modal')">Close</div>
-    <h3>Add expense</h3>
+    <h3 id="expense-modal-title">Add expense</h3>
     <label>Category</label>
     <select id="e-category">
       <option value="rent">Rent</option>
@@ -319,7 +334,8 @@
       <div><label>Amount</label><input type="number" id="e-amount" /></div>
       <div><label>Date</label><input type="date" id="e-date" /></div>
     </div>
-    <button class="btn-primary" onclick="submitExpense()">Save expense</button>
+    <button class="btn-primary" id="expense-submit-btn" onclick="submitExpense()">Save expense</button>
+    <button class="btn-ghost hidden" id="expense-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('expenses', 'expense-modal')">Delete expense</button>
     <div id="expense-error" class="error hidden"></div>
   </div>
 </div>
@@ -336,6 +352,7 @@
   let currentUser = null;
   let membership = null; // { business_id, role, full_name, businesses: {...} }
   let cache = { products: [], customers: [], sales: [], payments: [], expenses: [] };
+  let editingRecord = null; // { table: 'products', id: '...' } — null means "adding new"
 
   function show(id) { document.getElementById(id).classList.remove("hidden"); }
   function hide(id) { document.getElementById(id).classList.add("hidden"); }
@@ -343,12 +360,29 @@
   function clearError(id) { hide(id); }
   function escapeHtml(str) { const d = document.createElement("div"); d.textContent = str ?? ""; return d.innerHTML; }
   function money(n) { return Number(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
   function openModal(id) { show(id); }
   function closeModal(id) {
     hide(id);
     document.querySelectorAll(`#${id} input`).forEach((i) => (i.value = ""));
     const errId = id.replace("-modal", "-error");
     if (document.getElementById(errId)) clearError(errId);
+    // reset edit-mode UI back to "add" state
+    editingRecord = null;
+    const prefix = id.replace("-modal", "");
+    const deleteBtn = document.getElementById(`${prefix}-delete-btn`);
+    if (deleteBtn) deleteBtn.classList.add("hidden");
+  }
+
+  // Generic delete used by every modal's Delete button — asks for
+  // confirmation, deletes the row, refreshes the relevant list.
+  async function deleteRecord(table, modalId) {
+    if (!editingRecord || editingRecord.table !== table) return;
+    if (!confirm("Delete this permanently? This can't be undone.")) return;
+    const { error } = await sb.from(table).delete().eq("id", editingRecord.id);
+    if (error) return setError(modalId.replace("-modal", "-error"), error.message);
+    closeModal(modalId);
+    await loadEverything();
   }
 
   // ============================================================
@@ -369,14 +403,54 @@
       .eq("user_id", currentUser.id)
       .maybeSingle();
 
-    if (error || !data) { show("auth-screen"); showSignup(); return; }
+    if (error || !data) {
+      // Logged in, but not yet linked to a business — show the
+      // "finish joining" screen, NOT the signup form again.
+      hide("auth-screen"); hide("app-screen"); show("onboarding-screen");
+      return;
+    }
     membership = data;
     document.getElementById("biz-name").textContent = data.businesses.name;
     document.getElementById("biz-type").textContent = data.businesses.business_types?.display_name ?? "";
     document.getElementById("user-name-display").textContent = data.full_name || currentUser.email;
     document.getElementById("user-role-display").textContent = data.role;
-    hide("auth-screen"); show("app-screen");
+    applyRolePermissions(data.role);
+    hide("auth-screen"); hide("onboarding-screen"); show("app-screen");
     await loadEverything();
+  }
+
+  // ============================================================
+  // ROLE PERMISSIONS — staff see day-to-day only, no financial tabs
+  // ============================================================
+  function applyRolePermissions(role) {
+    const isStaff = role === "staff";
+    document.querySelectorAll('.nav-item[data-tab="payments"], .nav-item[data-tab="expenses"]').forEach((el) => {
+      el.classList.toggle("hidden", isStaff);
+    });
+    // If staff somehow has a hidden tab open (e.g. from a previous session), bounce them to Dashboard.
+    if (isStaff) {
+      const activeTab = document.querySelector(".nav-item.active")?.dataset.tab;
+      if (activeTab === "payments" || activeTab === "expenses") switchTab("dashboard");
+    }
+    // Staff can record sales and add customers, but not create new
+    // products (inventory/pricing changes stay owner/manager-only).
+    const addProductBtn = document.querySelector('button[onclick="openModal(\'product-modal\')"]');
+    if (addProductBtn) addProductBtn.classList.toggle("hidden", isStaff);
+  }
+
+  // ============================================================
+  // ONBOARDING (invite code redemption for an already-logged-in user)
+  // ============================================================
+  async function handleRedeem() {
+    const errEl = "ob-error";
+    clearError(errEl);
+    const fullName = document.getElementById("ob-name").value.trim();
+    const code = document.getElementById("ob-code").value.trim();
+    if (!fullName || !code) return setError(errEl, "Please fill in both fields.");
+
+    const { error } = await sb.rpc("redeem_invite_code", { p_invite_code: code, p_full_name: fullName });
+    if (error) return setError(errEl, error.message);
+    await checkMembership();
   }
 
   // ============================================================
@@ -415,13 +489,19 @@
 
     currentUser = data.user;
     const { error: rpcErr } = await sb.rpc("redeem_invite_code", { p_invite_code: code, p_full_name: fullName });
-    if (rpcErr) return setError("auth-error", `Account created, but invite redemption failed: ${rpcErr.message}`);
+    if (rpcErr) {
+      // Account exists but redemption failed (e.g. bad code) — send
+      // them to the dedicated "finish joining" screen to retry,
+      // instead of leaving them on a dead-end signup form.
+      hide("auth-screen"); show("onboarding-screen");
+      return setError("ob-error", rpcErr.message);
+    }
     await checkMembership();
   }
   async function handleLogout() {
     await sb.auth.signOut();
     currentUser = null; membership = null;
-    hide("app-screen"); showLogin(); show("auth-screen");
+    hide("app-screen"); hide("onboarding-screen"); showLogin(); show("auth-screen");
   }
 
   // ============================================================
@@ -474,7 +554,7 @@
       `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Product</div><div>Stock</div><div style="text-align:right">Price</div></div>` +
       list.map((p) => {
         const isLow = p.stock_qty !== null && p.low_stock_threshold !== null && p.stock_qty <= p.low_stock_threshold;
-        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr;">
+        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr; cursor:pointer;" onclick="openEditProduct('${p.id}')">
           <div>
             <div>${escapeHtml(p.name)}</div>
             ${p.category ? `<span class="cat-badge">${escapeHtml(p.category)}</span>` : ""}
@@ -483,6 +563,22 @@
           <div class="num" style="text-align:right">${money(p.price)}</div>
         </div>`;
       }).join("");
+  }
+
+  function openEditProduct(productId) {
+    const p = cache.products.find((x) => x.id === productId);
+    if (!p) return;
+    editingRecord = { table: "products", id: p.id };
+    document.getElementById("product-modal-title").textContent = "Edit product";
+    document.getElementById("product-submit-btn").textContent = "Save changes";
+    document.getElementById("product-delete-btn").classList.remove("hidden");
+    document.getElementById("p-name").value = p.name;
+    document.getElementById("p-category").value = p.category ?? "";
+    document.getElementById("p-price").value = p.price;
+    document.getElementById("p-unit").value = p.unit;
+    document.getElementById("p-stock").value = p.stock_qty ?? "";
+    document.getElementById("p-threshold").value = p.low_stock_threshold ?? "";
+    openModal("product-modal");
   }
 
   async function submitProduct() {
@@ -496,9 +592,11 @@
 
     if (!name || isNaN(price)) return setError("product-error", "Name and price are required.");
 
-    const { error } = await sb.from("products").insert({
-      business_id: membership.business_id, name, category, price, unit, stock_qty: stock, low_stock_threshold: threshold,
-    });
+    const payload = { name, category, price, unit, stock_qty: stock, low_stock_threshold: threshold };
+    const { error } = editingRecord
+      ? await sb.from("products").update(payload).eq("id", editingRecord.id)
+      : await sb.from("products").insert({ business_id: membership.business_id, ...payload });
+
     if (error) return setError("product-error", error.message);
     closeModal("product-modal");
     await loadProducts();
@@ -580,16 +678,34 @@
     if (cache.customers.length === 0) { el.innerHTML = `<div class="empty-state">No customers yet.</div>`; return; }
     el.innerHTML =
       `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Name</div><div>Phone</div></div>` +
-      cache.customers.map((c) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr;">
+      cache.customers.map((c) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr; cursor:pointer;" onclick="openEditCustomer('${c.id}')">
         <div>${escapeHtml(c.name)}</div><div style="color:var(--ink-faint)">${escapeHtml(c.phone ?? "—")}</div>
       </div>`).join("");
   }
+
+  function openEditCustomer(customerId) {
+    const c = cache.customers.find((x) => x.id === customerId);
+    if (!c) return;
+    editingRecord = { table: "customers", id: c.id };
+    document.getElementById("customer-modal-title").textContent = "Edit customer";
+    document.getElementById("customer-submit-btn").textContent = "Save changes";
+    document.getElementById("customer-delete-btn").classList.remove("hidden");
+    document.getElementById("c-name").value = c.name ?? "";
+    document.getElementById("c-phone").value = c.phone ?? "";
+    openModal("customer-modal");
+  }
+
   async function submitCustomer() {
     clearError("customer-error");
     const name = document.getElementById("c-name").value.trim();
     const phone = document.getElementById("c-phone").value.trim() || null;
     if (!name) return setError("customer-error", "Name is required.");
-    const { error } = await sb.from("customers").insert({ business_id: membership.business_id, name, phone });
+
+    const payload = { name, phone };
+    const { error } = editingRecord
+      ? await sb.from("customers").update(payload).eq("id", editingRecord.id)
+      : await sb.from("customers").insert({ business_id: membership.business_id, ...payload });
+
     if (error) return setError("customer-error", error.message);
     closeModal("customer-modal");
     await loadCustomers();
@@ -605,27 +721,43 @@
     if (cache.payments.length === 0) { el.innerHTML = `<div class="empty-state">No payments recorded yet.</div>`; return; }
     el.innerHTML =
       `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Customer</div><div>Method</div><div style="text-align:right">Amount</div></div>` +
-      cache.payments.map((p) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr;">
+      cache.payments.map((p) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr; cursor:pointer;" onclick="openEditPayment('${p.id}')">
         <div>${p.customers ? escapeHtml(p.customers.name) : "—"}</div>
         <div style="color:var(--ink-faint); font-size:12px; text-transform:capitalize;">${escapeHtml(p.method.replace("_"," "))}</div>
         <div class="num" style="text-align:right">${money(p.amount)}</div>
       </div>`).join("");
   }
+
+  function openEditPayment(paymentId) {
+    const p = cache.payments.find((x) => x.id === paymentId);
+    if (!p) return;
+    editingRecord = { table: "payments", id: p.id };
+    document.getElementById("payment-modal-title").textContent = "Edit payment";
+    document.getElementById("payment-submit-btn").textContent = "Save changes";
+    document.getElementById("payment-delete-btn").classList.remove("hidden");
+    openModal("payment-modal"); // populates the customer dropdown first
+    document.getElementById("pay-customer").value = p.customer_id;
+    document.getElementById("pay-amount").value = p.amount;
+    document.getElementById("pay-method").value = p.method;
+  }
+
   async function submitPayment() {
     clearError("payment-error");
     const customerId = document.getElementById("pay-customer").value;
     const amount = parseFloat(document.getElementById("pay-amount").value);
     const method = document.getElementById("pay-method").value;
     if (!customerId || isNaN(amount) || amount <= 0) return setError("payment-error", "Select a customer and a valid amount.");
-    const { error } = await sb.from("payments").insert({
-      business_id: membership.business_id, direction: "in", party_type: "customer", customer_id: customerId, amount, method, created_by: currentUser.id,
-    });
+
+    const payload = { customer_id: customerId, amount, method };
+    const { error } = editingRecord
+      ? await sb.from("payments").update(payload).eq("id", editingRecord.id)
+      : await sb.from("payments").insert({ business_id: membership.business_id, direction: "in", party_type: "customer", created_by: currentUser.id, ...payload });
+
     if (error) return setError("payment-error", error.message);
     closeModal("payment-modal");
     await loadPayments();
   }
-  // populate payment customer dropdown whenever the modal opens
-  document.getElementById("payment-modal").addEventListener("transitionstart", () => {}); // no-op safeguard
+  // populate payment customer dropdown whenever the modal opens fresh (add mode)
   const origOpenModal = openModal;
   window.openModal = function (id) {
     if (id === "payment-modal") {
@@ -644,12 +776,27 @@
     if (cache.expenses.length === 0) { el.innerHTML = `<div class="empty-state">No expenses recorded yet.</div>`; return; }
     el.innerHTML =
       `<div class="ledger-head" style="grid-template-columns: 1fr 2fr 1fr;"><div>Category</div><div>Description</div><div style="text-align:right">Amount</div></div>` +
-      cache.expenses.map((e) => `<div class="ledger-row" style="grid-template-columns: 1fr 2fr 1fr;">
+      cache.expenses.map((e) => `<div class="ledger-row" style="grid-template-columns: 1fr 2fr 1fr; cursor:pointer;" onclick="openEditExpense('${e.id}')">
         <div><span class="cat-badge" style="background:var(--amber-soft); color:var(--amber);">${escapeHtml(e.category)}</span></div>
         <div style="color:var(--ink-soft); font-size:13px;">${escapeHtml(e.description ?? "—")}</div>
         <div class="num" style="text-align:right">${money(e.amount)}</div>
       </div>`).join("");
   }
+
+  function openEditExpense(expenseId) {
+    const e = cache.expenses.find((x) => x.id === expenseId);
+    if (!e) return;
+    editingRecord = { table: "expenses", id: e.id };
+    document.getElementById("expense-modal-title").textContent = "Edit expense";
+    document.getElementById("expense-submit-btn").textContent = "Save changes";
+    document.getElementById("expense-delete-btn").classList.remove("hidden");
+    document.getElementById("e-category").value = e.category;
+    document.getElementById("e-description").value = e.description ?? "";
+    document.getElementById("e-amount").value = e.amount;
+    document.getElementById("e-date").value = e.expense_date;
+    openModal("expense-modal");
+  }
+
   async function submitExpense() {
     clearError("expense-error");
     const category = document.getElementById("e-category").value;
@@ -657,9 +804,12 @@
     const amount = parseFloat(document.getElementById("e-amount").value);
     const date = document.getElementById("e-date").value || new Date().toISOString().slice(0, 10);
     if (isNaN(amount) || amount <= 0) return setError("expense-error", "Enter a valid amount.");
-    const { error } = await sb.from("expenses").insert({
-      business_id: membership.business_id, category, description, amount, expense_date: date, created_by: currentUser.id,
-    });
+
+    const payload = { category, description, amount, expense_date: date };
+    const { error } = editingRecord
+      ? await sb.from("expenses").update(payload).eq("id", editingRecord.id)
+      : await sb.from("expenses").insert({ business_id: membership.business_id, created_by: currentUser.id, ...payload });
+
     if (error) return setError("expense-error", error.message);
     closeModal("expense-modal");
     await loadExpenses();

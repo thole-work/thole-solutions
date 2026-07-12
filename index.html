@@ -72,6 +72,8 @@
   .nav-item:hover { background: var(--paper); color: var(--ink); }
   .nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
   .nav-icon { width: 18px; text-align: center; font-size: 15px; }
+  .mobile-more-btn { display: none; }
+  #mobile-more-panel, #mobile-more-backdrop { display: none; }
   .side-footer { padding: 14px 18px; border-top: 1px solid var(--line); }
   .user-name { font-size: 13px; font-weight: 500; }
   .user-role { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; }
@@ -123,6 +125,26 @@
       text-align: center; flex: 1; border-radius: 8px;
     }
     .nav-icon { font-size: 18px; }
+
+    /* Bottom bar shows only the 3 primary items + More; everything
+       else lives in the slide-up overflow panel instead. */
+    nav .nav-secondary { display: none; }
+    .mobile-more-btn { display: flex; }
+
+    #mobile-more-backdrop.open {
+      display: block; position: fixed; inset: 0; background: rgba(28,28,30,0.35); z-index: 16;
+    }
+    #mobile-more-panel.open {
+      display: flex; flex-direction: column; position: fixed; left: 0; right: 0; bottom: 62px;
+      background: var(--card); border-radius: 14px 14px 0 0; padding: 10px; z-index: 17;
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.12);
+    }
+    #mobile-more-panel .nav-item {
+      flex-direction: row; justify-content: flex-start; gap: 12px; padding: 14px 12px;
+      font-size: 15px; text-align: left; border-radius: 10px;
+    }
+    #mobile-more-panel .nav-icon { font-size: 18px; width: 24px; }
+
     main { padding: 16px 14px 90px; }
     .field-row { grid-template-columns: 1fr; }
 
@@ -222,15 +244,16 @@
       </div>
     </div>
     <nav>
-      <div class="nav-item active" data-tab="dashboard" onclick="switchTab('dashboard')"><span class="nav-icon">◆</span> Dashboard</div>
-      <div class="nav-item" data-tab="products" onclick="switchTab('products')"><span class="nav-icon">▤</span> Products & Stock</div>
-      <div class="nav-item" data-tab="sales" onclick="switchTab('sales')"><span class="nav-icon">✎</span> Sales</div>
-      <div class="nav-item" data-tab="customers" onclick="switchTab('customers')"><span class="nav-icon">◈</span> Customers</div>
-      <div class="nav-item" data-tab="payments" onclick="switchTab('payments')"><span class="nav-icon">◎</span> Payments</div>
-      <div class="nav-item" data-tab="expenses" onclick="switchTab('expenses')"><span class="nav-icon">▽</span> Expenses</div>
-      <div class="nav-item" data-tab="suppliers" onclick="switchTab('suppliers')"><span class="nav-icon">▣</span> Suppliers</div>
-      <div class="nav-item" data-tab="purchases" onclick="switchTab('purchases')"><span class="nav-icon">▥</span> Purchase Orders</div>
-      <div class="nav-item" data-tab="team" onclick="switchTab('team')"><span class="nav-icon">☺</span> Team</div>
+      <div class="nav-item nav-primary active" data-tab="dashboard" onclick="switchTab('dashboard')"><span class="nav-icon">◆</span> Dashboard</div>
+      <div class="nav-item nav-primary" data-tab="products" onclick="switchTab('products')"><span class="nav-icon">▤</span> Products & Stock</div>
+      <div class="nav-item nav-primary" data-tab="sales" onclick="switchTab('sales')"><span class="nav-icon">✎</span> Sales</div>
+      <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers')"><span class="nav-icon">◈</span> Customers</div>
+      <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments')"><span class="nav-icon">◎</span> Payments</div>
+      <div class="nav-item nav-secondary" data-tab="expenses" onclick="switchTab('expenses')"><span class="nav-icon">▽</span> Expenses</div>
+      <div class="nav-item nav-secondary" data-tab="suppliers" onclick="switchTab('suppliers')"><span class="nav-icon">▣</span> Suppliers</div>
+      <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases')"><span class="nav-icon">▥</span> Purchase Orders</div>
+      <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team')"><span class="nav-icon">☺</span> Team</div>
+      <div class="nav-item mobile-more-btn" onclick="toggleMoreMenu()"><span class="nav-icon">☰</span> More</div>
     </nav>
     <div class="side-footer">
       <div class="user-name" id="user-name-display">—</div>
@@ -238,6 +261,18 @@
       <span class="logout-link" onclick="handleLogout()">Sign out</span>
     </div>
   </aside>
+
+  <!-- Mobile-only overflow sheet — mirrors the secondary nav items,
+       slides up above the bottom bar when "More" is tapped. -->
+  <div id="mobile-more-panel">
+    <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers'); toggleMoreMenu();"><span class="nav-icon">◈</span> Customers</div>
+    <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments'); toggleMoreMenu();"><span class="nav-icon">◎</span> Payments</div>
+    <div class="nav-item nav-secondary" data-tab="expenses" onclick="switchTab('expenses'); toggleMoreMenu();"><span class="nav-icon">▽</span> Expenses</div>
+    <div class="nav-item nav-secondary" data-tab="suppliers" onclick="switchTab('suppliers'); toggleMoreMenu();"><span class="nav-icon">▣</span> Suppliers</div>
+    <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases'); toggleMoreMenu();"><span class="nav-icon">▥</span> Purchase Orders</div>
+    <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team'); toggleMoreMenu();"><span class="nav-icon">☺</span> Team</div>
+  </div>
+  <div id="mobile-more-backdrop" onclick="toggleMoreMenu()"></div>
 
   <main>
     <!-- DASHBOARD -->
@@ -653,6 +688,11 @@
     document.querySelectorAll(".tab-panel").forEach((el) => el.classList.add("hidden"));
     document.getElementById(`tab-${tab}`).classList.remove("hidden");
     document.querySelectorAll(".nav-item").forEach((el) => el.classList.toggle("active", el.dataset.tab === tab));
+  }
+
+  function toggleMoreMenu() {
+    document.getElementById("mobile-more-panel").classList.toggle("open");
+    document.getElementById("mobile-more-backdrop").classList.toggle("open");
   }
 
   // ============================================================

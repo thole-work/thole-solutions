@@ -178,6 +178,7 @@
       <div class="nav-item" data-tab="expenses" onclick="switchTab('expenses')"><span class="nav-icon">▽</span> Expenses</div>
       <div class="nav-item" data-tab="suppliers" onclick="switchTab('suppliers')"><span class="nav-icon">▣</span> Suppliers</div>
       <div class="nav-item" data-tab="purchases" onclick="switchTab('purchases')"><span class="nav-icon">▥</span> Purchase Orders</div>
+      <div class="nav-item" data-tab="team" onclick="switchTab('team')"><span class="nav-icon">☺</span> Team</div>
     </nav>
     <div class="side-footer">
       <div class="user-name" id="user-name-display">—</div>
@@ -252,6 +253,12 @@
       <div class="page-header"><h2>Purchase Orders</h2><p>Restocking — this updates product stock automatically.</p></div>
       <div class="toolbar"><div></div><button class="btn-small" onclick="openPurchaseModal()">+ New purchase</button></div>
       <div class="ledger" id="purchases-ledger"></div>
+    </section>
+    <!-- TEAM -->
+    <section id="tab-team" class="tab-panel hidden">
+      <div class="page-header"><h2>Team</h2><p>Everyone with access to this business.</p></div>
+      <div class="ledger" id="team-ledger"></div>
+      <p style="font-size:12px; color:var(--ink-faint); margin-top:14px;">Share your invite code with new staff — they set their own role via the code, then you can promote them to Manager here.</p>
     </section>
   </main>
 </div>
@@ -474,9 +481,12 @@
     document.querySelectorAll('.nav-item[data-tab="payments"], .nav-item[data-tab="expenses"], .nav-item[data-tab="suppliers"], .nav-item[data-tab="purchases"]').forEach((el) => {
       el.classList.toggle("hidden", isStaff);
     });
+    document.querySelectorAll('.nav-item[data-tab="team"]').forEach((el) => {
+      el.classList.toggle("hidden", role !== "owner");
+    });
     if (isStaff) {
       const activeTab = document.querySelector(".nav-item.active")?.dataset.tab;
-      if (["payments","expenses","suppliers","purchases"].includes(activeTab)) switchTab("dashboard");
+      if (["payments","expenses","suppliers","purchases","team"].includes(activeTab)) switchTab("dashboard");
     }
     // Staff can record sales and add customers, but not create new
     // products (inventory/pricing changes stay owner/manager-only).
@@ -564,6 +574,7 @@
   // ============================================================
   async function loadEverything() {
     await Promise.all([loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses(), loadSuppliers(), loadPurchases()]);
+    if (membership.role === "owner") await loadTeam();
     renderDashboard();
   }
 
@@ -1012,6 +1023,51 @@
 
     await Promise.all([loadProducts(), loadPurchases()]);
     renderDashboard();
+  }
+
+  // ============================================================
+  // TEAM — owner only. Promote/demote roles, remove access.
+  // ============================================================
+  async function loadTeam() {
+    const { data } = await sb.from("app_users").select("*").order("created_at");
+    const el = document.getElementById("team-ledger");
+    if (!el) return;
+    if (!data || data.length === 0) { el.innerHTML = `<div class="empty-state">No team members found.</div>`; return; }
+
+    el.innerHTML =
+      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 0.8fr;"><div>Name</div><div>Role</div><div></div></div>` +
+      data.map((u) => {
+        const isSelf = u.user_id === currentUser.id;
+        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 0.8fr;">
+          <div>${escapeHtml(u.full_name || "—")}${isSelf ? ' <span style="color:var(--ink-faint); font-size:12px;">(you)</span>' : ""}</div>
+          <div>
+            ${isSelf
+              ? `<span class="cat-badge">${escapeHtml(u.role)}</span>`
+              : `<select onchange="changeRole('${u.user_id}', this.value)" style="padding:5px 8px; font-size:12px;">
+                  <option value="staff" ${u.role === "staff" ? "selected" : ""}>Staff</option>
+                  <option value="manager" ${u.role === "manager" ? "selected" : ""}>Manager</option>
+                  <option value="owner" ${u.role === "owner" ? "selected" : ""}>Owner</option>
+                </select>`
+            }
+          </div>
+          <div style="text-align:right;">
+            ${isSelf ? "" : `<span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="removeTeamMember('${u.user_id}')">Remove</span>`}
+          </div>
+        </div>`;
+      }).join("");
+  }
+
+  async function changeRole(userId, newRole) {
+    const { error } = await sb.from("app_users").update({ role: newRole }).eq("user_id", userId);
+    if (error) { alert(error.message); }
+    await loadTeam();
+  }
+
+  async function removeTeamMember(userId) {
+    if (!confirm("Remove this person's access to the business? Their login stays, but they'll need a new invite code to rejoin.")) return;
+    const { error } = await sb.from("app_users").delete().eq("user_id", userId);
+    if (error) { alert(error.message); return; }
+    await loadTeam();
   }
 
   boot();

@@ -176,6 +176,8 @@
       <div class="nav-item" data-tab="customers" onclick="switchTab('customers')"><span class="nav-icon">◈</span> Customers</div>
       <div class="nav-item" data-tab="payments" onclick="switchTab('payments')"><span class="nav-icon">◎</span> Payments</div>
       <div class="nav-item" data-tab="expenses" onclick="switchTab('expenses')"><span class="nav-icon">▽</span> Expenses</div>
+      <div class="nav-item" data-tab="suppliers" onclick="switchTab('suppliers')"><span class="nav-icon">▣</span> Suppliers</div>
+      <div class="nav-item" data-tab="purchases" onclick="switchTab('purchases')"><span class="nav-icon">▥</span> Purchase Orders</div>
     </nav>
     <div class="side-footer">
       <div class="user-name" id="user-name-display">—</div>
@@ -236,6 +238,20 @@
       <div class="page-header"><h2>Expenses</h2><p>Overhead costs — rent, wages, utilities, supplies.</p></div>
       <div class="toolbar"><div></div><button class="btn-small" onclick="openModal('expense-modal')">+ Add expense</button></div>
       <div class="ledger" id="expenses-ledger"></div>
+    </section>
+
+    <!-- SUPPLIERS -->
+    <section id="tab-suppliers" class="tab-panel hidden">
+      <div class="page-header"><h2>Suppliers</h2><p>Who you buy from.</p></div>
+      <div class="toolbar"><div></div><button class="btn-small" onclick="openModal('supplier-modal')">+ Add supplier</button></div>
+      <div class="ledger" id="suppliers-ledger"></div>
+    </section>
+
+    <!-- PURCHASE ORDERS -->
+    <section id="tab-purchases" class="tab-panel hidden">
+      <div class="page-header"><h2>Purchase Orders</h2><p>Restocking — this updates product stock automatically.</p></div>
+      <div class="toolbar"><div></div><button class="btn-small" onclick="openPurchaseModal()">+ New purchase</button></div>
+      <div class="ledger" id="purchases-ledger"></div>
     </section>
   </main>
 </div>
@@ -340,6 +356,37 @@
   </div>
 </div>
 
+<!-- MODAL: Add supplier -->
+<div id="supplier-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="close" onclick="closeModal('supplier-modal')">Close</div>
+    <h3 id="supplier-modal-title">Add supplier</h3>
+    <label>Name</label><input type="text" id="sup-name" />
+    <label>Phone</label><input type="text" id="sup-phone" />
+    <button class="btn-primary" id="supplier-submit-btn" onclick="submitSupplier()">Save supplier</button>
+    <button class="btn-ghost hidden" id="supplier-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('suppliers', 'supplier-modal')">Delete supplier</button>
+    <div id="supplier-error" class="error hidden"></div>
+  </div>
+</div>
+
+<!-- MODAL: New purchase order -->
+<div id="purchase-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="close" onclick="closeModal('purchase-modal')">Close</div>
+    <h3>New purchase</h3>
+    <label>Product</label>
+    <select id="po-product"></select>
+    <label>Supplier (optional)</label>
+    <select id="po-supplier"><option value="">No supplier on file</option></select>
+    <div class="field-row">
+      <div><label>Quantity received</label><input type="number" id="po-qty" value="1" /></div>
+      <div><label>Unit cost</label><input type="number" id="po-cost" /></div>
+    </div>
+    <button class="btn-primary" onclick="submitPurchase()">Save purchase</button>
+    <div id="purchase-error" class="error hidden"></div>
+  </div>
+</div>
+
 <script>
   // ============================================================
   // CONFIG
@@ -351,7 +398,7 @@
 
   let currentUser = null;
   let membership = null; // { business_id, role, full_name, businesses: {...} }
-  let cache = { products: [], customers: [], sales: [], payments: [], expenses: [] };
+  let cache = { products: [], customers: [], sales: [], payments: [], expenses: [], suppliers: [], purchases: [] };
   let editingRecord = null; // { table: 'products', id: '...' } — null means "adding new"
 
   function show(id) { document.getElementById(id).classList.remove("hidden"); }
@@ -424,13 +471,12 @@
   // ============================================================
   function applyRolePermissions(role) {
     const isStaff = role === "staff";
-    document.querySelectorAll('.nav-item[data-tab="payments"], .nav-item[data-tab="expenses"]').forEach((el) => {
+    document.querySelectorAll('.nav-item[data-tab="payments"], .nav-item[data-tab="expenses"], .nav-item[data-tab="suppliers"], .nav-item[data-tab="purchases"]').forEach((el) => {
       el.classList.toggle("hidden", isStaff);
     });
-    // If staff somehow has a hidden tab open (e.g. from a previous session), bounce them to Dashboard.
     if (isStaff) {
       const activeTab = document.querySelector(".nav-item.active")?.dataset.tab;
-      if (activeTab === "payments" || activeTab === "expenses") switchTab("dashboard");
+      if (["payments","expenses","suppliers","purchases"].includes(activeTab)) switchTab("dashboard");
     }
     // Staff can record sales and add customers, but not create new
     // products (inventory/pricing changes stay owner/manager-only).
@@ -517,7 +563,7 @@
   // LOAD EVERYTHING
   // ============================================================
   async function loadEverything() {
-    await Promise.all([loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses()]);
+    await Promise.all([loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses(), loadSuppliers(), loadPurchases()]);
     renderDashboard();
   }
 
@@ -839,6 +885,109 @@
     closeModal("expense-modal");
     await loadExpenses();
     renderDashboard();
+  }
+
+  // ============================================================
+  // SUPPLIERS
+  // ============================================================
+  async function loadSuppliers() {
+    const { data } = await sb.from("suppliers").select("*").order("name");
+    cache.suppliers = data ?? [];
+    const el = document.getElementById("suppliers-ledger");
+    if (!el) return;
+    if (cache.suppliers.length === 0) { el.innerHTML = `<div class="empty-state">No suppliers yet.</div>`; return; }
+    el.innerHTML =
+      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Name</div><div>Phone</div></div>` +
+      cache.suppliers.map((s) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr; cursor:pointer;" onclick="openEditSupplier('${s.id}')">
+        <div>${escapeHtml(s.name)}</div><div style="color:var(--ink-faint)">${escapeHtml(s.phone ?? "—")}</div>
+      </div>`).join("");
+  }
+
+  function openEditSupplier(supplierId) {
+    const s = cache.suppliers.find((x) => x.id === supplierId);
+    if (!s) return;
+    editingRecord = { table: "suppliers", id: s.id };
+    document.getElementById("supplier-modal-title").textContent = "Edit supplier";
+    document.getElementById("supplier-submit-btn").textContent = "Save changes";
+    document.getElementById("supplier-delete-btn").classList.remove("hidden");
+    document.getElementById("sup-name").value = s.name ?? "";
+    document.getElementById("sup-phone").value = s.phone ?? "";
+    openModal("supplier-modal");
+  }
+
+  async function submitSupplier() {
+    clearError("supplier-error");
+    const name = document.getElementById("sup-name").value.trim();
+    const phone = document.getElementById("sup-phone").value.trim() || null;
+    if (!name) return setError("supplier-error", "Name is required.");
+
+    const payload = { name, phone };
+    const { error } = editingRecord
+      ? await sb.from("suppliers").update(payload).eq("id", editingRecord.id)
+      : await sb.from("suppliers").insert({ business_id: membership.business_id, ...payload });
+
+    if (error) return setError("supplier-error", error.message);
+    closeModal("supplier-modal");
+    await loadSuppliers();
+  }
+
+  // ============================================================
+  // PURCHASE ORDERS — receiving stock, updates products + audit trail
+  // ============================================================
+  function openPurchaseModal() {
+    document.getElementById("po-product").innerHTML = cache.products.map((p) => `<option value="${p.id}">${escapeHtml(p.name)} (stock: ${p.stock_qty ?? "—"})</option>`).join("");
+    document.getElementById("po-supplier").innerHTML = `<option value="">No supplier on file</option>` + cache.suppliers.map((s) => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("");
+    openModal("purchase-modal");
+  }
+
+  async function submitPurchase() {
+    clearError("purchase-error");
+    const productId = document.getElementById("po-product").value;
+    const supplierId = document.getElementById("po-supplier").value || null;
+    const qty = parseFloat(document.getElementById("po-qty").value);
+    const cost = parseFloat(document.getElementById("po-cost").value);
+    const product = cache.products.find((p) => p.id === productId);
+
+    if (!product || isNaN(qty) || qty <= 0 || isNaN(cost)) return setError("purchase-error", "Check the product, quantity, and cost.");
+
+    const total = qty * cost;
+    const { data: po, error: poErr } = await sb.from("purchase_orders").insert({
+      business_id: membership.business_id, supplier_id: supplierId, status: "received", total_amount: total, created_by: currentUser.id, received_at: new Date().toISOString(),
+    }).select().single();
+    if (poErr) return setError("purchase-error", poErr.message);
+
+    const { error: itemErr } = await sb.from("purchase_order_items").insert({
+      purchase_order_id: po.id, product_id: productId, quantity: qty, unit_cost: cost,
+    });
+    if (itemErr) return setError("purchase-error", itemErr.message);
+
+    if (product.stock_qty !== null) {
+      const newStock = product.stock_qty + qty;
+      await sb.from("products").update({ stock_qty: newStock }).eq("id", productId);
+      await sb.from("stock_movements").insert({
+        business_id: membership.business_id, item_type: "product", product_id: productId,
+        quantity_change: qty, reason: "purchase", reference_type: "purchase_order", reference_id: po.id, created_by: currentUser.id,
+      });
+    }
+
+    closeModal("purchase-modal");
+    await Promise.all([loadProducts(), loadPurchases()]);
+    renderDashboard();
+  }
+
+  async function loadPurchases() {
+    const { data } = await sb.from("purchase_orders").select("*, suppliers(name)").order("created_at", { ascending: false }).limit(50);
+    cache.purchases = data ?? [];
+    const el = document.getElementById("purchases-ledger");
+    if (!el) return;
+    if (cache.purchases.length === 0) { el.innerHTML = `<div class="empty-state">No purchases recorded yet.</div>`; return; }
+    el.innerHTML =
+      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Supplier</div><div>Date</div><div style="text-align:right">Total</div></div>` +
+      cache.purchases.map((po) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr;">
+        <div>${po.suppliers ? escapeHtml(po.suppliers.name) : "No supplier on file"}</div>
+        <div style="color:var(--ink-faint); font-size:12px;">${new Date(po.created_at).toLocaleDateString()}</div>
+        <div class="num" style="text-align:right">${money(po.total_amount)}</div>
+      </div>`).join("");
   }
 
   boot();

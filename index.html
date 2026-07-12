@@ -296,7 +296,10 @@
     <section id="tab-products" class="tab-panel hidden">
       <div class="page-header"><h2>Products & Stock</h2><p>Your catalog and current stock on hand.</p></div>
       <div class="toolbar">
-        <select id="cat-filter" onchange="renderProducts()"><option value="">All categories</option></select>
+        <div style="display:flex; gap:8px; flex:1;">
+          <input type="text" id="product-search" placeholder="Search products…" oninput="renderProducts()" style="max-width:220px;" />
+          <select id="cat-filter" onchange="renderProducts()"><option value="">All categories</option></select>
+        </div>
         <button class="btn-small" onclick="openModal('product-modal')">+ Add product</button>
       </div>
       <div class="ledger" id="products-ledger"></div>
@@ -306,7 +309,7 @@
     <section id="tab-sales" class="tab-panel hidden">
       <div class="page-header"><h2>Sales</h2><p>Record a sale — stock updates automatically.</p></div>
       <div class="toolbar">
-        <div></div>
+        <input type="date" id="sales-date-filter" onchange="loadSales()" />
         <button class="btn-small" onclick="openSaleModal()">+ Record sale</button>
       </div>
       <div class="ledger" id="sales-ledger"></div>
@@ -322,14 +325,14 @@
     <!-- PAYMENTS -->
     <section id="tab-payments" class="tab-panel hidden">
       <div class="page-header"><h2>Payments</h2><p>Money received from customers.</p></div>
-      <div class="toolbar"><div></div><button class="btn-small" onclick="openModal('payment-modal')">+ Record payment</button></div>
+      <div class="toolbar"><input type="date" id="payments-date-filter" onchange="loadPayments()" /><button class="btn-small" onclick="openModal('payment-modal')">+ Record payment</button></div>
       <div class="ledger" id="payments-ledger"></div>
     </section>
 
     <!-- EXPENSES -->
     <section id="tab-expenses" class="tab-panel hidden">
       <div class="page-header"><h2>Expenses</h2><p>Overhead costs — rent, wages, utilities, supplies.</p></div>
-      <div class="toolbar"><div></div><button class="btn-small" onclick="openModal('expense-modal')">+ Add expense</button></div>
+      <div class="toolbar"><input type="date" id="expenses-date-filter" onchange="loadExpenses()" /><button class="btn-small" onclick="openModal('expense-modal')">+ Add expense</button></div>
       <div class="ledger" id="expenses-ledger"></div>
     </section>
 
@@ -343,7 +346,7 @@
     <!-- PURCHASE ORDERS -->
     <section id="tab-purchases" class="tab-panel hidden">
       <div class="page-header"><h2>Purchase Orders</h2><p>Restocking — this updates product stock automatically.</p></div>
-      <div class="toolbar"><div></div><button class="btn-small" onclick="openPurchaseModal()">+ New purchase</button></div>
+      <div class="toolbar"><input type="date" id="purchases-date-filter" onchange="loadPurchases()" /><button class="btn-small" onclick="openPurchaseModal()">+ New purchase</button></div>
       <div class="ledger" id="purchases-ledger"></div>
     </section>
     <!-- TEAM -->
@@ -393,15 +396,18 @@
     <label>Name</label><input type="text" id="p-name" />
     <label>Category</label><input type="text" id="p-category" list="cat-suggestions" placeholder="e.g. Mains, Drinks, Sides" />
     <datalist id="cat-suggestions"></datalist>
+    <label>SKU / Barcode (optional)</label><input type="text" id="p-sku" />
     <div class="field-row">
-      <div><label>Price</label><input type="number" id="p-price" /></div>
+      <div><label>Cost price</label><input type="number" id="p-cost-price" placeholder="optional" /></div>
+      <div><label>Selling price</label><input type="number" id="p-price" /></div>
+    </div>
+    <div class="field-row">
       <div><label>Unit</label><input type="text" id="p-unit" placeholder="plate, kg, item" /></div>
-    </div>
-    <div class="field-row">
       <div><label>Starting stock</label><input type="number" id="p-stock" placeholder="0" /></div>
-      <div><label>Low stock alert below</label><input type="number" id="p-threshold" placeholder="optional" /></div>
     </div>
+    <label>Low stock alert below</label><input type="number" id="p-threshold" placeholder="optional" />
     <button class="btn-primary" id="product-submit-btn" onclick="submitProduct()">Save product</button>
+    <button class="btn-ghost hidden" id="product-duplicate-btn" style="width:100%; margin-top:10px;" onclick="duplicateProduct()">Duplicate this product</button>
     <button class="btn-ghost hidden" id="product-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('products', 'product-modal')">Delete product</button>
     <div id="product-error" class="error hidden"></div>
   </div>
@@ -599,6 +605,8 @@
     const prefix = id.replace("-modal", "");
     const deleteBtn = document.getElementById(`${prefix}-delete-btn`);
     if (deleteBtn) deleteBtn.classList.add("hidden");
+    const duplicateBtn = document.getElementById(`${prefix}-duplicate-btn`);
+    if (duplicateBtn) duplicateBtn.classList.add("hidden");
   }
 
   // Generic delete used by every modal's Delete button — asks for
@@ -829,20 +837,26 @@
 
   function renderProducts() {
     const filter = document.getElementById("cat-filter").value;
-    const list = filter ? cache.products.filter((p) => p.category === filter) : cache.products;
+    const search = (document.getElementById("product-search")?.value ?? "").trim().toLowerCase();
+    let list = filter ? cache.products.filter((p) => p.category === filter) : cache.products;
+    if (search) {
+      list = list.filter((p) => p.name.toLowerCase().includes(search) || (p.sku ?? "").toLowerCase().includes(search));
+    }
     const el = document.getElementById("products-ledger");
-    if (list.length === 0) { el.innerHTML = `<div class="empty-state">No products yet. Add your first one.</div>`; return; }
+    if (list.length === 0) { el.innerHTML = `<div class="empty-state">No products found.</div>`; return; }
 
     el.innerHTML =
       `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Product</div><div>Stock</div><div style="text-align:right">Price</div></div>` +
       list.map((p) => {
         const isLow = p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold);
+        const margin = p.cost_price ? (((p.price - p.cost_price) / p.price) * 100).toFixed(0) : null;
         const showRecipeLink = businessTypeKey === "restaurant" || businessTypeKey === "factory";
         return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr; cursor:pointer;" onclick="openEditProduct('${p.id}')">
           <div>
             <div>${escapeHtml(p.name)}</div>
             ${p.category ? `<span class="cat-badge">${escapeHtml(p.category)}</span>` : ""}
             ${showRecipeLink ? `<span style="color:var(--accent); font-size:11px; text-decoration:underline; margin-left:8px;" onclick="event.stopPropagation(); openRecipeModal('${p.id}')">Recipe</span>` : ""}
+            ${margin !== null ? `<div style="font-size:11px; color:var(--ink-faint); margin-top:2px;">${margin}% margin</div>` : ""}
           </div>
           <div class="${isLow ? "low-tag" : "num"}">${p.stock_qty !== null ? p.stock_qty + " " + escapeHtml(p.unit) : "—"}</div>
           <div class="num" style="text-align:right">${money(p.price)}</div>
@@ -857,8 +871,11 @@
     document.getElementById("product-modal-title").textContent = "Edit product";
     document.getElementById("product-submit-btn").textContent = "Save changes";
     document.getElementById("product-delete-btn").classList.remove("hidden");
+    document.getElementById("product-duplicate-btn").classList.remove("hidden");
     document.getElementById("p-name").value = p.name;
     document.getElementById("p-category").value = p.category ?? "";
+    document.getElementById("p-sku").value = p.sku ?? "";
+    document.getElementById("p-cost-price").value = p.cost_price ?? "";
     document.getElementById("p-price").value = p.price;
     document.getElementById("p-unit").value = p.unit;
     document.getElementById("p-stock").value = p.stock_qty ?? "";
@@ -866,10 +883,25 @@
     openModal("product-modal");
   }
 
+  async function duplicateProduct() {
+    if (!editingRecord) return;
+    const p = cache.products.find((x) => x.id === editingRecord.id);
+    if (!p) return;
+    const { error } = await sb.from("products").insert({
+      business_id: membership.business_id, name: `${p.name} (copy)`, category: p.category, sku: null,
+      cost_price: p.cost_price, price: p.price, unit: p.unit, stock_qty: 0, low_stock_threshold: p.low_stock_threshold,
+    });
+    if (error) return setError("product-error", error.message);
+    closeModal("product-modal");
+    await loadProducts();
+  }
+
   async function submitProduct() {
     clearError("product-error");
     const name = document.getElementById("p-name").value.trim();
     const category = document.getElementById("p-category").value.trim() || null;
+    const sku = document.getElementById("p-sku").value.trim() || null;
+    const costPrice = document.getElementById("p-cost-price").value === "" ? null : parseFloat(document.getElementById("p-cost-price").value);
     const price = parseFloat(document.getElementById("p-price").value);
     const unit = document.getElementById("p-unit").value.trim() || "item";
     const stock = document.getElementById("p-stock").value === "" ? null : parseFloat(document.getElementById("p-stock").value);
@@ -877,12 +909,25 @@
 
     if (!name || isNaN(price)) return setError("product-error", "Name and price are required.");
 
-    const payload = { name, category, price, unit, stock_qty: stock, low_stock_threshold: threshold };
-    const { error } = editingRecord
-      ? await sb.from("products").update(payload).eq("id", editingRecord.id)
-      : await sb.from("products").insert({ business_id: membership.business_id, ...payload });
+    const payload = { name, category, sku, cost_price: costPrice, price, unit, stock_qty: stock, low_stock_threshold: threshold };
 
-    if (error) return setError("product-error", error.message);
+    if (editingRecord) {
+      // If stock was changed by hand while editing, log it as an
+      // "adjustment" so the audit trail explains the jump.
+      const original = cache.products.find((p) => p.id === editingRecord.id);
+      const { error } = await sb.from("products").update(payload).eq("id", editingRecord.id);
+      if (error) return setError("product-error", error.message);
+      if (original && original.stock_qty !== null && stock !== null && Number(original.stock_qty) !== stock) {
+        await sb.from("stock_movements").insert({
+          business_id: membership.business_id, item_type: "product", product_id: editingRecord.id,
+          quantity_change: stock - Number(original.stock_qty), reason: "adjustment", created_by: currentUser.id,
+        });
+      }
+    } else {
+      const { error } = await sb.from("products").insert({ business_id: membership.business_id, ...payload });
+      if (error) return setError("product-error", error.message);
+    }
+
     closeModal("product-modal");
     await loadProducts();
     renderDashboard();
@@ -940,7 +985,10 @@
   }
 
   async function loadSales() {
-    const { data } = await sb.from("orders").select("*, customers(name)").order("created_at", { ascending: false }).limit(50);
+    const dateFilter = document.getElementById("sales-date-filter")?.value;
+    let query = sb.from("orders").select("*, customers(name)").order("created_at", { ascending: false }).limit(50);
+    if (dateFilter) query = query.gte("created_at", `${dateFilter}T00:00:00`).lte("created_at", `${dateFilter}T23:59:59`);
+    const { data } = await query;
     cache.sales = data ?? [];
     const el = document.getElementById("sales-ledger");
     if (cache.sales.length === 0) { el.innerHTML = `<div class="empty-state">No sales recorded yet.</div>`; return; }
@@ -1025,7 +1073,10 @@
   // PAYMENTS
   // ============================================================
   async function loadPayments() {
-    const { data } = await sb.from("payments").select("*, customers(name)").eq("direction", "in").order("created_at", { ascending: false }).limit(50);
+    const dateFilter = document.getElementById("payments-date-filter")?.value;
+    let query = sb.from("payments").select("*, customers(name)").eq("direction", "in").order("created_at", { ascending: false }).limit(50);
+    if (dateFilter) query = query.gte("created_at", `${dateFilter}T00:00:00`).lte("created_at", `${dateFilter}T23:59:59`);
+    const { data } = await query;
     cache.payments = data ?? [];
     const el = document.getElementById("payments-ledger");
     if (cache.payments.length === 0) { el.innerHTML = `<div class="empty-state">No payments recorded yet.</div>`; return; }
@@ -1080,7 +1131,10 @@
   // EXPENSES
   // ============================================================
   async function loadExpenses() {
-    const { data } = await sb.from("expenses").select("*").order("expense_date", { ascending: false }).limit(50);
+    const dateFilter = document.getElementById("expenses-date-filter")?.value;
+    let query = sb.from("expenses").select("*").order("expense_date", { ascending: false }).limit(50);
+    if (dateFilter) query = query.eq("expense_date", dateFilter);
+    const { data } = await query;
     cache.expenses = data ?? [];
     const el = document.getElementById("expenses-ledger");
     if (cache.expenses.length === 0) { el.innerHTML = `<div class="empty-state">No expenses recorded yet.</div>`; return; }
@@ -1215,7 +1269,10 @@
   }
 
   async function loadPurchases() {
-    const { data } = await sb.from("purchase_orders").select("*, suppliers(name)").order("created_at", { ascending: false }).limit(50);
+    const dateFilter = document.getElementById("purchases-date-filter")?.value;
+    let query = sb.from("purchase_orders").select("*, suppliers(name)").order("created_at", { ascending: false }).limit(50);
+    if (dateFilter) query = query.gte("created_at", `${dateFilter}T00:00:00`).lte("created_at", `${dateFilter}T23:59:59`);
+    const { data } = await query;
     cache.purchases = data ?? [];
     const el = document.getElementById("purchases-ledger");
     if (!el) return;

@@ -112,7 +112,15 @@
   .reports-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 22px; }
   .report-card { background: rgba(255,255,255,0.74); border: 1px solid rgba(255,255,255,0.75); border-radius: 18px; padding: 18px; box-shadow: 0 20px 40px rgba(15,23,42,0.06); backdrop-filter: blur(18px); }
   .report-card h3 { margin: 0 0 12px; font-size: 15px; }
+  .report-card header, .report-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+  .report-card-header p { margin: 0; color: var(--ink-soft); font-size: 12px; line-height: 1.4; }
+  .report-card canvas { width: 100%; max-height: 140px; }
   .report-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; margin-bottom: 22px; }
+  .report-insight-card { display: flex; flex-direction: column; justify-content: space-between; }
+  .insight-list { display: grid; gap: 12px; }
+  .insight-list div { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .insight-list span { color: var(--ink-faint); font-size: 12px; }
+  .insight-list strong { font-size: 15px; }
   .report-summary-card { display: flex; flex-direction: column; gap: 6px; }
   .report-summary-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); }
   /* Removed unused report chart controls to simplify reports layout */
@@ -488,8 +496,19 @@
       </div>
       <div class="report-grid">
         <div class="report-card">
-          <h3>Sales by category</h3>
-          <canvas id="category-chart" height="140"></canvas>
+          <div class="report-card-header">
+            <h3>Category share</h3>
+            <p class="note">Compact breakdown of sales across product categories.</p>
+          </div>
+          <canvas id="category-chart" height="110"></canvas>
+        </div>
+        <div class="report-card report-insight-card">
+          <h3>Quick view</h3>
+          <div class="insight-list">
+            <div><span>Top category</span><strong id="report-top-category">—</strong></div>
+            <div><span>Top product</span><strong id="report-top-product-mini">—</strong></div>
+            <div><span>Low stock items</span><strong id="report-low-stock-count-mini">0</strong></div>
+          </div>
         </div>
       </div>
       <div class="report-card" style="margin-bottom:22px;">
@@ -1573,6 +1592,16 @@
     avgSaleEl.title = money(avgSale);
     document.getElementById("report-top-product").textContent = escapeHtml(topProductName);
     document.getElementById("report-low-stock-count").textContent = lowStockCount;
+    document.getElementById("report-top-product-mini").textContent = escapeHtml(topProductName);
+    document.getElementById("report-low-stock-count-mini").textContent = lowStockCount;
+    const categoryTotals = {};
+    for (const item of orderItems) {
+      const product = cache.products.find((p) => p.id === item.product_id);
+      const category = product?.category || "Uncategorized";
+      categoryTotals[category] = (categoryTotals[category] || 0) + Number(item.line_total);
+    }
+    const topCategory = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "None yet";
+    document.getElementById("report-top-category").textContent = escapeHtml(topCategory);
   }
 
   async function renderCategoryChart(orderItems) {

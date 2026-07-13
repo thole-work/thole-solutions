@@ -103,7 +103,14 @@
   .metric-card .value { font-size: 24px; font-weight: 600; }
   .metric-card.warn .value { color: var(--danger); }
 
-  .onboarding-card { background: rgba(255,255,255,0.72); border: 1px solid rgba(255,255,255,0.68); border-radius: 16px; padding: 20px; margin-bottom: 28px; box-shadow: 0 18px 34px rgba(15,23,42,0.08); backdrop-filter: blur(16px); }
+  .reports-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 22px; }
+  .report-card { background: rgba(255,255,255,0.74); border: 1px solid rgba(255,255,255,0.75); border-radius: 18px; padding: 18px; box-shadow: 0 20px 40px rgba(15,23,42,0.06); backdrop-filter: blur(18px); }
+  .report-card h3 { margin: 0 0 12px; font-size: 15px; }
+  .report-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; margin-bottom: 22px; }
+  .report-summary-card { display: flex; flex-direction: column; gap: 6px; }
+  .report-summary-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); }
+  .report-summary-card .value { font-size: 22px; font-weight: 700; color: var(--ink); }
+  .report-summary-card .note { color: var(--ink-soft); font-size: 12px; }
   .onboarding-card h3 { margin: 0; font-size: 18px; }
   .onboarding-card p { margin: 8px 0 0; color: var(--ink-soft); font-size: 13px; }
   .onboarding-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 18px; }
@@ -439,14 +446,46 @@
 
     <section id="tab-reports" class="tab-panel hidden">
       <div class="page-header"><h2>Reports</h2><p>Revenue trends, best sellers, and stock to watch.</p></div>
-      <div style="background:var(--card); border:1px solid var(--line); border-radius:10px; padding:18px; margin-bottom:22px;">
-        <h3 style="font-size:14px; margin-bottom:14px;">Revenue — last 14 days</h3>
-        <canvas id="revenue-chart" height="90"></canvas>
+      <div class="reports-metrics">
+        <div class="report-summary-card report-card">
+          <div class="label">Total revenue</div>
+          <div class="value num" id="report-total-revenue">0</div>
+          <div class="note">Sum of all sales in your business.</div>
+        </div>
+        <div class="report-summary-card report-card">
+          <div class="label">Average sale</div>
+          <div class="value num" id="report-avg-sale">0</div>
+          <div class="note">Average order value over all sales.</div>
+        </div>
+        <div class="report-summary-card report-card">
+          <div class="label">Top seller</div>
+          <div class="value" id="report-top-product">—</div>
+          <div class="note">Product generating the most revenue.</div>
+        </div>
+        <div class="report-summary-card report-card">
+          <div class="label">Low-stock items</div>
+          <div class="value num" id="report-low-stock-count">0</div>
+          <div class="note">Items at or below the reorder threshold.</div>
+        </div>
       </div>
-      <h3 style="font-size:14px; margin-bottom:10px;">Top selling products</h3>
-      <div class="ledger" id="top-products-ledger" style="margin-bottom:22px;"></div>
-      <h3 style="font-size:14px; margin-bottom:10px;">Low stock</h3>
-      <div class="ledger" id="low-stock-ledger"></div>
+      <div class="report-grid">
+        <div class="report-card">
+          <h3>Revenue — last 14 days</h3>
+          <canvas id="revenue-chart" height="140"></canvas>
+        </div>
+        <div class="report-card">
+          <h3>Sales by category</h3>
+          <canvas id="category-chart" height="140"></canvas>
+        </div>
+      </div>
+      <div class="report-card" style="margin-bottom:22px;">
+        <h3>Top selling products</h3>
+        <div class="ledger" id="top-products-ledger"></div>
+      </div>
+      <div class="report-card">
+        <h3>Low stock</h3>
+        <div class="ledger" id="low-stock-ledger"></div>
+      </div>
     </section>
 
     <section id="tab-materials" class="tab-panel hidden">
@@ -1507,11 +1546,39 @@
   // REPORTS
   // ============================================================
   let revenueChartInstance = null;
+  let categoryChartInstance = null;
 
   async function loadReports() {
-    await renderRevenueChart();
-    await renderTopProducts();
-    renderLowStockReport();
+    const orderItems = await getOrderItems();
+    renderReportSummary(orderItems);
+    await Promise.all([renderRevenueChart(), renderCategoryChart(orderItems), renderTopProducts(orderItems), renderLowStockReport()]);
+  }
+
+  async function getOrderItems() {
+    const orderIds = cache.sales.map((o) => o.id);
+    if (orderIds.length === 0) return [];
+    const { data } = await sb.from("order_items").select("product_id, quantity, line_total").in("order_id", orderIds);
+    return data ?? [];
+  }
+
+  function renderReportSummary(orderItems) {
+    const totalRevenue = cache.sales.reduce((sum, o) => sum + Number(o.total_amount), 0);
+    const avgSale = cache.sales.length ? totalRevenue / cache.sales.length : 0;
+    const lowStockCount = cache.products.filter((p) => p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold)).length;
+
+    const productRevenue = {};
+    for (const item of orderItems) {
+      productRevenue[item.product_id] = (productRevenue[item.product_id] || 0) + Number(item.line_total);
+    }
+    const topProduct = Object.entries(productRevenue)
+      .map(([pid, revenue]) => ({ pid, revenue }))
+      .sort((a, b) => b.revenue - a.revenue)[0];
+    const topProductName = topProduct ? (cache.products.find((p) => p.id === topProduct.pid)?.name ?? "Deleted product") : "None yet";
+
+    document.getElementById("report-total-revenue").textContent = money(totalRevenue);
+    document.getElementById("report-avg-sale").textContent = money(avgSale);
+    document.getElementById("report-top-product").textContent = escapeHtml(topProductName);
+    document.getElementById("report-low-stock-count").textContent = lowStockCount;
   }
 
   async function renderRevenueChart() {
@@ -1533,24 +1600,76 @@
 
     if (revenueChartInstance) revenueChartInstance.destroy();
     revenueChartInstance = new Chart(canvas, {
-      type: "bar",
-      data: { labels: days, datasets: [{ data: totals, backgroundColor: "#1D1F91", borderRadius: 4 }] },
+      type: "line",
+      data: {
+        labels: days,
+        datasets: [{
+          data: totals,
+          borderColor: "#1D1F91",
+          backgroundColor: "rgba(29,31,145,0.18)",
+          fill: true,
+          tension: 0.35,
+          pointRadius: 4,
+          pointBackgroundColor: "#1D1F91",
+        }],
+      },
       options: {
         plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: "#6B7280" } },
+          y: { beginAtZero: true, ticks: { color: "#6B7280" } },
+        },
+        responsive: true,
+        maintainAspectRatio: false,
       },
     });
   }
 
-  async function renderTopProducts() {
+  async function renderCategoryChart(orderItems) {
+    const canvas = document.getElementById("category-chart");
+    if (!canvas) return;
+
+    const categoryTotals = {};
+    for (const item of orderItems) {
+      const product = cache.products.find((p) => p.id === item.product_id);
+      const category = product?.category || "Uncategorized";
+      categoryTotals[category] = (categoryTotals[category] || 0) + Number(item.line_total);
+    }
+
+    const entries = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    if (entries.length === 0) {
+      canvas.parentElement.innerHTML = `<div class="empty-state">No category data available.</div>`;
+      return;
+    }
+
+    const labels = entries.map(([category]) => category);
+    const data = entries.map(([, total]) => total);
+    const colors = ["#1D1F91","#5CACF7","#9C6B1F","#F59E0B","#10B981","#8B5CF6"];
+
+    if (categoryChartInstance) categoryChartInstance.destroy();
+    categoryChartInstance = new Chart(canvas, {
+      type: "doughnut",
+      data: {
+        labels,
+        datasets: [{ data, backgroundColor: colors.slice(0, labels.length), borderWidth: 0 }],
+      },
+      options: {
+        plugins: {
+          legend: { position: "bottom", labels: { color: "#374151", boxWidth: 12 } },
+        },
+        responsive: true,
+        maintainAspectRatio: false,
+      },
+    });
+  }
+
+  async function renderTopProducts(orderItems) {
     const el = document.getElementById("top-products-ledger");
     if (!el) return;
-    const orderIds = cache.sales.map((o) => o.id);
-    if (orderIds.length === 0) { el.innerHTML = `<div class="empty-state">No sales yet.</div>`; return; }
+    if (orderItems.length === 0) { el.innerHTML = `<div class="empty-state">No sales yet.</div>`; return; }
 
-    const { data: items } = await sb.from("order_items").select("product_id, quantity, line_total").in("order_id", orderIds);
     const agg = {};
-    for (const it of items ?? []) {
+    for (const it of orderItems) {
       if (!agg[it.product_id]) agg[it.product_id] = { qty: 0, revenue: 0 };
       agg[it.product_id].qty += Number(it.quantity);
       agg[it.product_id].revenue += Number(it.line_total);
@@ -1558,16 +1677,17 @@
     const top = Object.entries(agg)
       .map(([pid, v]) => {
         const p = cache.products.find((x) => x.id === pid);
-        return { name: p ? p.name : "Deleted product", ...v };
+        return { name: p ? p.name : "Deleted product", category: p?.category ?? "—", ...v };
       })
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
 
     if (top.length === 0) { el.innerHTML = `<div class="empty-state">No sales yet.</div>`; return; }
     el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Product</div><div>Qty sold</div><div style="text-align:right">Revenue</div></div>` +
-      top.map((t) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr;">
+      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr;"><div>Product</div><div>Category</div><div>Qty sold</div><div style="text-align:right">Revenue</div></div>` +
+      top.map((t) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr;">
         <div>${escapeHtml(t.name)}</div>
+        <div>${escapeHtml(t.category)}</div>
         <div class="num">${t.qty}</div>
         <div class="num" style="text-align:right">${money(t.revenue)}</div>
       </div>`).join("");
@@ -1579,10 +1699,11 @@
     const low = cache.products.filter((p) => p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold));
     if (low.length === 0) { el.innerHTML = `<div class="empty-state">Nothing low right now.</div>`; return; }
     el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Product</div><div>Stock left</div></div>` +
-      low.map((p) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr;">
+      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Product</div><div>Stock left</div><div style="text-align:right">Reorder</div></div>` +
+      low.map((p) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr;">
         <div>${escapeHtml(p.name)}</div>
         <div class="low-tag">${p.stock_qty} ${escapeHtml(p.unit)}</div>
+        <div style="text-align:right">${p.low_stock_threshold}</div>
       </div>`).join("");
   }
 

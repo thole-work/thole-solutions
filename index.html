@@ -27,7 +27,8 @@
     --danger: #A6432C;
     --danger-soft: #F4E6E1;
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; scrollbar-width: none; -ms-overflow-style: none; }
+  *::-webkit-scrollbar { display: none; width: 0; height: 0; }
   body {
     margin: 0; background: var(--paper); color: var(--ink);
     font-family: 'Inter', sans-serif; height: 100vh; overflow: hidden;
@@ -273,9 +274,37 @@
     input, select, textarea, button { min-height: 44px; }
     canvas { width: 100% !important; min-height: 180px !important; }
 
-    #app-topbar { flex-direction: column; align-items: stretch; padding: 12px 14px; border-radius: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; background: rgba(29,31,145,0.98); }
-    #app-topbar .title-group { margin-bottom: 12px; }
-    #app-topbar .user-panel { align-items: flex-start; width: 100%; gap: 8px; }
+    #app-topbar {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(29,31,145,0.98);
+      box-shadow: 0 16px 34px rgba(15,23,42,0.16);
+    }
+    #app-topbar .title-group { margin-bottom: 0; }
+    #app-topbar .user-panel {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      width: auto;
+      flex-wrap: wrap;
+    }
+    #app-topbar .user-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+      min-width: 0;
+    }
+    #app-topbar .user-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
     #app-topbar .user-panel .signout-btn { width: auto; padding: 6px 10px; }
   }
 </style>
@@ -393,9 +422,11 @@
         <p id="page-sub">Overview of your workspace right now.</p>
       </div>
       <div class="user-panel">
-        <div class="user-name" id="user-name-top">—</div>
-        <div class="user-role" id="user-role-top">—</div>
-        <div style="display:flex; gap:8px; align-items:center;">
+        <div class="user-meta">
+          <div class="user-name" id="user-name-top">—</div>
+          <div class="user-role" id="user-role-top">—</div>
+        </div>
+        <div class="user-actions">
           <button id="theme-toggle" title="Toggle theme" aria-label="Toggle theme" onclick="toggleTheme()">🌙</button>
           <button class="signout-btn" onclick="confirmSignOut()">Sign out</button>
         </div>

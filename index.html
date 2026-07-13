@@ -191,6 +191,19 @@
   }
   .toolbar select option { color: var(--ink); }
 
+  /* Chrome-specific: ensure date input text and calendar icon are visible in dark mode */
+  .toolbar input[type="date"] {
+    -webkit-text-fill-color: var(--ink) !important;
+    color: var(--ink) !important;
+  }
+  .toolbar input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: none !important;
+    opacity: 0.9;
+  }
+  .theme-dark .toolbar input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(1.4) !important;
+  }
+
   @media (max-width: 720px) {
     #app-screen { flex-direction: column; }
     aside {

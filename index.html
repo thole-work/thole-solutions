@@ -94,6 +94,19 @@
   #theme-toggle { border: none; background: transparent; width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 16px; }
   #theme-toggle:hover { background: rgba(255,255,255,0.06); transform: translateY(-1px); }
   .tab-panel .page-header { display: none; }
+  .tab-panel { position: relative; }
+  .tab-panel > .page-header {
+    display: block;
+    position: sticky;
+    top: 70px;
+    z-index: 20;
+    margin-bottom: 14px;
+    padding: 10px 0 12px;
+    background: linear-gradient(180deg, var(--paper) 0%, color-mix(in srgb, var(--paper) 90%, white) 100%);
+    backdrop-filter: blur(10px);
+  }
+  .tab-panel > .page-header h2 { font-size: 18px; }
+  .tab-panel > .page-header p { margin: 4px 0 0; color: var(--ink-soft); font-size: 13px; }
   .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 12px; flex-wrap: wrap; }
   .btn-small { padding: 9px 16px; border: none; border-radius: 6px; background: var(--accent); color: white; font-size: 13px; font-weight: 500; }
   .btn-small:hover { background: var(--accent-dark); }

@@ -46,7 +46,7 @@
   label { display: block; font-size: 12px; color: var(--ink-soft); margin: 14px 0 4px; }
   input, select, textarea {
     width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px;
-    background: white; font-size: 15px; font-family: 'Inter', sans-serif; color: var(--ink);
+    background: var(--card); font-size: 15px; font-family: 'Inter', sans-serif; color: var(--ink);
   }
   input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
   .btn-primary { width: 100%; margin-top: 20px; padding: 12px; border: none; border-radius: 6px; background: var(--accent); color: white; font-size: 15px; font-weight: 500; }
@@ -101,7 +101,7 @@
 
   /* metric cards */
   .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 28px; }
-  .metric-card { background: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.7); border-radius: 14px; padding: 16px 18px; box-shadow: 0 18px 34px rgba(15,23,42,0.06); backdrop-filter: blur(16px); overflow-wrap: anywhere; }
+  .metric-card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; box-shadow: 0 18px 34px rgba(15,23,42,0.06); backdrop-filter: blur(16px); overflow-wrap: anywhere; color: var(--ink); }
   .metric-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); margin-bottom: 6px; }
   .metric-card .value { font-size: 24px; font-weight: 600; }
   .metric-card .note { margin-top: 10px; color: var(--ink-soft); font-size: 12px; line-height: 1.5; }
@@ -113,7 +113,7 @@
   .card-label { color: var(--ink-faint); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
 
   .reports-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 22px; }
-  .report-card { background: rgba(255,255,255,0.74); border: 1px solid rgba(255,255,255,0.75); border-radius: 18px; padding: 18px; box-shadow: 0 20px 40px rgba(15,23,42,0.06); backdrop-filter: blur(18px); }
+  .report-card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px; box-shadow: 0 20px 40px rgba(15,23,42,0.06); backdrop-filter: blur(18px); color: var(--ink); }
   .report-card h3 { margin: 0 0 12px; font-size: 15px; }
   .report-card header, .report-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
   .report-card-header p { margin: 0; color: var(--ink-soft); font-size: 12px; line-height: 1.4; }
@@ -134,8 +134,8 @@
   .onboarding-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 18px; }
   .onboarding-badge { font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 7px 12px; }
   .checklist { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
-  .checklist li { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line); background: #fdfdff; }
-  .checklist li.done { border-color: var(--accent-soft); background: #f3f4ff; }
+  .checklist li { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); }
+  .checklist li.done { border-color: var(--accent-soft); background: var(--accent-soft); }
   .checklist li .marker { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; }
   .checklist li.done .marker { background: var(--accent); color: white; }
   .checklist li.pending .marker { background: var(--line); color: var(--ink-faint); }

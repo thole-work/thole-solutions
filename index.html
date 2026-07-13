@@ -170,6 +170,19 @@
   /* Dark theme variables */
   .theme-dark { --paper: #0B1020; --card: #0F1724; --ink: #E6EEF7; --ink-soft: #C3CEE6; --ink-faint: #9FB0D0; --line: rgba(255,255,255,0.06); --accent: #5E7CFF; --accent-soft: rgba(94,124,255,0.12); --sky: #5CACF7; --amber: #9C6B1F; --danger: #E06B5D; }
 
+  /* Force readable contrast inside key components */
+  .metric-card, .report-card, .ledger, .checklist li, .modal {
+    background: var(--card) !important;
+    color: var(--ink) !important;
+    border-color: var(--line) !important;
+  }
+
+  .ledger-head { background: var(--paper) !important; color: var(--ink-faint) !important; }
+  .ledger-row { color: var(--ink) !important; }
+  .empty-state { color: var(--ink-faint) !important; }
+
+  input::placeholder, textarea::placeholder { color: var(--ink-soft) !important; }
+
   @media (max-width: 720px) {
     #app-screen { flex-direction: column; }
     aside {

@@ -81,14 +81,14 @@
   .logout-link { font-size: 12px; color: var(--ink-faint); text-decoration: underline; cursor: pointer; margin-top: 6px; display: inline-block; }
 
   main { flex: 1; padding: 32px 40px; overflow-y: auto; max-width: 980px; }
-  #app-topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; position: sticky; top: 0; z-index: 10; margin-bottom: 24px; background: var(--accent); color: white; padding: 18px 20px; border-radius: 14px; box-shadow: 0 10px 24px rgba(29,31,145,0.12); }
+  #app-topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; position: sticky; top: 0; z-index: 20; margin-bottom: 24px; background: var(--accent); color: white; padding: 18px 20px; border-radius: 14px; border-bottom: 1px solid rgba(255,255,255,0.16); box-shadow: 0 10px 24px rgba(29,31,145,0.12); }
   #app-topbar .title-group { min-width: 0; }
   #app-topbar h2 { margin: 0; font-size: 22px; color: white; }
   #app-topbar p { margin: 6px 0 0; color: rgba(255,255,255,0.9); font-size: 13px; }
-  #app-topbar .user-panel { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; min-width: 180px; }
+  #app-topbar .user-panel { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; min-width: 180px; }
   #app-topbar .user-panel .user-name { font-weight: 600; }
   #app-topbar .user-panel .user-role { font-size: 12px; color: rgba(255,255,255,0.75); text-transform: uppercase; letter-spacing: 0.04em; }
-  #app-topbar .user-panel .signout-btn { border: none; border-radius: 8px; padding: 10px 14px; font-size: 13px; font-weight: 600; background: white; color: var(--accent); cursor: pointer; }
+  #app-topbar .user-panel .signout-btn { border: none; border-radius: 8px; padding: 8px 12px; font-size: 12px; font-weight: 600; background: white; color: var(--accent); cursor: pointer; width: auto; }
   #app-topbar .user-panel .signout-btn:hover { background: #eef0ff; }
   .tab-panel .page-header { display: none; }
   .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 12px; flex-wrap: wrap; }

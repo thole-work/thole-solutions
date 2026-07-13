@@ -831,10 +831,14 @@
 
   function applyBusinessTypeVisibility(typeKey) {
     businessTypeKey = typeKey;
-    const needsRawMaterials = typeKey === "restaurant" || typeKey === "factory";
+    const needsRawMaterials = businessUsesRawMaterials();
     document.querySelectorAll('.nav-item[data-tab="materials"]').forEach((el) => {
       el.classList.toggle("hidden", !needsRawMaterials);
     });
+  }
+
+  function businessUsesRawMaterials() {
+    return businessTypeKey === "restaurant" || businessTypeKey === "factory";
   }
 
   // ============================================================
@@ -1046,7 +1050,7 @@
       list.map((p) => {
         const isLow = p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold);
         const margin = p.cost_price ? (((p.price - p.cost_price) / p.price) * 100).toFixed(0) : null;
-        const showRecipeLink = businessTypeKey === "restaurant" || businessTypeKey === "factory";
+        const showRecipeLink = businessUsesRawMaterials();
         return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr; cursor:pointer;" onclick="openEditProduct('${p.id}')">
           <div>
             <div>${escapeHtml(p.name)}</div>
@@ -1100,7 +1104,7 @@
     const costPrice = document.getElementById("p-cost-price").value === "" ? null : parseFloat(document.getElementById("p-cost-price").value);
     const price = parseFloat(document.getElementById("p-price").value);
     const unit = document.getElementById("p-unit").value.trim() || "item";
-    const stock = document.getElementById("p-stock").value === "" ? null : parseFloat(document.getElementById("p-stock").value);
+    const stock = document.getElementById("p-stock").value === "" ? 0 : parseFloat(document.getElementById("p-stock").value);
     const threshold = document.getElementById("p-threshold").value === "" ? null : parseFloat(document.getElementById("p-threshold").value);
 
     if (!name || isNaN(price)) return setError("product-error", "Name and price are required.");
@@ -1450,14 +1454,19 @@
     });
     if (itemErr) return setError("purchase-error", itemErr.message);
 
-    if (product.stock_qty !== null) {
-      const newStock = Number(product.stock_qty) + qty;
-      await sb.from("products").update({ stock_qty: newStock }).eq("id", productId);
-      await sb.from("stock_movements").insert({
-        business_id: membership.business_id, item_type: "product", product_id: productId,
-        quantity_change: qty, reason: "purchase", reference_type: "purchase_order", reference_id: po.id, created_by: currentUser.id,
-      });
-    }
+    const { data: freshProduct, error: freshErr } = await sb.from("products").select("stock_qty").eq("id", productId).single();
+    if (freshErr || !freshProduct) return setError("purchase-error", "Unable to refresh product stock.");
+
+    const currentStock = freshProduct.stock_qty === null ? 0 : Number(freshProduct.stock_qty);
+    const newStock = currentStock + qty;
+    const { error: updateErr } = await sb.from("products").update({ stock_qty: newStock }).eq("id", productId);
+    if (updateErr) return setError("purchase-error", updateErr.message);
+
+    const { error: movementErr } = await sb.from("stock_movements").insert({
+      business_id: membership.business_id, item_type: "product", product_id: productId,
+      quantity_change: qty, reason: "purchase", reference_type: "purchase_order", reference_id: po.id, created_by: currentUser.id,
+    });
+    if (movementErr) return setError("purchase-error", movementErr.message);
 
     closeModal("purchase-modal");
     await Promise.all([loadProducts(), loadPurchases()]);
@@ -1754,6 +1763,7 @@
   let recipeProductId = null;
 
   async function openRecipeModal(productId) {
+    if (!businessUsesRawMaterials()) return;
     recipeProductId = productId;
     const p = cache.products.find((x) => x.id === productId);
     document.getElementById("recipe-product-name").textContent = p ? p.name : "";
@@ -1795,6 +1805,7 @@
   // PRODUCE
   // ============================================================
   function openProduceModal() {
+    if (!businessUsesRawMaterials()) return;
     document.getElementById("prod-product").innerHTML = cache.products.map((p) => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("");
     openModal("produce-modal");
     onProduceProductChange();

@@ -115,18 +115,7 @@
   .report-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; margin-bottom: 22px; }
   .report-summary-card { display: flex; flex-direction: column; gap: 6px; }
   .report-summary-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); }
-  .chart-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
-  .chart-toolbar h3 { transition: opacity 180ms ease, transform 180ms ease; }
-  .chart-toolbar h3.title-fade { opacity: 0.5; transform: translateY(-2px); }
-  .chart-controls { display: flex; gap: 8px; flex-wrap: wrap; }
-  .chart-controls .btn-small { min-width: 72px; padding: 10px 16px; transition: background-color 180ms ease, transform 180ms ease, color 180ms ease; }
-  .chart-controls .btn-small:hover { transform: translateY(-1px); }
-  .chart-controls .btn-small.active { background: var(--accent-dark); }
-  .report-card.chart-loading canvas { opacity: 0.28; transition: opacity 240ms ease; }
-  @media (max-width: 720px) {
-    .chart-controls { width: 100%; }
-    .chart-controls .btn-small { flex: 1 1 calc(33.333% - 8px); min-width: 0; }
-  }
+  /* Removed unused report chart controls to simplify reports layout */
   .report-summary-card .value { font-size: 22px; font-weight: 700; color: var(--ink); }
   .report-summary-card .note { color: var(--ink-soft); font-size: 12px; }
   .onboarding-card h3 { margin: 0; font-size: 18px; }
@@ -213,14 +202,25 @@
     .modal-backdrop { align-items: flex-end; padding: 0; }
     .modal { max-width: 100%; border-radius: 16px 16px 0 0; max-height: 92vh; }
 
-    .metrics { grid-template-columns: repeat(2, 1fr); }
+    .metrics { grid-template-columns: 1fr; }
+    .metric-card, .report-card, .report-card.compact-card { padding: 14px 14px; }
+    .report-grid { grid-template-columns: 1fr; gap: 16px; }
+    .dashboard-summary-grid { grid-template-columns: 1fr; }
+    .report-summary-card { width: 100%; }
+    .ledger { font-size: 13px; }
+    .ledger-row { padding: 12px 14px; }
     .ledger-row > div { min-width: 0; }
     .ledger-row > div:first-child { flex: 1 1 100%; min-width: 0; }
     .ledger-row .num, .ledger-row .low-tag { flex: 0 0 auto; }
+    .chart-card, .report-card { width: 100%; }
     .nav-item { min-width: 0; }
     main { padding: 18px 14px 110px; }
+    .toolbar { flex-direction: column; align-items: stretch; }
+    .toolbar > * { width: 100%; }
+    .btn-small, .btn-ghost { width: 100%; }
     #mobile-more-panel.open { bottom: 72px; }
     input, select, textarea, button { min-height: 44px; }
+    canvas { width: 100% !important; min-height: 180px !important; }
 
     #app-topbar { flex-direction: column; align-items: stretch; padding: 12px 14px; border-radius: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; background: rgba(29,31,145,0.98); }
     #app-topbar .title-group { margin-bottom: 12px; }
@@ -487,17 +487,6 @@
         </div>
       </div>
       <div class="report-grid">
-        <div class="report-card">
-          <div class="chart-toolbar">
-            <h3 id="revenue-chart-title">Revenue — weekly</h3>
-            <div class="chart-controls">
-              <button class="btn-small active" id="revenue-range-week" onclick="setRevenueTimeframe('week')">Week</button>
-              <button class="btn-small" id="revenue-range-month" onclick="setRevenueTimeframe('month')">Month</button>
-              <button class="btn-small" id="revenue-range-year" onclick="setRevenueTimeframe('year')">Year</button>
-            </div>
-          </div>
-          <canvas id="revenue-chart" height="140"></canvas>
-        </div>
         <div class="report-card">
           <h3>Sales by category</h3>
           <canvas id="category-chart" height="140"></canvas>
@@ -1547,85 +1536,12 @@
   // ============================================================
   // REPORTS
   // ============================================================
-  let revenueChartInstance = null;
   let categoryChartInstance = null;
-  let revenueTimeframe = getStoredRevenueTimeframe();
-
-  function getStoredRevenueTimeframe() {
-    const saved = localStorage.getItem("revenueTimeframe");
-    return ["week", "month", "year"].includes(saved) ? saved : "week";
-  }
-
-  function updateRevenueTimeframeUI(range) {
-    document.getElementById("revenue-chart-title").textContent =
-      range === "week" ? "Revenue — weekly" : range === "month" ? "Revenue — monthly" : "Revenue — yearly";
-    document.querySelectorAll(".chart-controls .btn-small").forEach((btn) => {
-      btn.classList.toggle("active", btn.id === `revenue-range-${range}`);
-    });
-  }
 
   async function loadReports() {
-    revenueTimeframe = getStoredRevenueTimeframe();
     const orderItems = await getOrderItems();
     renderReportSummary(orderItems);
-    updateRevenueTimeframeUI(revenueTimeframe);
-    await Promise.all([renderRevenueChart(revenueTimeframe), renderCategoryChart(orderItems), renderTopProducts(orderItems), renderLowStockReport()]);
-  }
-
-  function setRevenueTimeframe(range) {
-    revenueTimeframe = range;
-    localStorage.setItem("revenueTimeframe", range);
-    updateRevenueTimeframeUI(range);
-    const title = document.getElementById("revenue-chart-title");
-    if (title) {
-      title.classList.add("title-fade");
-      window.setTimeout(() => title.classList.remove("title-fade"), 160);
-    }
-    renderRevenueChart(range);
-  }
-
-  function getRevenueSeries(range) {
-    const labels = [];
-    const totals = [];
-    const now = new Date();
-
-    if (range === "month") {
-      for (let offset = 5; offset >= 0; offset--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-        labels.push(d.toLocaleDateString(undefined, { month: "short", year: "numeric" }));
-        totals.push(
-          cache.sales
-            .filter((o) => o.created_at.slice(0, 7) === key)
-            .reduce((sum, o) => sum + Number(o.total_amount), 0)
-        );
-      }
-    } else if (range === "year") {
-      const years = 4;
-      for (let offset = years - 1; offset >= 0; offset--) {
-        const year = now.getFullYear() - offset;
-        labels.push(year.toString());
-        totals.push(
-          cache.sales
-            .filter((o) => new Date(o.created_at).getFullYear() === year)
-            .reduce((sum, o) => sum + Number(o.total_amount), 0)
-        );
-      }
-    } else {
-      for (let offset = 6; offset >= 0; offset--) {
-        const d = new Date();
-        d.setDate(now.getDate() - offset);
-        const key = d.toISOString().slice(0, 10);
-        labels.push(d.toLocaleDateString(undefined, { month: "short", day: "numeric" }));
-        totals.push(
-          cache.sales
-            .filter((o) => o.created_at.slice(0, 10) === key)
-            .reduce((sum, o) => sum + Number(o.total_amount), 0)
-        );
-      }
-    }
-
-    return { labels, totals };
+    await Promise.all([renderCategoryChart(orderItems), renderTopProducts(orderItems), renderLowStockReport()]);
   }
 
   async function getOrderItems() {
@@ -1657,52 +1573,6 @@
     avgSaleEl.title = money(avgSale);
     document.getElementById("report-top-product").textContent = escapeHtml(topProductName);
     document.getElementById("report-low-stock-count").textContent = lowStockCount;
-  }
-
-  async function renderRevenueChart(range = revenueTimeframe) {
-    const canvas = document.getElementById("revenue-chart");
-    if (!canvas) return;
-
-    const { labels, totals } = getRevenueSeries(range);
-    const chartContainer = canvas.parentElement;
-    if (chartContainer) chartContainer.classList.add("chart-loading");
-    if (revenueChartInstance) revenueChartInstance.destroy();
-    revenueChartInstance = new Chart(canvas, {
-      type: "line",
-      data: {
-        labels,
-        datasets: [{
-          data: totals,
-          borderColor: "#1D1F91",
-          backgroundColor: "rgba(29,31,145,0.18)",
-          fill: true,
-          tension: 0.35,
-          pointRadius: 4,
-          pointBackgroundColor: "#1D1F91",
-        }],
-      },
-      options: {
-        animation: { duration: 520, easing: "easeOutQuart" },
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { grid: { display: false }, ticks: { color: "#6B7280", maxTicksLimit: 8 } },
-          y: {
-            beginAtZero: true,
-            ticks: {
-              color: "#6B7280",
-              maxTicksLimit: 5,
-              callback: (value) => abbreviateCurrency(value),
-            },
-          },
-        },
-        responsive: true,
-        maintainAspectRatio: false,
-        layout: { padding: { top: 6, bottom: 6, left: 6, right: 6 } },
-      },
-    });
-    if (chartContainer) {
-      setTimeout(() => chartContainer.classList.remove("chart-loading"), 260);
-    }
   }
 
   async function renderCategoryChart(orderItems) {

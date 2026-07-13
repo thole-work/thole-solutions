@@ -88,7 +88,7 @@
   #app-topbar .user-panel { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; min-width: 180px; }
   #app-topbar .user-panel .user-name { font-weight: 600; }
   #app-topbar .user-panel .user-role { font-size: 12px; color: rgba(255,255,255,0.75); text-transform: uppercase; letter-spacing: 0.04em; }
-  #app-topbar .user-panel .signout-btn { border: none; border-radius: 8px; padding: 8px 12px; font-size: 12px; font-weight: 600; background: white; color: var(--accent); cursor: pointer; width: auto; }
+  #app-topbar .user-panel .signout-btn { border: none; border-radius: 6px; padding: 6px 10px; font-size: 11px; font-weight: 600; background: white; color: var(--accent); cursor: pointer; width: auto; min-width: 0; }
   #app-topbar .user-panel .signout-btn:hover { background: #eef0ff; }
   .tab-panel .page-header { display: none; }
   .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 12px; flex-wrap: wrap; }
@@ -836,6 +836,7 @@
     await checkMembership();
   }
   async function handleLogout() {
+    if (!confirm("Are you sure you want to sign out?")) return;
     await sb.auth.signOut();
     currentUser = null; membership = null;
     hide("app-screen"); hide("onboarding-screen"); showLogin(); show("auth-screen");

@@ -11,23 +11,21 @@
   @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
   :root {
-    --paper: #F4F6FB;
+    --paper: #F6F7FB;
     --card: #FFFFFF;
-    --ink: #0F1724;
-    --ink-soft: #5B6478;
-    --ink-faint: #9AA0B6;
-    --line: #E6E9F2;
-    --accent: #3341FF;
-    --accent-dark: #1A28D9;
-    --accent-soft: #EEF2FF;
-    --muted: #6C748B;
-    --sky: #56A6FF;
-    --sky-soft: #E8F5FF;
-    --amber: #C07A2C;
-    --amber-soft: #FBF1E4;
-    --danger: #C44B3A;
-    --danger-soft: #F7E9E6;
-    --glass: rgba(255,255,255,0.6);
+    --ink: #14162E;
+    --ink-soft: #565B78;
+    --ink-faint: #8B8FA8;
+    --line: #E1E3EE;
+    --accent: #1D1F91;
+    --accent-dark: #14166B;
+    --accent-soft: #E7E8F7;
+    --sky: #5CACF7;
+    --sky-soft: #E7F1FE;
+    --amber: #9C6B1F;
+    --amber-soft: #F5EBD8;
+    --danger: #A6432C;
+    --danger-soft: #F4E6E1;
   }
   * { box-sizing: border-box; }
   body {
@@ -92,8 +90,7 @@
   #app-topbar .user-panel .user-role { font-size: 11px; color: rgba(255,255,255,0.78); text-transform: uppercase; letter-spacing: 0.04em; }
   #app-topbar .user-panel .signout-btn { border: none; border-radius: 999px; padding: 6px 10px; font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.18); color: white; cursor: pointer; width: auto; min-width: 0; }
   #app-topbar .user-panel .signout-btn:hover { background: rgba(255,255,255,0.26); }
-  #theme-toggle { border: none; background: transparent; width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: rgba(255,255,255,0.95); }
-  #theme-toggle:hover { background: rgba(255,255,255,0.06); transform: translateY(-2px); }
+  /* theme toggle removed - keeping icon styles */
   .tab-panel .page-header { display: none; }
   .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 12px; flex-wrap: wrap; }
   .btn-small { padding: 9px 16px; border: none; border-radius: 10px; background: linear-gradient(90deg,var(--accent),var(--accent-dark)); color: white; font-size: 13px; font-weight: 600; box-shadow: 0 8px 20px rgba(51,65,255,0.12); }
@@ -167,8 +164,7 @@
   .modal { background: var(--card); width: 100%; max-width: 520px; border-radius: 14px; padding: 24px; max-height: 85vh; overflow-y: auto; box-shadow: 0 18px 40px rgba(16,24,40,0.12); }
   .icon { width: 18px; height: 18px; display: block; fill: currentColor; }
 
-  /* Dark theme overrides */
-  .theme-dark { --paper: #0B1020; --card: #0F1724; --ink: #E6EEF7; --ink-soft: #C3CEE6; --ink-faint: #9FB0D0; --line: rgba(255,255,255,0.06); --accent: #5E7CFF; --accent-soft: rgba(94,124,255,0.12); --muted: #9AA7C9; --glass: rgba(255,255,255,0.03); }
+  /* dark theme removed per user request */
   .modal .close { text-align: right; font-size: 13px; color: var(--ink-soft); cursor: pointer; margin-bottom: 4px; }
   .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
@@ -384,9 +380,8 @@
         <div class="user-name" id="user-name-top">—</div>
         <div class="user-role" id="user-role-top">—</div>
         <div style="display:flex; gap:8px; align-items:center;">
-          <button id="theme-toggle" title="Toggle theme" onclick="toggleTheme()" aria-label="Toggle theme"><svg class="icon" aria-hidden><use href="#icon-moon"></use></svg></button>
-          <button class="signout-btn" onclick="confirmSignOut()">Sign out</button>
-        </div>
+            <button class="signout-btn" onclick="confirmSignOut()">Sign out</button>
+          </div>
       </div>
     </div>
 
@@ -740,18 +735,7 @@
   </div>
 </div>
 
-<!-- Settings modal -->
-<div id="settings-modal" class="modal-backdrop hidden">
-  <div class="modal">
-    <div class="close" onclick="closeModal('settings-modal')">Close</div>
-    <h3>Settings</h3>
-    <div style="margin-top:12px; display:flex; align-items:center; gap:12px;">
-      <label style="flex:1;">Dark theme</label>
-      <input id="settings-theme-checkbox" type="checkbox" aria-label="Enable dark theme" />
-    </div>
-    <p style="font-size:13px; color:var(--ink-soft); margin-top:10px;">Toggle the app color scheme. Preference is saved to your browser.</p>
-  </div>
-</div>
+<!-- Settings modal removed (theme rollback) -->
 
 <script>
   // ============================================================
@@ -1917,35 +1901,7 @@
 
   boot();
 
-  // Theme toggle and micro-interactions
-  function setThemeClass(isDark) {
-    if (isDark) document.documentElement.classList.add('theme-dark');
-    else document.documentElement.classList.remove('theme-dark');
-    const icon = document.querySelector('#theme-toggle svg use');
-    if (icon) icon.setAttribute('href', isDark ? '#icon-sun' : '#icon-moon');
-  }
-
-  function toggleTheme() {
-    const dark = document.documentElement.classList.toggle('theme-dark');
-    localStorage.setItem('thole:dark', dark ? '1' : '0');
-    setThemeClass(dark);
-  }
-
-  function initTheme() {
-    const stored = localStorage.getItem('thole:dark');
-    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const useDark = stored === null ? prefersDark : stored === '1';
-    setThemeClass(useDark);
-    const cb = document.getElementById('settings-theme-checkbox');
-    if (cb) cb.checked = !!useDark;
-    if (cb) cb.addEventListener('change', (e) => {
-      const on = !!e.target.checked;
-      localStorage.setItem('thole:dark', on ? '1' : '0');
-      setThemeClass(on);
-    });
-  }
-
-  // small ripple for primary buttons
+  // Micro-interactions (ripple on primary buttons)
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('.btn-primary');
     if (!btn) return;
@@ -1964,8 +1920,6 @@
     requestAnimationFrame(() => { circle.style.transform = 'scale(14)'; circle.style.opacity = '0'; });
     setTimeout(() => circle.remove(), 400);
   }, true);
-
-  initTheme();
 </script>
 
 </body>

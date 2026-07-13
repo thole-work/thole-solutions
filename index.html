@@ -94,8 +94,9 @@
   /* theme toggle button */
   #theme-toggle { border: none; background: transparent; width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 16px; }
   #theme-toggle:hover { background: rgba(255,255,255,0.06); transform: translateY(-1px); }
-  .tab-panel { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
+  .tab-panel { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
   .tab-panel .page-header { display: none; }
+  #pull-refresh-indicator { display: none; }
   .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 12px; flex-wrap: wrap; }
   .btn-small { padding: 9px 16px; border: none; border-radius: 6px; background: var(--accent); color: white; font-size: 13px; font-weight: 500; }
   .btn-small:hover { background: var(--accent-dark); }
@@ -274,6 +275,33 @@
     input, select, textarea, button { min-height: 44px; }
     canvas { width: 100% !important; min-height: 180px !important; }
 
+    #pull-refresh-indicator {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      position: fixed;
+      top: 86px;
+      left: 50%;
+      transform: translate(-50%, -120%);
+      z-index: 35;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.96);
+      color: var(--ink-soft);
+      border: 1px solid var(--line);
+      box-shadow: 0 10px 24px rgba(15,23,42,0.10);
+      backdrop-filter: blur(10px);
+      font-size: 12px;
+      font-weight: 600;
+      pointer-events: none;
+      opacity: 0;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+    #pull-refresh-indicator.show { opacity: 1; transform: translate(-50%, 0); }
+    #pull-refresh-indicator.active { color: var(--accent); border-color: var(--accent-soft); }
+    #pull-refresh-indicator .icon { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 11px; }
+
     #app-topbar {
       flex-direction: row;
       justify-content: space-between;
@@ -431,6 +459,11 @@
           <button class="signout-btn" onclick="confirmSignOut()">Sign out</button>
         </div>
       </div>
+    </div>
+
+    <div id="pull-refresh-indicator" aria-hidden="true">
+      <span class="icon">↻</span>
+      <span class="label">Pull to sync</span>
     </div>
 
     <section id="tab-dashboard" class="tab-panel">
@@ -1049,6 +1082,81 @@
     document.getElementById(`tab-${tab}`).classList.remove("hidden");
     document.querySelectorAll(".nav-item").forEach((el) => el.classList.toggle("active", el.dataset.tab === tab));
     updateTopbar(tab);
+  }
+
+  function bindPullToRefresh() {
+    document.querySelectorAll('.tab-panel').forEach((panel) => {
+      if (panel.dataset.pullBound === '1') return;
+      panel.dataset.pullBound = '1';
+
+      let startY = 0;
+      let currentY = 0;
+      let dragging = false;
+      let triggered = false;
+      const indicator = document.getElementById('pull-refresh-indicator');
+
+      const resetIndicator = () => {
+        if (!indicator) return;
+        indicator.classList.remove('show', 'active');
+        indicator.querySelector('.label').textContent = 'Pull to sync';
+        indicator.style.transform = 'translate(-50%, -120%)';
+      };
+
+      const updateIndicator = (distance) => {
+        if (!indicator) return;
+        const eased = Math.min(distance * 0.6, 92);
+        indicator.classList.toggle('show', eased > 4);
+        indicator.classList.toggle('active', eased >= 84);
+        indicator.querySelector('.label').textContent = eased >= 84 ? 'Release to sync' : 'Pull to sync';
+        indicator.style.transform = `translate(-50%, ${Math.min(eased * 0.4, 28)}px)`;
+      };
+
+      const refreshActiveView = async () => {
+        if (!indicator) return;
+        indicator.querySelector('.label').textContent = 'Syncing…';
+        indicator.classList.add('active');
+        indicator.style.transform = 'translate(-50%, 0)';
+        try {
+          await loadEverything();
+          const activeTab = document.querySelector('.nav-item.active')?.dataset.tab || 'dashboard';
+          updateTopbar(activeTab);
+        } catch (err) {
+          console.error('Pull refresh failed', err);
+        } finally {
+          resetIndicator();
+        }
+      };
+
+      panel.addEventListener('touchstart', (e) => {
+        if (panel.scrollTop > 0 || panel.classList.contains('hidden') || e.touches.length !== 1) return;
+        startY = e.touches[0].clientY;
+        currentY = startY;
+        dragging = true;
+        triggered = false;
+      }, { passive: true });
+
+      panel.addEventListener('touchmove', (e) => {
+        if (!dragging || panel.scrollTop > 0 || panel.classList.contains('hidden') || e.touches.length !== 1) return;
+        currentY = e.touches[0].clientY;
+        const distance = currentY - startY;
+        if (distance > 0) {
+          e.preventDefault();
+          updateIndicator(distance);
+        }
+      }, { passive: false });
+
+      panel.addEventListener('touchend', () => {
+        if (!dragging) return;
+        dragging = false;
+        const distance = currentY - startY;
+        if (distance >= 84 && !triggered) {
+          triggered = true;
+          refreshActiveView();
+        } else {
+          resetIndicator();
+        }
+      });
+    });
   }
 
   function updateTopbar(tab) {
@@ -1967,6 +2075,7 @@
   }
 
   initTheme();
+  bindPullToRefresh();
   boot();
 </script>
 

@@ -98,10 +98,16 @@
 
   /* metric cards */
   .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 28px; }
-  .metric-card { background: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.7); border-radius: 14px; padding: 16px 18px; box-shadow: 0 18px 34px rgba(15,23,42,0.06); backdrop-filter: blur(16px); }
+  .metric-card { background: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.7); border-radius: 14px; padding: 16px 18px; box-shadow: 0 18px 34px rgba(15,23,42,0.06); backdrop-filter: blur(16px); overflow-wrap: anywhere; }
   .metric-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); margin-bottom: 6px; }
   .metric-card .value { font-size: 24px; font-weight: 600; }
+  .metric-card .note { margin-top: 10px; color: var(--ink-soft); font-size: 12px; line-height: 1.5; }
   .metric-card.warn .value { color: var(--danger); }
+
+  .report-card.compact-card { padding: 18px; }
+  .dashboard-summary-grid { display: grid; gap: 10px; margin-top: 8px; }
+  .dashboard-summary-grid div { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .card-label { color: var(--ink-faint); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
 
   .reports-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 22px; }
   .report-card { background: rgba(255,255,255,0.74); border: 1px solid rgba(255,255,255,0.75); border-radius: 18px; padding: 18px; box-shadow: 0 20px 40px rgba(15,23,42,0.06); backdrop-filter: blur(18px); }
@@ -343,23 +349,23 @@
     </div>
 
     <section id="tab-dashboard" class="tab-panel">
-      <div class="page-header"><h2>Dashboard</h2><p>Overview of your workspace right now.</p></div>
+      <div class="page-header"><h2>Dashboard</h2><p>Key business health metrics in one place.</p></div>
       <div class="metrics">
-        <div class="metric-card"><div class="label">Products</div><div class="value num" id="m-products">0</div></div>
-        <div class="metric-card warn"><div class="label">Low stock</div><div class="value num" id="m-lowstock">0</div></div>
-        <div class="metric-card"><div class="label">Sales recorded</div><div class="value num" id="m-sales">0</div></div>
-        <div class="metric-card"><div class="label">Revenue</div><div class="value num" id="m-revenue">0</div></div>
-        <div class="metric-card"><div class="label">Expenses</div><div class="value num" id="m-expenses">0</div></div>
+        <div class="metric-card"><div class="label">Revenue</div><div class="value num" id="m-revenue">0</div><div class="note">Total sales value for the current data set.</div></div>
+        <div class="metric-card"><div class="label">Net profit</div><div class="value num" id="m-profit">0</div><div class="note">Revenue minus expenses.</div></div>
+        <div class="metric-card warn"><div class="label">Low stock</div><div class="value num" id="m-lowstock">0</div><div class="note">Products at or below reorder threshold.</div></div>
+        <div class="metric-card"><div class="label">Recent orders</div><div class="value num" id="m-sales">0</div><div class="note">Orders processed in the current view.</div></div>
       </div>
-      <div class="onboarding-card">
-        <div class="onboarding-header">
-          <div>
-            <h3>Quick setup</h3>
-            <p>Finish these important tasks to get your business ready.</p>
-          </div>
-          <div class="onboarding-badge" id="onboarding-progress">0/0 done</div>
+      <div class="report-card compact-card">
+        <h3>Action needed</h3>
+        <p id="dashboard-top-priority" class="card-note">Loading the most important update...</p>
+      </div>
+      <div class="report-card compact-card">
+        <h3>Snapshot</h3>
+        <div class="dashboard-summary-grid">
+          <div><span class="card-label">Avg sale</span><strong id="dashboard-average-sale">$0.00</strong></div>
+          <div><span class="card-label">Worst stock</span><strong id="dashboard-low-stock-item">—</strong></div>
         </div>
-        <ul class="checklist" id="dashboard-checklist"></ul>
       </div>
     </section>
 
@@ -982,57 +988,26 @@
   }
 
   function renderDashboard() {
-    document.getElementById("m-products").textContent = cache.products.length;
-    document.getElementById("m-lowstock").textContent = cache.products.filter(
+    const revenue = cache.sales.reduce((s, o) => s + Number(o.total_amount), 0);
+    const expenses = cache.expenses.reduce((s, e) => s + Number(e.amount), 0);
+    const lowStockProducts = cache.products.filter(
       (p) => p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold)
-    ).length;
+    );
+    const lowStockCount = lowStockProducts.length;
+    const averageSale = cache.sales.length ? revenue / cache.sales.length : 0;
+    const worstStock = lowStockProducts.length > 0 ? lowStockProducts.sort((a, b) => Number(a.stock_qty) - Number(b.stock_qty))[0].name : "All products healthy";
+
+    document.getElementById("m-lowstock").textContent = lowStockCount;
     document.getElementById("m-sales").textContent = cache.sales.length;
-    document.getElementById("m-revenue").textContent = money(cache.sales.reduce((s, o) => s + Number(o.total_amount), 0));
-    document.getElementById("m-expenses").textContent = money(cache.expenses.reduce((s, e) => s + Number(e.amount), 0));
+    document.getElementById("m-revenue").textContent = money(revenue);
+    document.getElementById("m-profit").textContent = money(revenue - expenses);
 
-    const checklist = [
-      {
-        label: "Add your first product",
-        done: cache.products.length > 0,
-        action: "openModal('product-modal')",
-      },
-      {
-        label: "Record your first sale",
-        done: cache.sales.length > 0,
-        action: "openSaleModal()",
-      },
-      {
-        label: "Add a customer",
-        done: cache.customers.length > 0,
-        action: "openModal('customer-modal')",
-      },
-      {
-        label: "Record a payment",
-        done: cache.payments.length > 0,
-        action: "openModal('payment-modal')",
-      },
-    ];
-
-    if (membership?.role === "owner") {
-      checklist.push({
-        label: "Invite a team member",
-        done: cache.team?.length > 1,
-        action: "switchTab('team')",
-      });
-    }
-
-    const doneCount = checklist.filter((item) => item.done).length;
-    document.getElementById("onboarding-progress").textContent = `${doneCount}/${checklist.length} done`;
-    document.getElementById("dashboard-checklist").innerHTML = checklist
-      .map((item) => {
-        const statusClass = item.done ? "done" : "pending";
-        return `<li class="${statusClass}">
-            <span class="marker">${item.done ? "✓" : ""}</span>
-            <span class="checklist-label">${escapeHtml(item.label)}</span>
-            ${item.done ? "" : `<button onclick="${item.action}">Start</button>`}
-          </li>`;
-      })
-      .join("");
+    document.getElementById("dashboard-top-priority").textContent =
+      lowStockCount > 0
+        ? `There ${lowStockCount === 1 ? "is" : "are"} ${lowStockCount} low-stock item${lowStockCount === 1 ? "" : "s"}. Review stock levels to avoid shortages.`
+        : "Stock levels are healthy. Keep an eye on sales velocity and cash flow.";
+    document.getElementById("dashboard-average-sale").textContent = money(averageSale);
+    document.getElementById("dashboard-low-stock-item").textContent = escapeHtml(worstStock);
   }
 
   // ============================================================

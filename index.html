@@ -109,6 +109,18 @@
   .report-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; margin-bottom: 22px; }
   .report-summary-card { display: flex; flex-direction: column; gap: 6px; }
   .report-summary-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); }
+  .chart-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .chart-toolbar h3 { transition: opacity 180ms ease, transform 180ms ease; }
+  .chart-toolbar h3.title-fade { opacity: 0.5; transform: translateY(-2px); }
+  .chart-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chart-controls .btn-small { min-width: 72px; padding: 10px 16px; transition: background-color 180ms ease, transform 180ms ease, color 180ms ease; }
+  .chart-controls .btn-small:hover { transform: translateY(-1px); }
+  .chart-controls .btn-small.active { background: var(--accent-dark); }
+  .report-card.chart-loading canvas { opacity: 0.28; transition: opacity 240ms ease; }
+  @media (max-width: 720px) {
+    .chart-controls { width: 100%; }
+    .chart-controls .btn-small { flex: 1 1 calc(33.333% - 8px); min-width: 0; }
+  }
   .report-summary-card .value { font-size: 22px; font-weight: 700; color: var(--ink); }
   .report-summary-card .note { color: var(--ink-soft); font-size: 12px; }
   .onboarding-card h3 { margin: 0; font-size: 18px; }
@@ -470,7 +482,14 @@
       </div>
       <div class="report-grid">
         <div class="report-card">
-          <h3>Revenue — last 14 days</h3>
+          <div class="chart-toolbar">
+            <h3 id="revenue-chart-title">Revenue — weekly</h3>
+            <div class="chart-controls">
+              <button class="btn-small active" id="revenue-range-week" onclick="setRevenueTimeframe('week')">Week</button>
+              <button class="btn-small" id="revenue-range-month" onclick="setRevenueTimeframe('month')">Month</button>
+              <button class="btn-small" id="revenue-range-year" onclick="setRevenueTimeframe('year')">Year</button>
+            </div>
+          </div>
           <canvas id="revenue-chart" height="140"></canvas>
         </div>
         <div class="report-card">
@@ -1555,11 +1574,83 @@
   // ============================================================
   let revenueChartInstance = null;
   let categoryChartInstance = null;
+  let revenueTimeframe = getStoredRevenueTimeframe();
+
+  function getStoredRevenueTimeframe() {
+    const saved = localStorage.getItem("revenueTimeframe");
+    return ["week", "month", "year"].includes(saved) ? saved : "week";
+  }
+
+  function updateRevenueTimeframeUI(range) {
+    document.getElementById("revenue-chart-title").textContent =
+      range === "week" ? "Revenue — weekly" : range === "month" ? "Revenue — monthly" : "Revenue — yearly";
+    document.querySelectorAll(".chart-controls .btn-small").forEach((btn) => {
+      btn.classList.toggle("active", btn.id === `revenue-range-${range}`);
+    });
+  }
 
   async function loadReports() {
+    revenueTimeframe = getStoredRevenueTimeframe();
     const orderItems = await getOrderItems();
     renderReportSummary(orderItems);
-    await Promise.all([renderRevenueChart(), renderCategoryChart(orderItems), renderTopProducts(orderItems), renderLowStockReport()]);
+    updateRevenueTimeframeUI(revenueTimeframe);
+    await Promise.all([renderRevenueChart(revenueTimeframe), renderCategoryChart(orderItems), renderTopProducts(orderItems), renderLowStockReport()]);
+  }
+
+  function setRevenueTimeframe(range) {
+    revenueTimeframe = range;
+    localStorage.setItem("revenueTimeframe", range);
+    updateRevenueTimeframeUI(range);
+    const title = document.getElementById("revenue-chart-title");
+    if (title) {
+      title.classList.add("title-fade");
+      window.setTimeout(() => title.classList.remove("title-fade"), 160);
+    }
+    renderRevenueChart(range);
+  }
+
+  function getRevenueSeries(range) {
+    const labels = [];
+    const totals = [];
+    const now = new Date();
+
+    if (range === "month") {
+      for (let offset = 5; offset >= 0; offset--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        labels.push(d.toLocaleDateString(undefined, { month: "short", year: "numeric" }));
+        totals.push(
+          cache.sales
+            .filter((o) => o.created_at.slice(0, 7) === key)
+            .reduce((sum, o) => sum + Number(o.total_amount), 0)
+        );
+      }
+    } else if (range === "year") {
+      const years = 4;
+      for (let offset = years - 1; offset >= 0; offset--) {
+        const year = now.getFullYear() - offset;
+        labels.push(year.toString());
+        totals.push(
+          cache.sales
+            .filter((o) => new Date(o.created_at).getFullYear() === year)
+            .reduce((sum, o) => sum + Number(o.total_amount), 0)
+        );
+      }
+    } else {
+      for (let offset = 6; offset >= 0; offset--) {
+        const d = new Date();
+        d.setDate(now.getDate() - offset);
+        const key = d.toISOString().slice(0, 10);
+        labels.push(d.toLocaleDateString(undefined, { month: "short", day: "numeric" }));
+        totals.push(
+          cache.sales
+            .filter((o) => o.created_at.slice(0, 10) === key)
+            .reduce((sum, o) => sum + Number(o.total_amount), 0)
+        );
+      }
+    }
+
+    return { labels, totals };
   }
 
   async function getOrderItems() {
@@ -1593,28 +1684,18 @@
     document.getElementById("report-low-stock-count").textContent = lowStockCount;
   }
 
-  async function renderRevenueChart() {
+  async function renderRevenueChart(range = revenueTimeframe) {
     const canvas = document.getElementById("revenue-chart");
     if (!canvas) return;
 
-    const days = [];
-    const totals = [];
-    for (let i = 13; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const key = d.toISOString().slice(0, 10);
-      days.push(d.toLocaleDateString(undefined, { month: "short", day: "numeric" }));
-      const dayTotal = cache.sales
-        .filter((o) => o.created_at.slice(0, 10) === key)
-        .reduce((sum, o) => sum + Number(o.total_amount), 0);
-      totals.push(dayTotal);
-    }
-
+    const { labels, totals } = getRevenueSeries(range);
+    const chartContainer = canvas.parentElement;
+    if (chartContainer) chartContainer.classList.add("chart-loading");
     if (revenueChartInstance) revenueChartInstance.destroy();
     revenueChartInstance = new Chart(canvas, {
       type: "line",
       data: {
-        labels: days,
+        labels,
         datasets: [{
           data: totals,
           borderColor: "#1D1F91",
@@ -1626,9 +1707,10 @@
         }],
       },
       options: {
+        animation: { duration: 520, easing: "easeOutQuart" },
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { display: false }, ticks: { color: "#6B7280", maxTicksLimit: 6 } },
+          x: { grid: { display: false }, ticks: { color: "#6B7280", maxTicksLimit: 8 } },
           y: {
             beginAtZero: true,
             ticks: {
@@ -1643,6 +1725,9 @@
         layout: { padding: { top: 6, bottom: 6, left: 6, right: 6 } },
       },
     });
+    if (chartContainer) {
+      setTimeout(() => chartContainer.classList.remove("chart-loading"), 260);
+    }
   }
 
   async function renderCategoryChart(orderItems) {

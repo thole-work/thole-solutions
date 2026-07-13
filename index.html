@@ -90,6 +90,9 @@
   #app-topbar .user-panel .user-role { font-size: 11px; color: rgba(255,255,255,0.78); text-transform: uppercase; letter-spacing: 0.04em; }
   #app-topbar .user-panel .signout-btn { border: none; border-radius: 999px; padding: 6px 10px; font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.18); color: white; cursor: pointer; width: auto; min-width: 0; }
   #app-topbar .user-panel .signout-btn:hover { background: rgba(255,255,255,0.26); }
+  /* theme toggle button */
+  #theme-toggle { border: none; background: transparent; width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 16px; }
+  #theme-toggle:hover { background: rgba(255,255,255,0.06); transform: translateY(-1px); }
   .tab-panel .page-header { display: none; }
   .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 12px; flex-wrap: wrap; }
   .btn-small { padding: 9px 16px; border: none; border-radius: 6px; background: var(--accent); color: white; font-size: 13px; font-weight: 500; }
@@ -163,6 +166,9 @@
   .modal { background: var(--paper); width: 100%; max-width: 440px; border-radius: 12px; padding: 24px; max-height: 85vh; overflow-y: auto; }
   .modal .close { text-align: right; font-size: 13px; color: var(--ink-soft); cursor: pointer; margin-bottom: 4px; }
   .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* Dark theme variables */
+  .theme-dark { --paper: #0B1020; --card: #0F1724; --ink: #E6EEF7; --ink-soft: #C3CEE6; --ink-faint: #9FB0D0; --line: rgba(255,255,255,0.06); --accent: #5E7CFF; --accent-soft: rgba(94,124,255,0.12); --sky: #5CACF7; --amber: #9C6B1F; --danger: #E06B5D; }
 
   @media (max-width: 720px) {
     #app-screen { flex-direction: column; }
@@ -352,7 +358,10 @@
       <div class="user-panel">
         <div class="user-name" id="user-name-top">—</div>
         <div class="user-role" id="user-role-top">—</div>
-        <button class="signout-btn" onclick="confirmSignOut()">Sign out</button>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button id="theme-toggle" title="Toggle theme" aria-label="Toggle theme" onclick="toggleTheme()">🌙</button>
+          <button class="signout-btn" onclick="confirmSignOut()">Sign out</button>
+        </div>
       </div>
     </div>
 
@@ -1868,6 +1877,28 @@
     renderDashboard();
   }
 
+  // initialize theme (reads preference) then boot app
+  function setThemeClass(isDark) {
+    if (isDark) document.documentElement.classList.add('theme-dark');
+    else document.documentElement.classList.remove('theme-dark');
+    const btn = document.getElementById('theme-toggle');
+    if (btn) btn.textContent = isDark ? '☀️' : '🌙';
+  }
+
+  function toggleTheme() {
+    const dark = !document.documentElement.classList.contains('theme-dark');
+    localStorage.setItem('thole:dark', dark ? '1' : '0');
+    setThemeClass(dark);
+  }
+
+  function initTheme() {
+    const stored = localStorage.getItem('thole:dark');
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const useDark = stored === null ? prefersDark : stored === '1';
+    setThemeClass(!!useDark);
+  }
+
+  initTheme();
   boot();
 </script>
 

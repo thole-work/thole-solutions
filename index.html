@@ -75,15 +75,22 @@
   .nav-icon { width: 18px; text-align: center; font-size: 15px; }
   .mobile-more-btn { display: none; }
   #mobile-more-panel, #mobile-more-backdrop { display: none; }
-  .side-footer { padding: 14px 18px; border-top: 1px solid var(--line); }
+  .side-footer { display: none; }
   .user-name { font-size: 13px; font-weight: 500; }
   .user-role { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; }
   .logout-link { font-size: 12px; color: var(--ink-faint); text-decoration: underline; cursor: pointer; margin-top: 6px; display: inline-block; }
 
   main { flex: 1; padding: 32px 40px; overflow-y: auto; max-width: 980px; }
-  .page-header { margin-bottom: 24px; }
-  .page-header h2 { font-size: 22px; }
-  .page-header p { color: var(--ink-soft); font-size: 13px; margin-top: 4px; }
+  #app-topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; position: sticky; top: 0; z-index: 10; margin-bottom: 24px; background: var(--accent); color: white; padding: 18px 20px; border-radius: 14px; box-shadow: 0 10px 24px rgba(29,31,145,0.12); }
+  #app-topbar .title-group { min-width: 0; }
+  #app-topbar h2 { margin: 0; font-size: 22px; color: white; }
+  #app-topbar p { margin: 6px 0 0; color: rgba(255,255,255,0.9); font-size: 13px; }
+  #app-topbar .user-panel { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; min-width: 180px; }
+  #app-topbar .user-panel .user-name { font-weight: 600; }
+  #app-topbar .user-panel .user-role { font-size: 12px; color: rgba(255,255,255,0.75); text-transform: uppercase; letter-spacing: 0.04em; }
+  #app-topbar .user-panel .signout-btn { border: none; border-radius: 8px; padding: 10px 14px; font-size: 13px; font-weight: 600; background: white; color: var(--accent); cursor: pointer; }
+  #app-topbar .user-panel .signout-btn:hover { background: #eef0ff; }
+  .tab-panel .page-header { display: none; }
   .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 12px; flex-wrap: wrap; }
   .btn-small { padding: 9px 16px; border: none; border-radius: 6px; background: var(--accent); color: white; font-size: 13px; font-weight: 500; }
   .btn-small:hover { background: var(--accent-dark); }
@@ -158,6 +165,12 @@
     .modal { max-width: 100%; border-radius: 16px 16px 0 0; max-height: 92vh; }
 
     .metrics { grid-template-columns: repeat(2, 1fr); }
+    .ledger-row > div { min-width: 0; }
+    .ledger-row > div:first-child { flex: 1 1 100%; min-width: 0; }
+    .ledger-row .num, .ledger-row .low-tag { flex: 0 0 auto; }
+    .nav-item { min-width: 0; }
+    main { padding: 18px 14px 110px; }
+    #mobile-more-panel.open { bottom: 72px; }
     input, select, textarea, button { min-height: 44px; }
   }
 </style>
@@ -269,6 +282,18 @@
   <div id="mobile-more-backdrop" onclick="toggleMoreMenu()"></div>
 
   <main>
+    <div id="app-topbar">
+      <div class="title-group">
+        <h2 id="page-title">Dashboard</h2>
+        <p id="page-sub">Overview of your workspace right now.</p>
+      </div>
+      <div class="user-panel">
+        <div class="user-name" id="user-name-top">—</div>
+        <div class="user-role" id="user-role-top">—</div>
+        <button class="signout-btn" onclick="handleLogout()">Sign out</button>
+      </div>
+    </div>
+
     <section id="tab-dashboard" class="tab-panel">
       <div class="page-header"><h2>Dashboard</h2><p>Overview of your workspace right now.</p></div>
       <div class="metrics">
@@ -673,12 +698,16 @@
     membership = data;
     document.getElementById("biz-name").textContent = data.businesses.name;
     document.getElementById("biz-type").textContent = data.businesses.business_types?.display_name ?? "";
-    document.getElementById("user-name-display").textContent = data.full_name || currentUser.email;
+    const userName = data.full_name || currentUser.email;
+    document.getElementById("user-name-display").textContent = userName;
     document.getElementById("user-role-display").textContent = data.role;
+    document.getElementById("user-name-top").textContent = userName;
+    document.getElementById("user-role-top").textContent = data.role;
     applyRolePermissions(data.role);
     applyBusinessTypeVisibility(data.businesses.business_types?.type_key);
     hide("auth-screen"); hide("onboarding-screen"); show("app-screen");
     await loadEverything();
+    updateTopbar(document.querySelector('.nav-item.active')?.dataset.tab || 'dashboard');
   }
 
   function applyBusinessTypeVisibility(typeKey) {
@@ -814,6 +843,17 @@
     document.querySelectorAll(".tab-panel").forEach((el) => el.classList.add("hidden"));
     document.getElementById(`tab-${tab}`).classList.remove("hidden");
     document.querySelectorAll(".nav-item").forEach((el) => el.classList.toggle("active", el.dataset.tab === tab));
+    updateTopbar(tab);
+  }
+
+  function updateTopbar(tab) {
+    const section = document.getElementById(`tab-${tab}`);
+    const header = section?.querySelector('.page-header');
+    if (!header) return;
+    const title = header.querySelector('h2')?.textContent ?? '';
+    const sub = header.querySelector('p')?.textContent ?? '';
+    document.getElementById('page-title').textContent = title;
+    document.getElementById('page-sub').textContent = sub;
   }
 
   function toggleMoreMenu() {

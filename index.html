@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500&display=swap');
 
   :root {
     --paper: #F6F7FB;
@@ -31,7 +31,7 @@
   *::-webkit-scrollbar { display: none; width: 0; height: 0; }
   body {
     margin: 0; background: var(--paper); color: var(--ink);
-    font-family: 'Inter', sans-serif; height: 100vh; overflow: hidden;
+    font-family: 'Inter', 'Roboto', 'Open Sans', sans-serif; height: 100vh; overflow: hidden;
     transition: background-color 0.25s ease, color 0.25s ease;
   }
   .nav-item, .btn-small, .btn-ghost, .signout-btn, #theme-toggle, .metric-card, .report-card, .checklist li, .ledger-row, .modal, input, select, textarea, button, .toolbar select, .toolbar input[type="date"] {
@@ -69,9 +69,9 @@
     from { opacity: 0; transform: translateY(6px); }
     to { opacity: 1; transform: translateY(0); }
   }
-  h1, h2, h3 { font-family: 'Source Serif 4', serif; font-weight: 600; margin: 0; }
+  h1, h2, h3 { font-family: 'Source Serif 4', 'Roboto', 'Open Sans', serif; font-weight: 600; margin: 0; }
   .num { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
-  button { font-family: 'Inter', sans-serif; cursor: pointer; }
+  button { font-family: 'Inter', 'Roboto', 'Open Sans', sans-serif; cursor: pointer; }
   .hidden { display: none !important; }
 
   /* ---------- AUTH ---------- */

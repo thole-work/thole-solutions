@@ -72,7 +72,7 @@
   }
   .nav-item:hover { background: var(--paper); color: var(--ink); }
   .nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
-  .nav-icon { width: 18px; text-align: center; font-size: 15px; }
+  .nav-icon { width: 24px; text-align: center; font-size: 18px; display: inline-flex; align-items: center; justify-content: center; }
   .mobile-more-btn { display: none; }
   #mobile-more-panel, #mobile-more-backdrop { display: none; }
   .side-footer { display: none; }
@@ -81,15 +81,15 @@
   .logout-link { font-size: 12px; color: var(--ink-faint); text-decoration: underline; cursor: pointer; margin-top: 6px; display: inline-block; }
 
   main { flex: 1; padding: 32px 40px; overflow-y: auto; max-width: 980px; }
-  #app-topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; position: sticky; top: 0; z-index: 20; margin-bottom: 24px; background: var(--accent); color: white; padding: 18px 20px; border-radius: 14px; border-bottom: 1px solid rgba(255,255,255,0.16); box-shadow: 0 10px 24px rgba(29,31,145,0.12); }
+  #app-topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; position: sticky; top: 0; z-index: 20; margin-bottom: 24px; background: var(--card); color: var(--ink); padding: 14px 18px; border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 10px 24px rgba(0,0,0,0.08); }
   #app-topbar .title-group { min-width: 0; }
-  #app-topbar h2 { margin: 0; font-size: 22px; color: white; }
-  #app-topbar p { margin: 6px 0 0; color: rgba(255,255,255,0.9); font-size: 13px; }
+  #app-topbar h2 { margin: 0; font-size: 22px; color: var(--ink); }
+  #app-topbar p { margin: 6px 0 0; color: var(--ink-soft); font-size: 13px; }
   #app-topbar .user-panel { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; min-width: 180px; }
-  #app-topbar .user-panel .user-name { font-weight: 600; }
-  #app-topbar .user-panel .user-role { font-size: 12px; color: rgba(255,255,255,0.75); text-transform: uppercase; letter-spacing: 0.04em; }
-  #app-topbar .user-panel .signout-btn { border: none; border-radius: 6px; padding: 6px 10px; font-size: 11px; font-weight: 600; background: white; color: var(--accent); cursor: pointer; width: auto; min-width: 0; }
-  #app-topbar .user-panel .signout-btn:hover { background: #eef0ff; }
+  #app-topbar .user-panel .user-name { font-weight: 600; color: var(--accent); }
+  #app-topbar .user-panel .user-role { font-size: 12px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; }
+  #app-topbar .user-panel .signout-btn { border: none; border-radius: 6px; padding: 6px 10px; font-size: 11px; font-weight: 600; background: var(--accent-soft); color: var(--accent); cursor: pointer; width: auto; min-width: 0; }
+  #app-topbar .user-panel .signout-btn:hover { background: #e7e8f7; }
   .tab-panel .page-header { display: none; }
   .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 12px; flex-wrap: wrap; }
   .btn-small { padding: 9px 16px; border: none; border-radius: 6px; background: var(--accent); color: white; font-size: 13px; font-weight: 500; }
@@ -241,7 +241,7 @@
   <label>Invite code</label><input type="text" id="ob-code" placeholder="e.g. TEST-0001" />
   <button class="btn-primary" onclick="handleRedeem()">Join business</button>
   <div id="ob-error" class="error hidden"></div>
-  <div class="switch" style="margin-top:18px;"><a onclick="handleLogout()">Sign out and use a different account</a></div>
+  <div class="switch" style="margin-top:18px;"><a onclick="confirmSignOut()">Sign out and use a different account</a></div>
 </div>
 
 <div id="app-screen" class="hidden">
@@ -254,35 +254,35 @@
       </div>
     </div>
     <nav>
-      <div class="nav-item nav-primary active" data-tab="dashboard" onclick="switchTab('dashboard')"><span class="nav-icon">◆</span> Dashboard</div>
-      <div class="nav-item nav-primary" data-tab="products" onclick="switchTab('products')"><span class="nav-icon">▤</span> Products & Stock</div>
-      <div class="nav-item nav-primary" data-tab="sales" onclick="switchTab('sales')"><span class="nav-icon">✎</span> Sales</div>
-      <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers')"><span class="nav-icon">◈</span> Customers</div>
-      <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments')"><span class="nav-icon">◎</span> Payments</div>
-      <div class="nav-item nav-secondary" data-tab="expenses" onclick="switchTab('expenses')"><span class="nav-icon">▽</span> Expenses</div>
-      <div class="nav-item nav-secondary" data-tab="suppliers" onclick="switchTab('suppliers')"><span class="nav-icon">▣</span> Suppliers</div>
-      <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases')"><span class="nav-icon">▥</span> Purchase Orders</div>
-      <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team')"><span class="nav-icon">☺</span> Team</div>
-      <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports')"><span class="nav-icon">▲</span> Reports</div>
-      <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials')"><span class="nav-icon">◑</span> Raw Materials</div>
-      <div class="nav-item mobile-more-btn" onclick="toggleMoreMenu()"><span class="nav-icon">☰</span> More</div>
+      <div class="nav-item nav-primary active" data-tab="dashboard" onclick="switchTab('dashboard')"><span class="nav-icon">🏠</span> Dashboard</div>
+      <div class="nav-item nav-primary" data-tab="products" onclick="switchTab('products')"><span class="nav-icon">📦</span> Products & Stock</div>
+      <div class="nav-item nav-primary" data-tab="sales" onclick="switchTab('sales')"><span class="nav-icon">💰</span> Sales</div>
+      <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers')"><span class="nav-icon">👥</span> Customers</div>
+      <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments')"><span class="nav-icon">💳</span> Payments</div>
+      <div class="nav-item nav-secondary" data-tab="expenses" onclick="switchTab('expenses')"><span class="nav-icon">💸</span> Expenses</div>
+      <div class="nav-item nav-secondary" data-tab="suppliers" onclick="switchTab('suppliers')"><span class="nav-icon">🚚</span> Suppliers</div>
+      <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases')"><span class="nav-icon">🛒</span> Purchase Orders</div>
+      <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team')"><span class="nav-icon">👤</span> Team</div>
+      <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports')"><span class="nav-icon">📈</span> Reports</div>
+      <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials')"><span class="nav-icon">🧱</span> Raw Materials</div>
+      <div class="nav-item mobile-more-btn" onclick="toggleMoreMenu()"><span class="nav-icon">⋯</span> More</div>
     </nav>
     <div class="side-footer">
       <div class="user-name" id="user-name-display">—</div>
       <div class="user-role" id="user-role-display">—</div>
-      <span class="logout-link" onclick="handleLogout()">Sign out</span>
+      <span class="logout-link" onclick="confirmSignOut()">Sign out</span>
     </div>
   </aside>
 
   <div id="mobile-more-panel">
-    <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers'); toggleMoreMenu();"><span class="nav-icon">◈</span> Customers</div>
-    <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments'); toggleMoreMenu();"><span class="nav-icon">◎</span> Payments</div>
-    <div class="nav-item nav-secondary" data-tab="expenses" onclick="switchTab('expenses'); toggleMoreMenu();"><span class="nav-icon">▽</span> Expenses</div>
-    <div class="nav-item nav-secondary" data-tab="suppliers" onclick="switchTab('suppliers'); toggleMoreMenu();"><span class="nav-icon">▣</span> Suppliers</div>
-    <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases'); toggleMoreMenu();"><span class="nav-icon">▥</span> Purchase Orders</div>
-    <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team'); toggleMoreMenu();"><span class="nav-icon">☺</span> Team</div>
-    <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports'); toggleMoreMenu();"><span class="nav-icon">▲</span> Reports</div>
-    <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials'); toggleMoreMenu();"><span class="nav-icon">◑</span> Raw Materials</div>
+    <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers'); toggleMoreMenu();"><span class="nav-icon">👥</span> Customers</div>
+    <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments'); toggleMoreMenu();"><span class="nav-icon">💳</span> Payments</div>
+    <div class="nav-item nav-secondary" data-tab="expenses" onclick="switchTab('expenses'); toggleMoreMenu();"><span class="nav-icon">💸</span> Expenses</div>
+    <div class="nav-item nav-secondary" data-tab="suppliers" onclick="switchTab('suppliers'); toggleMoreMenu();"><span class="nav-icon">🚚</span> Suppliers</div>
+    <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases'); toggleMoreMenu();"><span class="nav-icon">🛒</span> Purchase Orders</div>
+    <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team'); toggleMoreMenu();"><span class="nav-icon">👤</span> Team</div>
+    <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports'); toggleMoreMenu();"><span class="nav-icon">📈</span> Reports</div>
+    <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials'); toggleMoreMenu();"><span class="nav-icon">🧱</span> Raw Materials</div>
   </div>
   <div id="mobile-more-backdrop" onclick="toggleMoreMenu()"></div>
 
@@ -295,7 +295,7 @@
       <div class="user-panel">
         <div class="user-name" id="user-name-top">—</div>
         <div class="user-role" id="user-role-top">—</div>
-        <button class="signout-btn" onclick="handleLogout()">Sign out</button>
+        <button class="signout-btn" onclick="confirmSignOut()">Sign out</button>
       </div>
     </div>
 
@@ -835,8 +835,12 @@
     }
     await checkMembership();
   }
-  async function handleLogout() {
+  function confirmSignOut() {
     if (!confirm("Are you sure you want to sign out?")) return;
+    handleLogout();
+  }
+
+  async function handleLogout() {
     await sb.auth.signOut();
     currentUser = null; membership = null;
     hide("app-screen"); hide("onboarding-screen"); showLogin(); show("auth-screen");

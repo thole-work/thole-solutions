@@ -103,6 +103,30 @@
   .metric-card .value { font-size: 24px; font-weight: 600; }
   .metric-card.warn .value { color: var(--danger); }
 
+  .onboarding-card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-bottom: 28px; box-shadow: 0 10px 24px rgba(0,0,0,0.05); }
+  .onboarding-card h3 { margin: 0; font-size: 18px; }
+  .onboarding-card p { margin: 8px 0 0; color: var(--ink-soft); font-size: 13px; }
+  .onboarding-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 18px; }
+  .onboarding-badge { font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 7px 12px; }
+  .checklist { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+  .checklist li { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line); background: #fdfdff; }
+  .checklist li.done { border-color: var(--accent-soft); background: #f3f4ff; }
+  .checklist li .marker { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; }
+  .checklist li.done .marker { background: var(--accent); color: white; }
+  .checklist li.pending .marker { background: var(--line); color: var(--ink-faint); }
+  .checklist li .checklist-label { flex: 1; min-width: 0; color: var(--ink); font-size: 14px; line-height: 1.35; }
+  .checklist li button { border: none; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 600; cursor: pointer; padding: 8px 12px; }
+  .checklist li button:hover { background: #e6e9ff; }
+
+  @media (max-width: 720px) {
+    .onboarding-card { padding: 16px; margin-bottom: 22px; }
+    .onboarding-header { flex-direction: column; align-items: stretch; }
+    .onboarding-badge { margin-top: 6px; align-self: flex-start; }
+    .checklist li { flex-direction: column; align-items: stretch; gap: 10px; }
+    .checklist li .checklist-label { font-size: 15px; }
+    .checklist li button { width: 100%; }
+  }
+
   /* ledger table */
   .ledger { background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
   .ledger-head { display: grid; padding: 10px 18px; background: var(--paper); border-bottom: 1px solid var(--line); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-faint); }
@@ -307,6 +331,16 @@
         <div class="metric-card"><div class="label">Sales recorded</div><div class="value num" id="m-sales">0</div></div>
         <div class="metric-card"><div class="label">Revenue</div><div class="value num" id="m-revenue">0</div></div>
         <div class="metric-card"><div class="label">Expenses</div><div class="value num" id="m-expenses">0</div></div>
+      </div>
+      <div class="onboarding-card">
+        <div class="onboarding-header">
+          <div>
+            <h3>Quick setup</h3>
+            <p>Finish these important tasks to get your business ready.</p>
+          </div>
+          <div class="onboarding-badge" id="onboarding-progress">0/0 done</div>
+        </div>
+        <ul class="checklist" id="dashboard-checklist"></ul>
       </div>
     </section>
 
@@ -889,6 +923,50 @@
     document.getElementById("m-sales").textContent = cache.sales.length;
     document.getElementById("m-revenue").textContent = money(cache.sales.reduce((s, o) => s + Number(o.total_amount), 0));
     document.getElementById("m-expenses").textContent = money(cache.expenses.reduce((s, e) => s + Number(e.amount), 0));
+
+    const checklist = [
+      {
+        label: "Add your first product",
+        done: cache.products.length > 0,
+        action: "openModal('product-modal')",
+      },
+      {
+        label: "Record your first sale",
+        done: cache.sales.length > 0,
+        action: "openSaleModal()",
+      },
+      {
+        label: "Add a customer",
+        done: cache.customers.length > 0,
+        action: "openModal('customer-modal')",
+      },
+      {
+        label: "Record a payment",
+        done: cache.payments.length > 0,
+        action: "openModal('payment-modal')",
+      },
+    ];
+
+    if (membership?.role === "owner") {
+      checklist.push({
+        label: "Invite a team member",
+        done: cache.team?.length > 1,
+        action: "switchTab('team')",
+      });
+    }
+
+    const doneCount = checklist.filter((item) => item.done).length;
+    document.getElementById("onboarding-progress").textContent = `${doneCount}/${checklist.length} done`;
+    document.getElementById("dashboard-checklist").innerHTML = checklist
+      .map((item) => {
+        const statusClass = item.done ? "done" : "pending";
+        return `<li class="${statusClass}">
+            <span class="marker">${item.done ? "✓" : ""}</span>
+            <span class="checklist-label">${escapeHtml(item.label)}</span>
+            ${item.done ? "" : `<button onclick="${item.action}">Start</button>`}
+          </li>`;
+      })
+      .join("");
   }
 
   // ============================================================

@@ -727,6 +727,14 @@
   function clearError(id) { hide(id); }
   function escapeHtml(str) { const d = document.createElement("div"); d.textContent = str ?? ""; return d.innerHTML; }
   function money(n) { return Number(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function abbreviateNumber(value) {
+    const n = Number(value ?? 0);
+    if (Math.abs(n) >= 1e9) return `${(n / 1e9).toFixed(1).replace(/\.0$/, "")}B`;
+    if (Math.abs(n) >= 1e6) return `${(n / 1e6).toFixed(1).replace(/\.0$/, "")}M`;
+    if (Math.abs(n) >= 1e3) return `${(n / 1e3).toFixed(1).replace(/\.0$/, "")}K`;
+    return n.toString();
+  }
+  function abbreviateCurrency(value) { return "$" + abbreviateNumber(value); }
 
   function openModal(id) { show(id); }
   function closeModal(id) {
@@ -1575,8 +1583,12 @@
       .sort((a, b) => b.revenue - a.revenue)[0];
     const topProductName = topProduct ? (cache.products.find((p) => p.id === topProduct.pid)?.name ?? "Deleted product") : "None yet";
 
-    document.getElementById("report-total-revenue").textContent = money(totalRevenue);
-    document.getElementById("report-avg-sale").textContent = money(avgSale);
+    const totalRevenueEl = document.getElementById("report-total-revenue");
+    const avgSaleEl = document.getElementById("report-avg-sale");
+    totalRevenueEl.textContent = abbreviateCurrency(totalRevenue);
+    totalRevenueEl.title = money(totalRevenue);
+    avgSaleEl.textContent = abbreviateCurrency(avgSale);
+    avgSaleEl.title = money(avgSale);
     document.getElementById("report-top-product").textContent = escapeHtml(topProductName);
     document.getElementById("report-low-stock-count").textContent = lowStockCount;
   }
@@ -1616,11 +1628,19 @@
       options: {
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { display: false }, ticks: { color: "#6B7280" } },
-          y: { beginAtZero: true, ticks: { color: "#6B7280" } },
+          x: { grid: { display: false }, ticks: { color: "#6B7280", maxTicksLimit: 6 } },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: "#6B7280",
+              maxTicksLimit: 5,
+              callback: (value) => abbreviateCurrency(value),
+            },
+          },
         },
         responsive: true,
         maintainAspectRatio: false,
+        layout: { padding: { top: 6, bottom: 6, left: 6, right: 6 } },
       },
     });
   }

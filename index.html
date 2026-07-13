@@ -183,6 +183,14 @@
 
   input::placeholder, textarea::placeholder { color: var(--ink-soft) !important; }
 
+  /* Toolbar filter controls (date/select) - ensure consistent theme colors */
+  .toolbar select, .toolbar input[type="date"] {
+    background: var(--card) !important;
+    color: var(--ink) !important;
+    border: 1px solid var(--line) !important;
+  }
+  .toolbar select option { color: var(--ink); }
+
   @media (max-width: 720px) {
     #app-screen { flex-direction: column; }
     aside {
@@ -415,7 +423,7 @@
       <div class="page-header"><h2>Sales</h2><p>Record a sale — stock updates automatically.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="sales-filter-mode" onchange="const f=document.getElementById('sales-date-filter'); f.type=this.value; f.value=''; loadSales();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:white;">
+          <select id="sales-filter-mode" onchange="const f=document.getElementById('sales-date-filter'); f.type=this.value; f.value=''; loadSales();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
             <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
           <input type="date" id="sales-date-filter" onchange="loadSales()" placeholder="YYYY" />
@@ -435,7 +443,7 @@
       <div class="page-header"><h2>Payments</h2><p>Money received from customers.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="payments-filter-mode" onchange="const f=document.getElementById('payments-date-filter'); f.type=this.value; f.value=''; loadPayments();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:white;">
+          <select id="payments-filter-mode" onchange="const f=document.getElementById('payments-date-filter'); f.type=this.value; f.value=''; loadPayments();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
             <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
           <input type="date" id="payments-date-filter" onchange="loadPayments()" placeholder="YYYY" />
@@ -449,7 +457,7 @@
       <div class="page-header"><h2>Expenses</h2><p>Overhead costs — rent, wages, utilities, supplies.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="expenses-filter-mode" onchange="const f=document.getElementById('expenses-date-filter'); f.type=this.value; f.value=''; loadExpenses();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:white;">
+          <select id="expenses-filter-mode" onchange="const f=document.getElementById('expenses-date-filter'); f.type=this.value; f.value=''; loadExpenses();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
             <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
           <input type="date" id="expenses-date-filter" onchange="loadExpenses()" placeholder="YYYY" />
@@ -469,7 +477,7 @@
       <div class="page-header"><h2>Purchase Orders</h2><p>Restocking — this updates product stock automatically.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="purchases-filter-mode" onchange="const f=document.getElementById('purchases-date-filter'); f.type=this.value; f.value=''; loadPurchases();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:white;">
+          <select id="purchases-filter-mode" onchange="const f=document.getElementById('purchases-date-filter'); f.type=this.value; f.value=''; loadPurchases();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
             <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
           <input type="date" id="purchases-date-filter" onchange="loadPurchases()" placeholder="YYYY" />

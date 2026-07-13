@@ -11,21 +11,23 @@
   @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
   :root {
-    --paper: #F6F7FB;
+    --paper: #F4F6FB;
     --card: #FFFFFF;
-    --ink: #14162E;
-    --ink-soft: #565B78;
-    --ink-faint: #8B8FA8;
-    --line: #E1E3EE;
-    --accent: #1D1F91;
-    --accent-dark: #14166B;
-    --accent-soft: #E7E8F7;
-    --sky: #5CACF7;
-    --sky-soft: #E7F1FE;
-    --amber: #9C6B1F;
-    --amber-soft: #F5EBD8;
-    --danger: #A6432C;
-    --danger-soft: #F4E6E1;
+    --ink: #0F1724;
+    --ink-soft: #5B6478;
+    --ink-faint: #9AA0B6;
+    --line: #E6E9F2;
+    --accent: #3341FF;
+    --accent-dark: #1A28D9;
+    --accent-soft: #EEF2FF;
+    --muted: #6C748B;
+    --sky: #56A6FF;
+    --sky-soft: #E8F5FF;
+    --amber: #C07A2C;
+    --amber-soft: #FBF1E4;
+    --danger: #C44B3A;
+    --danger-soft: #F7E9E6;
+    --glass: rgba(255,255,255,0.6);
   }
   * { box-sizing: border-box; }
   body {
@@ -49,8 +51,8 @@
     background: white; font-size: 15px; font-family: 'Inter', sans-serif; color: var(--ink);
   }
   input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
-  .btn-primary { width: 100%; margin-top: 20px; padding: 12px; border: none; border-radius: 6px; background: var(--accent); color: white; font-size: 15px; font-weight: 500; }
-  .btn-primary:hover { background: var(--accent-dark); }
+  .btn-primary { width: 100%; margin-top: 20px; padding: 12px; border: none; border-radius: 10px; background: linear-gradient(90deg,var(--accent),var(--accent-dark)); color: white; font-size: 15px; font-weight: 600; box-shadow: 0 8px 24px rgba(51,65,255,0.16); }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(51,65,255,0.18); }
   .switch { text-align: center; margin-top: 18px; font-size: 13px; color: var(--ink-soft); }
   .switch a { color: var(--accent); cursor: pointer; text-decoration: underline; }
   .error { background: var(--danger-soft); color: var(--danger); padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-top: 14px; }
@@ -58,30 +60,30 @@
   /* ---------- APP SHELL ---------- */
   #app-screen { display: flex; min-height: 100vh; }
   aside {
-    width: 220px; background: var(--card); border-right: 1px solid var(--line);
-    display: flex; flex-direction: column; flex-shrink: 0;
+    width: 240px; background: linear-gradient(180deg, var(--card), #FBFBFF); border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; flex-shrink: 0; box-shadow: 0 6px 20px rgba(18,24,40,0.04);
   }
-  .side-header { padding: 22px 18px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
-  .side-header img { width: 32px; height: 32px; border-radius: 7px; flex-shrink: 0; }
-  .side-header .biz { font-family: 'Source Serif 4', serif; font-weight: 600; font-size: 15px; line-height: 1.2; }
-  .side-header .type-tag { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+  .side-header { padding: 22px 18px 18px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 12px; }
+  .side-header img { width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0; box-shadow: 0 6px 18px rgba(51,65,255,0.08); }
+  .side-header .biz { font-family: 'Source Serif 4', serif; font-weight: 700; font-size: 15px; line-height: 1.15; }
+  .side-header .type-tag { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
   nav { flex: 1; padding: 14px 10px; }
   .nav-item {
-    display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 7px;
-    font-size: 14px; color: var(--ink-soft); cursor: pointer; margin-bottom: 2px;
+    display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 10px;
+    font-size: 14px; color: var(--muted); cursor: pointer; margin-bottom: 6px; transition: all 180ms ease;
   }
-  .nav-item:hover { background: var(--paper); color: var(--ink); }
-  .nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
-  .nav-icon { width: 24px; text-align: center; font-size: 18px; display: inline-flex; align-items: center; justify-content: center; }
+  .nav-item:hover { transform: translateY(-2px); background: var(--glass); color: var(--ink); box-shadow: 0 8px 20px rgba(16,24,40,0.04); }
+  .nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; box-shadow: inset 0 0 0 1px rgba(51,65,255,0.06); }
+  .nav-icon { width: 36px; height: 36px; text-align: center; font-size: 16px; display: inline-flex; align-items: center; justify-content: center; border-radius: 9px; background: linear-gradient(180deg, rgba(0,0,0,0.02), transparent); }
   .mobile-more-btn { display: none; }
   #mobile-more-panel, #mobile-more-backdrop { display: none; }
-  .side-footer { display: none; }
+  .side-footer { display: block; padding: 16px 18px; border-top: 1px solid var(--line); background: transparent; }
   .user-name { font-size: 13px; font-weight: 500; }
   .user-role { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; }
   .logout-link { font-size: 12px; color: var(--ink-faint); text-decoration: underline; cursor: pointer; margin-top: 6px; display: inline-block; }
 
   main { flex: 1; padding: 32px 40px; overflow-y: auto; max-width: 980px; }
-  #app-topbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; position: sticky; top: 0; z-index: 30; margin-bottom: 22px; background: rgba(29,31,145,0.96); color: white; padding: 12px 16px; border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; box-shadow: 0 20px 50px rgba(15,23,42,0.16); backdrop-filter: blur(18px); }
+  #app-topbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; position: sticky; top: 16px; z-index: 40; margin-bottom: 22px; background: linear-gradient(90deg, rgba(51,65,255,0.98), rgba(62,86,255,0.92)); color: white; padding: 12px 18px; border-radius: 14px; box-shadow: 0 18px 40px rgba(18,24,40,0.08); backdrop-filter: blur(8px); border: none; }
   #app-topbar .title-group { min-width: 0; }
   #app-topbar h2 { margin: 0; font-size: 18px; color: white; }
   #app-topbar p { margin: 4px 0 0; color: rgba(255,255,255,0.85); font-size: 12px; }
@@ -90,16 +92,18 @@
   #app-topbar .user-panel .user-role { font-size: 11px; color: rgba(255,255,255,0.78); text-transform: uppercase; letter-spacing: 0.04em; }
   #app-topbar .user-panel .signout-btn { border: none; border-radius: 999px; padding: 6px 10px; font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.18); color: white; cursor: pointer; width: auto; min-width: 0; }
   #app-topbar .user-panel .signout-btn:hover { background: rgba(255,255,255,0.26); }
+  #theme-toggle { border: none; background: transparent; width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: rgba(255,255,255,0.95); }
+  #theme-toggle:hover { background: rgba(255,255,255,0.06); transform: translateY(-2px); }
   .tab-panel .page-header { display: none; }
   .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 12px; flex-wrap: wrap; }
-  .btn-small { padding: 9px 16px; border: none; border-radius: 6px; background: var(--accent); color: white; font-size: 13px; font-weight: 500; }
-  .btn-small:hover { background: var(--accent-dark); }
-  .btn-ghost { padding: 9px 16px; border: 1px solid var(--line); border-radius: 6px; background: none; color: var(--ink-soft); font-size: 13px; }
+  .btn-small { padding: 9px 16px; border: none; border-radius: 10px; background: linear-gradient(90deg,var(--accent),var(--accent-dark)); color: white; font-size: 13px; font-weight: 600; box-shadow: 0 8px 20px rgba(51,65,255,0.12); }
+  .btn-small:hover { transform: translateY(-2px); }
+  .btn-ghost { padding: 9px 16px; border: 1px solid var(--line); border-radius: 10px; background: none; color: var(--muted); font-size: 13px; }
 
   /* metric cards */
   .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 28px; }
-  .metric-card { background: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.7); border-radius: 14px; padding: 16px 18px; box-shadow: 0 18px 34px rgba(15,23,42,0.06); backdrop-filter: blur(16px); overflow-wrap: anywhere; }
-  .metric-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); margin-bottom: 6px; }
+  .metric-card { background: linear-gradient(180deg, #FFFFFF, #FBFDFF); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; box-shadow: 0 12px 30px rgba(16,24,40,0.06); overflow-wrap: anywhere; transition: transform 160ms ease, box-shadow 160ms ease; }
+  .metric-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 6px; }
   .metric-card .value { font-size: 24px; font-weight: 600; }
   .metric-card .note { margin-top: 10px; color: var(--ink-soft); font-size: 12px; line-height: 1.5; }
   .metric-card.warn .value { color: var(--danger); }
@@ -110,7 +114,7 @@
   .card-label { color: var(--ink-faint); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
 
   .reports-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 22px; }
-  .report-card { background: rgba(255,255,255,0.74); border: 1px solid rgba(255,255,255,0.75); border-radius: 18px; padding: 18px; box-shadow: 0 20px 40px rgba(15,23,42,0.06); backdrop-filter: blur(18px); }
+  .report-card { background: linear-gradient(180deg,#FFFFFF,#FBFDFF); border: 1px solid var(--line); border-radius: 18px; padding: 18px; box-shadow: 0 20px 40px rgba(16,24,40,0.06); }
   .report-card h3 { margin: 0 0 12px; font-size: 15px; }
   .report-card header, .report-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
   .report-card-header p { margin: 0; color: var(--ink-soft); font-size: 12px; line-height: 1.4; }
@@ -159,8 +163,12 @@
   .empty-state { text-align: center; padding: 50px 20px; color: var(--ink-faint); font-size: 14px; }
 
   /* modal */
-  .modal-backdrop { position: fixed; inset: 0; background: rgba(28,28,30,0.4); display: flex; align-items: center; justify-content: center; z-index: 20; padding: 20px; }
-  .modal { background: var(--paper); width: 100%; max-width: 440px; border-radius: 12px; padding: 24px; max-height: 85vh; overflow-y: auto; }
+  .modal-backdrop { position: fixed; inset: 0; background: linear-gradient(180deg, rgba(18,24,40,0.35), rgba(18,24,40,0.25)); display: flex; align-items: center; justify-content: center; z-index: 60; padding: 20px; }
+  .modal { background: var(--card); width: 100%; max-width: 520px; border-radius: 14px; padding: 24px; max-height: 85vh; overflow-y: auto; box-shadow: 0 18px 40px rgba(16,24,40,0.12); }
+  .icon { width: 18px; height: 18px; display: block; fill: currentColor; }
+
+  /* Dark theme overrides */
+  .theme-dark { --paper: #0B1020; --card: #0F1724; --ink: #E6EEF7; --ink-soft: #C3CEE6; --ink-faint: #9FB0D0; --line: rgba(255,255,255,0.06); --accent: #5E7CFF; --accent-soft: rgba(94,124,255,0.12); --muted: #9AA7C9; --glass: rgba(255,255,255,0.03); }
   .modal .close { text-align: right; font-size: 13px; color: var(--ink-soft); cursor: pointer; margin-bottom: 4px; }
   .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
@@ -238,6 +246,22 @@
 </style>
 </head>
 <body>
+  <!-- SVG sprite for icons -->
+  <svg style="display:none" aria-hidden="true">
+    <symbol id="icon-dashboard" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.2"/><rect x="13" y="10" width="8" height="11" rx="1.5"/></symbol>
+    <symbol id="icon-products" viewBox="0 0 24 24"><path d="M12 2l9 5v8l-9 5-9-5V7z"/></symbol>
+    <symbol id="icon-sales" viewBox="0 0 24 24"><path d="M12 2v20M17 7a5 5 0 0 0-10 0" stroke-linecap="round" stroke-width="1.4" fill="none"/></symbol>
+    <symbol id="icon-customers" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><path d="M4 20c1.5-4 7-6 8-6s6.5 2 8 6"/></symbol>
+    <symbol id="icon-payments" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M7 10h10M7 14h6" stroke-linecap="round" stroke-width="1.2" fill="none"/></symbol>
+    <symbol id="icon-expenses" viewBox="0 0 24 24"><path d="M3 7h18v10H3z"/><path d="M7 11h10" stroke-linecap="round" stroke-width="1.4" fill="none"/></symbol>
+    <symbol id="icon-suppliers" viewBox="0 0 24 24"><path d="M4 21v-6a4 4 0 014-4h8a4 4 0 014 4v6"/><circle cx="12" cy="7" r="3"/></symbol>
+    <symbol id="icon-purchases" viewBox="0 0 24 24"><path d="M3 7h18M7 7v10a2 2 0 002 2h6a2 2 0 002-2V7"/></symbol>
+    <symbol id="icon-team" viewBox="0 0 24 24"><circle cx="9" cy="8" r="2.2"/><circle cx="17" cy="8" r="2.2"/><path d="M3 20c2-4 6-6 9-6s7 2 9 6"/></symbol>
+    <symbol id="icon-reports" viewBox="0 0 24 24"><path d="M3 17h18M7 13v4M12 9v8M17 5v12" stroke-linecap="round" stroke-width="1.4" fill="none"/></symbol>
+    <symbol id="icon-materials" viewBox="0 0 24 24"><path d="M12 2l8 5-8 5-8-5z"/><path d="M4 12l8 5 8-5"/></symbol>
+    <symbol id="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/></symbol>
+    <symbol id="icon-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/></symbol>
+  </svg>
 
 <div id="loading" style="text-align:center; padding:80px; color: var(--ink-faint);">Loading…</div>
 
@@ -311,35 +335,42 @@
       </div>
     </div>
     <nav>
-      <div class="nav-item nav-primary active" data-tab="dashboard" onclick="switchTab('dashboard')"><span class="nav-icon">🏠</span> Dashboard</div>
-      <div class="nav-item nav-primary" data-tab="products" onclick="switchTab('products')"><span class="nav-icon">📦</span> Products & Stock</div>
-      <div class="nav-item nav-primary" data-tab="sales" onclick="switchTab('sales')"><span class="nav-icon">💰</span> Sales</div>
-      <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers')"><span class="nav-icon">👥</span> Customers</div>
-      <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments')"><span class="nav-icon">💳</span> Payments</div>
-      <div class="nav-item nav-secondary" data-tab="expenses" onclick="switchTab('expenses')"><span class="nav-icon">💸</span> Expenses</div>
-      <div class="nav-item nav-secondary" data-tab="suppliers" onclick="switchTab('suppliers')"><span class="nav-icon">🚚</span> Suppliers</div>
-      <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases')"><span class="nav-icon">🛒</span> Purchase Orders</div>
-      <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team')"><span class="nav-icon">👤</span> Team</div>
-      <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports')"><span class="nav-icon">📈</span> Reports</div>
-      <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials')"><span class="nav-icon">🧱</span> Raw Materials</div>
+      <div class="nav-item nav-primary active" data-tab="dashboard" onclick="switchTab('dashboard')"><span class="nav-icon"><svg class="icon" aria-hidden><use href="#icon-dashboard"></use></svg></span> Dashboard</div>
+      <div class="nav-item nav-primary" data-tab="products" onclick="switchTab('products')"><span class="nav-icon"><svg class="icon" aria-hidden><use href="#icon-products"></use></svg></span> Products & Stock</div>
+      <div class="nav-item nav-primary" data-tab="sales" onclick="switchTab('sales')"><span class="nav-icon"><svg class="icon" aria-hidden><use href="#icon-sales"></use></svg></span> Sales</div>
+      <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers')"><span class="nav-icon"><svg class="icon" aria-hidden><use href="#icon-customers"></use></svg></span> Customers</div>
+      <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments')"><span class="nav-icon"><svg class="icon" aria-hidden><use href="#icon-payments"></use></svg></span> Payments</div>
+      <div class="nav-item nav-secondary" data-tab="expenses" onclick="switchTab('expenses')"><span class="nav-icon"><svg class="icon" aria-hidden><use href="#icon-expenses"></use></svg></span> Expenses</div>
+      <div class="nav-item nav-secondary" data-tab="suppliers" onclick="switchTab('suppliers')"><span class="nav-icon"><svg class="icon" aria-hidden><use href="#icon-suppliers"></use></svg></span> Suppliers</div>
+      <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases')"><span class="nav-icon"><svg class="icon" aria-hidden><use href="#icon-purchases"></use></svg></span> Purchase Orders</div>
+      <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team')"><span class="nav-icon"><svg class="icon" aria-hidden><use href="#icon-team"></use></svg></span> Team</div>
+      <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports')"><span class="nav-icon"><svg class="icon" aria-hidden><use href="#icon-reports"></use></svg></span> Reports</div>
+      <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials')"><span class="nav-icon"><svg class="icon" aria-hidden><use href="#icon-materials"></use></svg></span> Raw Materials</div>
       <div class="nav-item mobile-more-btn" onclick="toggleMoreMenu()"><span class="nav-icon">⋯</span> More</div>
     </nav>
     <div class="side-footer">
-      <div class="user-name" id="user-name-display">—</div>
-      <div class="user-role" id="user-role-display">—</div>
-      <span class="logout-link" onclick="confirmSignOut()">Sign out</span>
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+        <div>
+          <div class="user-name" id="user-name-display">—</div>
+          <div class="user-role" id="user-role-display">—</div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button class="btn-ghost" onclick="openModal('settings-modal')">Settings</button>
+          <span class="logout-link" onclick="confirmSignOut()">Sign out</span>
+        </div>
+      </div>
     </div>
   </aside>
 
   <div id="mobile-more-panel">
-    <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers'); toggleMoreMenu();"><span class="nav-icon">👥</span> Customers</div>
-    <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments'); toggleMoreMenu();"><span class="nav-icon">💳</span> Payments</div>
-    <div class="nav-item nav-secondary" data-tab="expenses" onclick="switchTab('expenses'); toggleMoreMenu();"><span class="nav-icon">💸</span> Expenses</div>
-    <div class="nav-item nav-secondary" data-tab="suppliers" onclick="switchTab('suppliers'); toggleMoreMenu();"><span class="nav-icon">🚚</span> Suppliers</div>
-    <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases'); toggleMoreMenu();"><span class="nav-icon">🛒</span> Purchase Orders</div>
-    <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team'); toggleMoreMenu();"><span class="nav-icon">👤</span> Team</div>
-    <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports'); toggleMoreMenu();"><span class="nav-icon">📈</span> Reports</div>
-    <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials'); toggleMoreMenu();"><span class="nav-icon">🧱</span> Raw Materials</div>
+      <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers'); toggleMoreMenu();"><span class="nav-icon"><svg class="icon" aria-hidden><use href="#icon-customers"></use></svg></span> Customers</div>
+    <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments'); toggleMoreMenu();"><span class="nav-icon"><svg class="icon" aria-hidden><use href="#icon-payments"></use></svg></span> Payments</div>
+    <div class="nav-item nav-secondary" data-tab="expenses" onclick="switchTab('expenses'); toggleMoreMenu();"><span class="nav-icon"><svg class="icon" aria-hidden><use href="#icon-expenses"></use></svg></span> Expenses</div>
+    <div class="nav-item nav-secondary" data-tab="suppliers" onclick="switchTab('suppliers'); toggleMoreMenu();"><span class="nav-icon"><svg class="icon" aria-hidden><use href="#icon-suppliers"></use></svg></span> Suppliers</div>
+    <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases'); toggleMoreMenu();"><span class="nav-icon"><svg class="icon" aria-hidden><use href="#icon-purchases"></use></svg></span> Purchase Orders</div>
+    <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team'); toggleMoreMenu();"><span class="nav-icon"><svg class="icon" aria-hidden><use href="#icon-team"></use></svg></span> Team</div>
+    <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports'); toggleMoreMenu();"><span class="nav-icon"><svg class="icon" aria-hidden><use href="#icon-reports"></use></svg></span> Reports</div>
+    <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials'); toggleMoreMenu();"><span class="nav-icon"><svg class="icon" aria-hidden><use href="#icon-materials"></use></svg></span> Raw Materials</div>
   </div>
   <div id="mobile-more-backdrop" onclick="toggleMoreMenu()"></div>
 
@@ -352,7 +383,10 @@
       <div class="user-panel">
         <div class="user-name" id="user-name-top">—</div>
         <div class="user-role" id="user-role-top">—</div>
-        <button class="signout-btn" onclick="confirmSignOut()">Sign out</button>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button id="theme-toggle" title="Toggle theme" onclick="toggleTheme()" aria-label="Toggle theme"><svg class="icon" aria-hidden><use href="#icon-moon"></use></svg></button>
+          <button class="signout-btn" onclick="confirmSignOut()">Sign out</button>
+        </div>
       </div>
     </div>
 
@@ -703,6 +737,19 @@
     <div id="produce-requirements" style="margin:14px 0; font-size:13px; color:var(--ink-soft);"></div>
     <button class="btn-primary" onclick="submitProduce()">Produce</button>
     <div id="produce-error" class="error hidden"></div>
+  </div>
+</div>
+
+<!-- Settings modal -->
+<div id="settings-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="close" onclick="closeModal('settings-modal')">Close</div>
+    <h3>Settings</h3>
+    <div style="margin-top:12px; display:flex; align-items:center; gap:12px;">
+      <label style="flex:1;">Dark theme</label>
+      <input id="settings-theme-checkbox" type="checkbox" aria-label="Enable dark theme" />
+    </div>
+    <p style="font-size:13px; color:var(--ink-soft); margin-top:10px;">Toggle the app color scheme. Preference is saved to your browser.</p>
   </div>
 </div>
 
@@ -1869,6 +1916,56 @@
   }
 
   boot();
+
+  // Theme toggle and micro-interactions
+  function setThemeClass(isDark) {
+    if (isDark) document.documentElement.classList.add('theme-dark');
+    else document.documentElement.classList.remove('theme-dark');
+    const icon = document.querySelector('#theme-toggle svg use');
+    if (icon) icon.setAttribute('href', isDark ? '#icon-sun' : '#icon-moon');
+  }
+
+  function toggleTheme() {
+    const dark = document.documentElement.classList.toggle('theme-dark');
+    localStorage.setItem('thole:dark', dark ? '1' : '0');
+    setThemeClass(dark);
+  }
+
+  function initTheme() {
+    const stored = localStorage.getItem('thole:dark');
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const useDark = stored === null ? prefersDark : stored === '1';
+    setThemeClass(useDark);
+    const cb = document.getElementById('settings-theme-checkbox');
+    if (cb) cb.checked = !!useDark;
+    if (cb) cb.addEventListener('change', (e) => {
+      const on = !!e.target.checked;
+      localStorage.setItem('thole:dark', on ? '1' : '0');
+      setThemeClass(on);
+    });
+  }
+
+  // small ripple for primary buttons
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-primary');
+    if (!btn) return;
+    const circle = document.createElement('span');
+    circle.style.position = 'absolute';
+    circle.style.width = circle.style.height = '10px';
+    circle.style.background = 'rgba(255,255,255,0.18)';
+    circle.style.borderRadius = '50%';
+    circle.style.left = (e.offsetX - 5) + 'px';
+    circle.style.top = (e.offsetY - 5) + 'px';
+    circle.style.pointerEvents = 'none';
+    circle.style.transform = 'scale(0)';
+    circle.style.transition = 'transform 300ms ease, opacity 300ms ease';
+    btn.style.position = 'relative';
+    btn.appendChild(circle);
+    requestAnimationFrame(() => { circle.style.transform = 'scale(14)'; circle.style.opacity = '0'; });
+    setTimeout(() => circle.remove(), 400);
+  }, true);
+
+  initTheme();
 </script>
 
 </body>

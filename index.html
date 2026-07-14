@@ -861,8 +861,30 @@
   </div>
 </div>
 
+<script>
+  // ============================================================
+  // CONFIG
+  // ============================================================
+  const SUPABASE_URL = "https://qehgsomtcionbovlqgyi.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFlaGdzb210Y2lvbmJvdmxxZ3lpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2ODA4ODQsImV4cCI6MjA5OTI1Njg4NH0.QydTydc8wbbhRhwiNpWCqA74m52MZ3RcgKJOmf538us";
   // Namespace: wrap all app logic in TholeApp to avoid global pollution
   const TholeApp = (function () {
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let currentUser = null;
+  let membership = null;
+  let cache = { products: [], customers: [], sales: [], payments: [], expenses: [], suppliers: [], purchases: [], materials: [] };
+  let editingRecord = null;
+  let businessTypeKey = null;
+
+  function show(id) { document.getElementById(id).classList.remove("hidden"); }
+  function hide(id) { document.getElementById(id).classList.add("hidden"); }
+  function setError(id, msg) { const el = document.getElementById(id); el.textContent = msg; show(id); }
+  function clearError(id) { hide(id); }
+  function escapeHtml(str) { const d = document.createElement("div"); d.textContent = str ?? ""; return d.innerHTML; }
+  function money(n) { return Number(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function validateString(val, maxLen) { return typeof val === 'string' && val.trim().length > 0 && val.trim().length <= (maxLen || 500); }
+  function sanitizeInput(val) { return (val ?? '').replace(/<[^>]*>/g, '').trim(); }
 
   // HELPER: Translates Day/Week/Month/Year inputs into Supabase time ranges
   function applyTimeFilter(query, val, mode, col = "created_at") {

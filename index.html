@@ -1083,11 +1083,23 @@
 
     const { data, error } = await sb.auth.signUp({ email, password });
     if (error) return setError("auth-error", error.message);
-    if (!data.session) return setError("auth-error", "Account created but not signed in — check if email confirmation is required.");
 
-    currentUser = data.user;
+    let session = data.session;
+    let user = data.user;
+    if (!session) {
+      const { data: authData, error: loginError } = await sb.auth.signInWithPassword({ email, password });
+      if (loginError) {
+        return setError("auth-error", "Account created, but sign in is not complete. Check your email confirmation or sign in manually.");
+      }
+      session = authData.session;
+      user = authData.user;
+    }
+
+    currentUser = user;
     const { data: code, error: rpcErr } = await sb.rpc("create_business", {
-      p_business_name: businessName, p_business_type_key: businessType, p_full_name: fullName,
+      p_business_name: businessName,
+      p_business_type_key: businessType,
+      p_full_name: fullName,
     });
     if (rpcErr) return setError("auth-error", `Account created, but business setup failed: ${rpcErr.message}`);
 
@@ -1119,9 +1131,19 @@
 
     const { data, error } = await sb.auth.signUp({ email, password });
     if (error) return setError("auth-error", error.message);
-    if (!data.session) return setError("auth-error", "Account created but not signed in — check if email confirmation is required.");
 
-    currentUser = data.user;
+    let session = data.session;
+    let user = data.user;
+    if (!session) {
+      const { data: authData, error: loginError } = await sb.auth.signInWithPassword({ email, password });
+      if (loginError) {
+        return setError("auth-error", "Account created, but sign in is not complete. Check your email confirmation or sign in manually.");
+      }
+      session = authData.session;
+      user = authData.user;
+    }
+
+    currentUser = user;
     const { error: rpcErr } = await sb.rpc("redeem_invite_code", { p_invite_code: code, p_full_name: fullName });
     if (rpcErr) {
       hide("auth-screen"); show("onboarding-screen");

@@ -15,7 +15,7 @@
     --card: #FFFFFF;
     --ink: #14162E;
     --ink-soft: #565B78;
-    --ink-faint: #8B8FA8;
+    --ink-faint: #8B8FA8;a
     --line: #E1E3EE;
     --accent: #1D1F91;
     --accent-dark: #14166B;
@@ -671,7 +671,9 @@
             <h3>Category share</h3>
             <p class="note">Compact breakdown of sales across product categories.</p>
           </div>
-          <canvas id="category-chart" height="110"></canvas>
+          <div id="category-chart-container">
+            <canvas id="category-chart" height="110"></canvas>
+          </div>
         </div>
         <div class="report-card report-insight-card">
           <h3>Quick view</h3>
@@ -713,7 +715,7 @@
     <label>SKU / Barcode (optional)</label><input type="text" id="p-sku" />
     <div class="field-row">
       <div><label>Cost price</label><input type="number" id="p-cost-price" placeholder="optional" /></div>
-      <div><label>Selling price</label><input type="number" id="p-price" /></div>
+      <div><label>Selling price</label><input type="number" id="p-price" step="0.01" min="0" required /></div>
     </div>
     <div class="field-row">
       <div><label>Unit</label><input type="text" id="p-unit" placeholder="plate, kg, item" /></div>
@@ -890,6 +892,9 @@
   let membership = null; // { business_id, role, full_name, businesses: {...} }
   let cache = { products: [], customers: [], sales: [], payments: [], expenses: [], suppliers: [], purchases: [], materials: [] };
   let editingRecord = null; // { table: 'products', id: '...' } — null means "adding new"
+  let productPage = 0;
+  const PRODUCT_LIMIT = 20;
+  let productTotal = 0;
   let businessTypeKey = null;
 
   // HELPER: Translates Day/Week/Month/Year inputs into Supabase time ranges
@@ -1242,10 +1247,16 @@
   // LOAD EVERYTHING
   // ============================================================
   async function loadEverything() {
-    await Promise.all([loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses(), loadSuppliers(), loadPurchases(), loadMaterials()]);
-    if (membership.role === "owner") await loadTeam();
-    if (membership.role === "owner" || membership.role === "manager") await loadReports();
-    renderDashboard();
+    const spinner = document.getElementById("loading-spinner");
+    if (spinner) spinner.classList.remove("hidden");
+    try {
+      await Promise.all([loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses(), loadSuppliers(), loadPurchases(), loadMaterials()]);
+      if (membership.role === "owner") await loadTeam();
+      if (membership.role === "owner" || membership.role === "manager") await loadReports();
+      renderDashboard();
+    } finally {
+      if (spinner) spinner.classList.add("hidden");
+    }
   }
 
   function renderDashboard() {
@@ -1274,9 +1285,19 @@
   // ============================================================
   // PRODUCTS
   // ============================================================
-  async function loadProducts() {
-    const { data } = await sb.from("products").select("*").eq("is_active", true).order("category").order("name");
+  async function loadProducts(reset = true) {
+    if (reset) productPage = 0;
+    const { data, error, count } = await sb
+      .from("products")
+      .select("*", { count: "exact" })
+      .eq("is_active", true)
+      .order("category")
+      .order("name");
+    if (error) {
+      console.error("loadProducts error", error);
+    }
     cache.products = data ?? [];
+    productTotal = Number.isInteger(count) ? count : cache.products.length;
     const cats = [...new Set(cache.products.map((p) => p.category).filter(Boolean))];
     document.getElementById("cat-filter").innerHTML =
       `<option value="">All categories</option>` + cats.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
@@ -1291,12 +1312,14 @@
     if (search) {
       list = list.filter((p) => p.name.toLowerCase().includes(search) || (p.sku ?? "").toLowerCase().includes(search));
     }
+    const end = (productPage + 1) * PRODUCT_LIMIT;
+    const visible = list.slice(0, end);
     const el = document.getElementById("products-ledger");
-    if (list.length === 0) { el.innerHTML = `<div class="empty-state">No products found.</div>`; return; }
+    if (visible.length === 0) { el.innerHTML = `<div class="empty-state">No products found.</div>`; return; }
 
     el.innerHTML =
       `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Product</div><div>Stock</div><div style="text-align:right">Price</div></div>` +
-      list.map((p) => {
+      visible.map((p) => {
         const isLow = p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold);
         const margin = p.cost_price ? (((p.price - p.cost_price) / p.price) * 100).toFixed(0) : null;
         const showRecipeLink = businessUsesRawMaterials();
@@ -1311,6 +1334,17 @@
           <div class="num" style="text-align:right">${money(p.price)}</div>
         </div>`;
       }).join("");
+
+    if (visible.length < list.length) {
+      el.innerHTML += `<div style="text-align:center; padding:12px;">
+        <button class="btn-ghost" onclick="loadMoreProducts()">Load more</button>
+      </div>`;
+    }
+  }
+
+  function loadMoreProducts() {
+    productPage++;
+    loadProducts(false);
   }
 
   function openEditProduct(productId) {
@@ -1453,21 +1487,12 @@
 
   async function voidSale(orderId) {
     if (!confirm("Void this sale? Stock will be restored. This can't be undone.")) return;
-
-    const { data: items } = await sb.from("order_items").select("*").eq("order_id", orderId);
-    for (const item of items ?? []) {
-      const product = cache.products.find((p) => p.id === item.product_id);
-      if (product && product.stock_qty !== null) {
-        const restoredQty = Number(product.stock_qty) + Number(item.quantity);
-        await sb.from("products").update({ stock_qty: restoredQty }).eq("id", item.product_id);
-        await sb.from("stock_movements").insert({
-          business_id: membership.business_id, item_type: "product", product_id: item.product_id,
-          quantity_change: Number(item.quantity), reason: "sale_voided", reference_type: "order", reference_id: orderId, created_by: currentUser.id,
-        });
-      }
-    }
-    await sb.from("orders").delete().eq("id", orderId);
-
+    const { error } = await sb.rpc('void_sale', {
+      p_order_id: orderId,
+      p_business_id: membership.business_id,
+      p_created_by: currentUser.id
+    });
+    if (error) { alert(error.message); return; }
     await Promise.all([loadProducts(), loadSales()]);
     renderDashboard();
   }
@@ -1688,35 +1713,20 @@
     const supplierId = document.getElementById("po-supplier").value || null;
     const qty = parseFloat(document.getElementById("po-qty").value);
     const cost = parseFloat(document.getElementById("po-cost").value);
-    const product = cache.products.find((p) => p.id === productId);
+    if (!productId || isNaN(qty) || qty <= 0 || isNaN(cost)) {
+      return setError("purchase-error", "Check product, quantity, and cost.");
+    }
 
-    if (!product || isNaN(qty) || qty <= 0 || isNaN(cost)) return setError("purchase-error", "Check the product, quantity, and cost.");
-
-    const total = qty * cost;
-    const { data: po, error: poErr } = await sb.from("purchase_orders").insert({
-      business_id: membership.business_id, supplier_id: supplierId, status: "received", total_amount: total, created_by: currentUser.id, received_at: new Date().toISOString(),
-    }).select().single();
-    if (poErr) return setError("purchase-error", poErr.message);
-
-    const { error: itemErr } = await sb.from("purchase_order_items").insert({
-      purchase_order_id: po.id, product_id: productId, quantity: qty, unit_cost: cost,
+    const { data: poId, error } = await sb.rpc('record_purchase', {
+      p_product_id: productId,
+      p_quantity: qty,
+      p_unit_cost: cost,
+      p_supplier_id: supplierId,
+      p_business_id: membership.business_id,
+      p_created_by: currentUser.id
     });
-    if (itemErr) return setError("purchase-error", itemErr.message);
 
-    const { data: freshProduct, error: freshErr } = await sb.from("products").select("stock_qty").eq("id", productId).single();
-    if (freshErr || !freshProduct) return setError("purchase-error", "Unable to refresh product stock.");
-
-    const currentStock = freshProduct.stock_qty === null ? 0 : Number(freshProduct.stock_qty);
-    const newStock = currentStock + qty;
-    const { error: updateErr } = await sb.from("products").update({ stock_qty: newStock }).eq("id", productId);
-    if (updateErr) return setError("purchase-error", updateErr.message);
-
-    const { error: movementErr } = await sb.from("stock_movements").insert({
-      business_id: membership.business_id, item_type: "product", product_id: productId,
-      quantity_change: qty, reason: "purchase", reference_type: "purchase_order", reference_id: po.id, created_by: currentUser.id,
-    });
-    if (movementErr) return setError("purchase-error", movementErr.message);
-
+    if (error) return setError("purchase-error", error.message);
     closeModal("purchase-modal");
     await Promise.all([loadProducts(), loadPurchases()]);
     renderDashboard();
@@ -1863,8 +1873,9 @@
   }
 
   async function renderCategoryChart(orderItems) {
-    const canvas = document.getElementById("category-chart");
-    if (!canvas) return;
+    const container = document.getElementById('category-chart-container');
+    const canvas = document.getElementById('category-chart');
+    if (!container || !canvas) return;
 
     const categoryTotals = {};
     for (const item of orderItems) {
@@ -1873,26 +1884,43 @@
       categoryTotals[category] = (categoryTotals[category] || 0) + Number(item.line_total);
     }
 
-    const entries = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]).slice(0, 6);
-    if (entries.length === 0) {
-      canvas.parentElement.innerHTML = `<div class="empty-state">No category data available.</div>`;
+    const emptyState = container.querySelector('.empty-state');
+    if (Object.keys(categoryTotals).length === 0) {
+      if (emptyState) {
+        emptyState.textContent = "No category data available.";
+      } else {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'empty-state';
+        placeholder.style.padding = '20px';
+        placeholder.textContent = 'No category data available.';
+        container.appendChild(placeholder);
+      }
+      canvas.classList.add('hidden');
+      if (categoryChartInstance) {
+        categoryChartInstance.destroy();
+        categoryChartInstance = null;
+      }
       return;
     }
 
+    if (emptyState) emptyState.remove();
+    canvas.classList.remove('hidden');
+
+    const entries = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]).slice(0, 6);
     const labels = entries.map(([category]) => category);
     const data = entries.map(([, total]) => total);
-    const colors = ["#1D1F91","#5CACF7","#9C6B1F","#F59E0B","#10B981","#8B5CF6"];
+    const colors = ["#1D1F91", "#5CACF7", "#9C6B1F", "#F59E0B", "#10B981", "#8B5CF6"];
 
     if (categoryChartInstance) categoryChartInstance.destroy();
     categoryChartInstance = new Chart(canvas, {
-      type: "doughnut",
+      type: 'doughnut',
       data: {
         labels,
         datasets: [{ data, backgroundColor: colors.slice(0, labels.length), borderWidth: 0 }],
       },
       options: {
         plugins: {
-          legend: { position: "bottom", labels: { color: "#374151", boxWidth: 12 } },
+          legend: { position: 'bottom', labels: { color: '#374151', boxWidth: 12 } },
         },
         responsive: true,
         maintainAspectRatio: false,
@@ -2079,39 +2107,17 @@
   async function submitProduce() {
     clearError("produce-error");
     const productId = document.getElementById("prod-product").value;
-    const batchQty = parseFloat(document.getElementById("prod-qty").value);
-    if (isNaN(batchQty) || batchQty <= 0) return setError("produce-error", "Enter a valid batch quantity.");
+    const qty = parseFloat(document.getElementById("prod-qty").value);
+    if (isNaN(qty) || qty <= 0) return setError("produce-error", "Enter a valid quantity.");
 
-    const { data: recipe } = await sb.from("recipe_items").select("*, raw_materials(*)").eq("product_id", productId);
-    if (!recipe || recipe.length === 0) return setError("produce-error", "This product has no recipe set yet.");
+    const { error } = await sb.rpc('produce_product', {
+      p_product_id: productId,
+      p_quantity: qty,
+      p_business_id: membership.business_id,
+      p_created_by: currentUser.id
+    });
 
-    for (const ri of recipe) {
-      const needed = Number(ri.quantity_required) * batchQty;
-      if (needed > Number(ri.raw_materials.stock_qty)) {
-        return setError("produce-error", `Not enough ${ri.raw_materials.name} — need ${needed}, have ${ri.raw_materials.stock_qty}.`);
-      }
-    }
-
-    for (const ri of recipe) {
-      const newQty = Number(ri.raw_materials.stock_qty) - Number(ri.quantity_required) * batchQty;
-      await sb.from("raw_materials").update({ stock_qty: newQty }).eq("id", ri.raw_material_id);
-      await sb.from("stock_movements").insert({
-        business_id: membership.business_id, item_type: "raw_material", raw_material_id: ri.raw_material_id,
-        quantity_change: -(Number(ri.quantity_required) * batchQty), reason: "production_consumption",
-        reference_type: "product", reference_id: productId, created_by: currentUser.id,
-      });
-    }
-
-    const product = cache.products.find((p) => p.id === productId);
-    if (product && product.stock_qty !== null) {
-      const newStock = Number(product.stock_qty) + batchQty;
-      await sb.from("products").update({ stock_qty: newStock }).eq("id", productId);
-      await sb.from("stock_movements").insert({
-        business_id: membership.business_id, item_type: "product", product_id: productId,
-        quantity_change: batchQty, reason: "production_output", reference_type: "product", reference_id: productId, created_by: currentUser.id,
-      });
-    }
-
+    if (error) return setError("produce-error", error.message);
     closeModal("produce-modal");
     await Promise.all([loadProducts(), loadMaterials()]);
     renderDashboard();

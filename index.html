@@ -117,15 +117,7 @@
   }
   .side-header { padding: 22px 18px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
   .side-header img { width: 32px; height: 32px; border-radius: 7px; flex-shrink: 0; }
-  .side-header .biz {
-    font-family: 'Source Serif 4', 'Roboto', 'Open Sans', serif;
-    font-weight: 700;
-    font-size: 17px;
-    line-height: 1.15;
-    letter-spacing: 0.01em;
-    color: var(--accent);
-    text-shadow: 0 1px 0 rgba(255,255,255,0.18);
-  }
+  .side-header .biz { font-family: 'Source Serif 4', serif; font-weight: 600; font-size: 15px; line-height: 1.2; }
   .side-header .type-tag { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
   nav { flex: 1; padding: 14px 10px; }
   .nav-item {
@@ -975,29 +967,38 @@
   }
 
   async function checkMembership() {
-    const { data, error } = await sb
-      .from("app_users")
-      .select("business_id, role, full_name, businesses(name, invite_code, business_types(display_name, type_key))")
-      .eq("user_id", currentUser.id)
-      .maybeSingle();
+    try {
+      const { data, error } = await sb
+        .from("app_users")
+        .select("business_id, role, full_name, businesses(name, invite_code, business_types(display_name, type_key))")
+        .eq("user_id", currentUser.id)
+        .maybeSingle();
 
-    if (error || !data) {
-      hide("auth-screen"); hide("app-screen"); show("onboarding-screen");
-      return;
+      console.log("checkMembership result:", { data, error });
+
+      if (error || !data || !data.businesses) {
+        hide("auth-screen"); hide("app-screen"); hide("invite-reveal-screen"); show("onboarding-screen");
+        if (error) console.error("checkMembership error:", error);
+        return;
+      }
+
+      membership = data;
+      document.getElementById("biz-name").textContent = data.businesses.name;
+      document.getElementById("biz-type").textContent = data.businesses.business_types?.display_name ?? "";
+      const userName = data.full_name || currentUser.email;
+      document.getElementById("user-name-display").textContent = userName;
+      document.getElementById("user-role-display").textContent = data.role;
+      document.getElementById("user-name-top").textContent = userName;
+      document.getElementById("user-role-top").textContent = data.role;
+      applyRolePermissions(data.role);
+      applyBusinessTypeVisibility(data.businesses.business_types?.type_key);
+      hide("auth-screen"); hide("onboarding-screen"); hide("invite-reveal-screen"); show("app-screen");
+      await loadEverything();
+      updateTopbar(document.querySelector('.nav-item.active')?.dataset.tab || 'dashboard');
+    } catch (err) {
+      console.error("checkMembership crashed:", err);
+      alert("Something went wrong loading your account: " + err.message);
     }
-    membership = data;
-    document.getElementById("biz-name").textContent = data.businesses.name;
-    document.getElementById("biz-type").textContent = data.businesses.business_types?.display_name ?? "";
-    const userName = data.full_name || currentUser.email;
-    document.getElementById("user-name-display").textContent = userName;
-    document.getElementById("user-role-display").textContent = data.role;
-    document.getElementById("user-name-top").textContent = userName;
-    document.getElementById("user-role-top").textContent = data.role;
-    applyRolePermissions(data.role);
-    applyBusinessTypeVisibility(data.businesses.business_types?.type_key);
-    hide("auth-screen"); hide("onboarding-screen"); show("app-screen");
-    await loadEverything();
-    updateTopbar(document.querySelector('.nav-item.active')?.dataset.tab || 'dashboard');
   }
 
   function applyBusinessTypeVisibility(typeKey) {
@@ -1076,19 +1077,28 @@
     const password = document.getElementById("nb-password").value;
     if (!fullName || !businessName) return setError("auth-error", "Your name and a business name are required.");
 
-    const { data, error } = await sb.auth.signUp({ email, password });
-    if (error) return setError("auth-error", error.message);
-    if (!data.session) return setError("auth-error", "Account created but not signed in — check if email confirmation is required.");
+    try {
+      console.log("Starting signUp...");
+      const { data, error } = await sb.auth.signUp({ email, password });
+      console.log("signUp result:", { data, error });
+      if (error) return setError("auth-error", error.message);
+      if (!data.session) return setError("auth-error", "Account created but not signed in — check if email confirmation is required.");
 
-    currentUser = data.user;
-    const { data: code, error: rpcErr } = await sb.rpc("create_business", {
-      p_business_name: businessName, p_business_type_key: businessType, p_full_name: fullName,
-    });
-    if (rpcErr) return setError("auth-error", `Account created, but business setup failed: ${rpcErr.message}`);
+      currentUser = data.user;
+      console.log("Calling create_business RPC...");
+      const { data: code, error: rpcErr } = await sb.rpc("create_business", {
+        p_business_name: businessName, p_business_type_key: businessType, p_full_name: fullName,
+      });
+      console.log("create_business result:", { code, rpcErr });
+      if (rpcErr) return setError("auth-error", `Account created, but business setup failed: ${rpcErr.message}`);
 
-    hide("auth-screen");
-    document.getElementById("invite-code-display").textContent = code;
-    show("invite-reveal-screen");
+      hide("auth-screen");
+      document.getElementById("invite-code-display").textContent = code;
+      show("invite-reveal-screen");
+    } catch (err) {
+      console.error("handleCreateBusiness crashed:", err);
+      setError("auth-error", "Unexpected error: " + err.message);
+    }
   }
 
   async function finishInviteReveal() {

@@ -1,12 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Thole Solutions</title>
-<link rel="icon" type="image/png" href="logo.png" />
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://qehgsomtcionbovlqgyi.supabase.co;" />
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500&display=swap');
 
@@ -869,20 +861,8 @@
   </div>
 </div>
 
-<script>
-  // ============================================================
-  // CONFIG
-  // ============================================================
-  const SUPABASE_URL = "https://qehgsomtcionbovlqgyi.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFlaGdzb210Y2lvbmJvdmxxZ3lpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2ODA4ODQsImV4cCI6MjA5OTI1Njg4NH0.QydTydc8wbbhRhwiNpWCqA74m52MZ3RcgKJOmf538us";
-
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  let currentUser = null;
-  let membership = null; // { business_id, role, full_name, businesses: {...} }
-  let cache = { products: [], customers: [], sales: [], payments: [], expenses: [], suppliers: [], purchases: [], materials: [] };
-  let editingRecord = null; // { table: 'products', id: '...' } — null means "adding new"
-  let businessTypeKey = null;
+  // Namespace: wrap all app logic in TholeApp to avoid global pollution
+  const TholeApp = (function () {
 
   // HELPER: Translates Day/Week/Month/Year inputs into Supabase time ranges
   function applyTimeFilter(query, val, mode, col = "created_at") {
@@ -917,12 +897,8 @@
     return query;
   }
 
-  function show(id) { document.getElementById(id).classList.remove("hidden"); }
-  function hide(id) { document.getElementById(id).classList.add("hidden"); }
-  function setError(id, msg) { const el = document.getElementById(id); el.textContent = msg; show(id); }
-  function clearError(id) { hide(id); }
-  function escapeHtml(str) { const d = document.createElement("div"); d.textContent = str ?? ""; return d.innerHTML; }
-  function money(n) { return Number(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function validateString(val, maxLen) { return typeof val === 'string' && val.trim().length > 0 && val.trim().length <= (maxLen || 500); }
+  function sanitizeInput(val) { return (val ?? '').replace(/<[^>]*>/g, '').trim(); }
   function abbreviateNumber(value) {
     const n = Number(value ?? 0);
     if (Math.abs(n) >= 1e9) return `${(n / 1e9).toFixed(1).replace(/\.0$/, "")}B`;
@@ -1267,7 +1243,8 @@
   // PRODUCTS
   // ============================================================
   async function loadProducts() {
-    const { data } = await sb.from("products").select("*").eq("is_active", true).order("category").order("name");
+    const { data, error } = await sb.from("products").select("*").eq("is_active", true).order("category").order("name");
+    if (error) { console.error("loadProducts error:", error); cache.products = []; return; }
     cache.products = data ?? [];
     const cats = [...new Set(cache.products.map((p) => p.category).filter(Boolean))];
     document.getElementById("cat-filter").innerHTML =
@@ -1339,16 +1316,19 @@
 
   async function submitProduct() {
     clearError("product-error");
-    const name = document.getElementById("p-name").value.trim();
-    const category = document.getElementById("p-category").value.trim() || null;
-    const sku = document.getElementById("p-sku").value.trim() || null;
+    const name = sanitizeInput(document.getElementById("p-name").value);
+    const category = sanitizeInput(document.getElementById("p-category").value) || null;
+    const sku = sanitizeInput(document.getElementById("p-sku").value) || null;
     const costPrice = document.getElementById("p-cost-price").value === "" ? null : parseFloat(document.getElementById("p-cost-price").value);
     const price = parseFloat(document.getElementById("p-price").value);
-    const unit = document.getElementById("p-unit").value.trim() || "item";
+    const unit = sanitizeInput(document.getElementById("p-unit").value) || "item";
     const stock = document.getElementById("p-stock").value === "" ? 0 : parseFloat(document.getElementById("p-stock").value);
     const threshold = document.getElementById("p-threshold").value === "" ? null : parseFloat(document.getElementById("p-threshold").value);
 
-    if (!name || isNaN(price)) return setError("product-error", "Name and price are required.");
+    if (!validateString(name, 200)) return setError("product-error", "Name is required (max 200 characters).");
+    if (isNaN(price) || price <= 0) return setError("product-error", "A valid price is required.");
+    if (category && category.length > 100) return setError("product-error", "Category is too long.");
+    if (unit.length > 50) return setError("product-error", "Unit is too long.");
 
     const payload = { name, category, sku, cost_price: costPrice, price, unit, stock_qty: stock, low_stock_threshold: threshold };
 
@@ -1395,8 +1375,9 @@
     const price = parseFloat(document.getElementById("s-price").value);
     const customerId = document.getElementById("s-customer").value || null;
     const product = cache.products.find((p) => p.id === productId);
-
-    if (!product || isNaN(qty) || qty <= 0 || isNaN(price)) return setError("sale-error", "Check the product, quantity, and price.");
+    if (!product || isNaN(qty) || qty <= 0 || isNaN(price) || price <= 0) return setError("sale-error", "Check the product, quantity, and price.");
+    if (qty > 999999) return setError("sale-error", "Quantity is too large.");
+    if (price > 999999999) return setError("sale-error", "Price is too large.");
 
     const total = qty * price;
     const { data: order, error: orderErr } = await sb.from("orders").insert({
@@ -1429,7 +1410,8 @@
     let query = sb.from("orders").select("*, customers(name)").order("created_at", { ascending: false }).limit(50);
     query = applyTimeFilter(query, dateFilter, mode, "created_at");
     
-    const { data } = await query;
+    const { data, error } = await query;
+    if (error) { console.error("loadSales error:", error); cache.sales = []; return; }
     cache.sales = data ?? [];
     const el = document.getElementById("sales-ledger");
     if (cache.sales.length === 0) { el.innerHTML = `<div class="empty-state">No sales recorded yet.</div>`; return; }
@@ -1468,7 +1450,8 @@
   // CUSTOMERS
   // ============================================================
   async function loadCustomers() {
-    const { data } = await sb.from("customers").select("*").order("name");
+    const { data, error } = await sb.from("customers").select("*").order("name");
+    if (error) { console.error("loadCustomers error:", error); cache.customers = []; return; }
     cache.customers = data ?? [];
     const el = document.getElementById("customers-ledger");
     if (cache.customers.length === 0) { el.innerHTML = `<div class="empty-state">No customers yet.</div>`; return; }
@@ -1493,9 +1476,10 @@
 
   async function submitCustomer() {
     clearError("customer-error");
-    const name = document.getElementById("c-name").value.trim();
-    const phone = document.getElementById("c-phone").value.trim() || null;
-    if (!name) return setError("customer-error", "Name is required.");
+    const name = sanitizeInput(document.getElementById("c-name").value);
+    const phone = sanitizeInput(document.getElementById("c-phone").value) || null;
+    if (!validateString(name, 200)) return setError("customer-error", "Name is required (max 200 characters).");
+    if (phone && phone.length > 50) return setError("customer-error", "Phone number is too long.");
 
     const payload = { name, phone };
     const { error } = editingRecord
@@ -1516,7 +1500,8 @@
     let query = sb.from("payments").select("*, customers(name)").eq("direction", "in").order("created_at", { ascending: false }).limit(50);
     query = applyTimeFilter(query, dateFilter, mode, "created_at");
 
-    const { data } = await query;
+    const { data, error } = await query;
+    if (error) { console.error("loadPayments error:", error); cache.payments = []; return; }
     cache.payments = data ?? [];
     const el = document.getElementById("payments-ledger");
     if (cache.payments.length === 0) { el.innerHTML = `<div class="empty-state">No payments recorded yet.</div>`; return; }
@@ -1542,12 +1527,7 @@
     document.getElementById("pay-method").value = p.method;
   }
 
-  async function submitPayment() {
-    clearError("payment-error");
-    const customerId = document.getElementById("pay-customer").value;
-    const amount = parseFloat(document.getElementById("pay-amount").value);
-    const method = document.getElementById("pay-method").value;
-    if (!customerId || isNaN(amount) || amount <= 0) return setError("payment-error", "Select a customer and a valid amount.");
+    if (amount > 999999999) return setError("payment-error", "Amount is too large.");
 
     const payload = { customer_id: customerId, amount, method };
     const { error } = editingRecord
@@ -1575,7 +1555,8 @@
     let query = sb.from("expenses").select("*").order("expense_date", { ascending: false }).limit(50);
     query = applyTimeFilter(query, dateFilter, mode, "expense_date");
 
-    const { data } = await query;
+    const { data, error } = await query;
+    if (error) { console.error("loadExpenses error:", error); cache.expenses = []; return; }
     cache.expenses = data ?? [];
     const el = document.getElementById("expenses-ledger");
     if (cache.expenses.length === 0) { el.innerHTML = `<div class="empty-state">No expenses recorded yet.</div>`; return; }
@@ -1605,10 +1586,11 @@
   async function submitExpense() {
     clearError("expense-error");
     const category = document.getElementById("e-category").value;
-    const description = document.getElementById("e-description").value.trim() || null;
+    const description = sanitizeInput(document.getElementById("e-description").value) || null;
     const amount = parseFloat(document.getElementById("e-amount").value);
     const date = document.getElementById("e-date").value || new Date().toISOString().slice(0, 10);
     if (isNaN(amount) || amount <= 0) return setError("expense-error", "Enter a valid amount.");
+    if (description && description.length > 500) return setError("expense-error", "Description is too long.");
 
     const payload = { category, description, amount, expense_date: date };
     const { error } = editingRecord
@@ -1625,7 +1607,8 @@
   // SUPPLIERS
   // ============================================================
   async function loadSuppliers() {
-    const { data } = await sb.from("suppliers").select("*").order("name");
+    const { data, error } = await sb.from("suppliers").select("*").order("name");
+    if (error) { console.error("loadSuppliers error:", error); cache.suppliers = []; return; }
     cache.suppliers = data ?? [];
     const el = document.getElementById("suppliers-ledger");
     if (!el) return;
@@ -1651,9 +1634,10 @@
 
   async function submitSupplier() {
     clearError("supplier-error");
-    const name = document.getElementById("sup-name").value.trim();
-    const phone = document.getElementById("sup-phone").value.trim() || null;
-    if (!name) return setError("supplier-error", "Name is required.");
+    const name = sanitizeInput(document.getElementById("sup-name").value);
+    const phone = sanitizeInput(document.getElementById("sup-phone").value) || null;
+    if (!validateString(name, 200)) return setError("supplier-error", "Name is required (max 200 characters).");
+    if (phone && phone.length > 50) return setError("supplier-error", "Phone number is too long.");
 
     const payload = { name, phone };
     const { error } = editingRecord
@@ -1681,8 +1665,9 @@
     const qty = parseFloat(document.getElementById("po-qty").value);
     const cost = parseFloat(document.getElementById("po-cost").value);
     const product = cache.products.find((p) => p.id === productId);
-
-    if (!product || isNaN(qty) || qty <= 0 || isNaN(cost)) return setError("purchase-error", "Check the product, quantity, and cost.");
+    if (!product || isNaN(qty) || qty <= 0 || isNaN(cost) || cost <= 0) return setError("purchase-error", "Check the product, quantity, and cost.");
+    if (qty > 999999) return setError("purchase-error", "Quantity is too large.");
+    if (cost > 999999999) return setError("purchase-error", "Cost is too large.");
 
     const total = qty * cost;
     const { data: po, error: poErr } = await sb.from("purchase_orders").insert({
@@ -1720,7 +1705,8 @@
     let query = sb.from("purchase_orders").select("*, suppliers(name)").order("created_at", { ascending: false }).limit(50);
     query = applyTimeFilter(query, dateFilter, mode, "created_at");
 
-    const { data } = await query;
+    const { data, error } = await query;
+    if (error) { console.error("loadPurchases error:", error); cache.purchases = []; return; }
     cache.purchases = data ?? [];
     const el = document.getElementById("purchases-ledger");
     if (!el) return;
@@ -1761,7 +1747,8 @@
   // ============================================================
   async function loadTeam() {
     document.getElementById("team-invite-code").textContent = membership.businesses.invite_code;
-    const { data } = await sb.from("app_users").select("*").order("created_at");
+    const { data, error } = await sb.from("app_users").select("*").order("created_at");
+    if (error) { console.error("loadTeam error:", error); return; }
     const el = document.getElementById("team-ledger");
     if (!el) return;
     if (!data || data.length === 0) { el.innerHTML = `<div class="empty-state">No team members found.</div>`; return; }
@@ -1948,7 +1935,8 @@
   // RAW MATERIALS
   // ============================================================
   async function loadMaterials() {
-    const { data } = await sb.from("raw_materials").select("*").order("name");
+    const { data, error } = await sb.from("raw_materials").select("*").order("name");
+    if (error) { console.error("loadMaterials error:", error); cache.materials = []; return; }
     cache.materials = data ?? [];
     const el = document.getElementById("materials-ledger");
     if (!el) return;
@@ -1981,12 +1969,13 @@
 
   async function submitMaterial() {
     clearError("material-error");
-    const name = document.getElementById("m-name").value.trim();
-    const unit = document.getElementById("m-unit").value.trim() || "unit";
+    const name = sanitizeInput(document.getElementById("m-name").value);
+    const unit = sanitizeInput(document.getElementById("m-unit").value) || "unit";
     const cost = document.getElementById("m-cost").value === "" ? 0 : parseFloat(document.getElementById("m-cost").value);
     const stock = document.getElementById("m-stock").value === "" ? 0 : parseFloat(document.getElementById("m-stock").value);
     const threshold = document.getElementById("m-threshold").value === "" ? null : parseFloat(document.getElementById("m-threshold").value);
-    if (!name) return setError("material-error", "Name is required.");
+    if (!validateString(name, 200)) return setError("material-error", "Name is required (max 200 characters).");
+    if (unit.length > 50) return setError("material-error", "Unit is too long.");
 
     const payload = { name, unit, cost_per_unit: cost, stock_qty: stock, low_stock_threshold: threshold };
     const { error } = editingRecord
@@ -2130,10 +2119,89 @@
     setThemeClass(!!useDark);
   }
 
-  initTheme();
-  bindPullToRefresh();
-  boot();
-</script>
+  // ============================================================
+  // CENTRALIZED EVENT BINDING (replaces inline onclick/onchange)
+  // ============================================================
+  function bindEvents() {
+    // Auth
+    const $ = (id) => document.getElementById(id);
+    $('login-btn')?.addEventListener('click', handleLogin);
+    $('signup-btn')?.addEventListener('click', handleSignup);
+    $('create-biz-btn')?.addEventListener('click', handleCreateBusiness);
+    $('finish-invite-btn')?.addEventListener('click', finishInviteReveal);
+    $('show-signup-link')?.addEventListener('click', (e) => { e.preventDefault(); showSignup(); });
+    $('show-login-link')?.addEventListener('click', (e) => { e.preventDefault(); showLogin(); });
+    $('show-newbiz-link')?.addEventListener('click', (e) => { e.preventDefault(); showNewBusiness(); });
+    $('signout-btn')?.addEventListener('click', confirmSignOut);
+    $('theme-toggle')?.addEventListener('click', toggleTheme);
+    // Tab navigation
+    document.querySelectorAll('.nav-item').forEach((el) => {
+      el.addEventListener('click', () => switchTab(el.dataset.tab));
+    });
+    // Modal submits
+    $('product-submit-btn')?.addEventListener('click', submitProduct);
+    $('sale-submit-btn')?.addEventListener('click', submitSale);
+    $('customer-submit-btn')?.addEventListener('click', submitCustomer);
+    $('payment-submit-btn')?.addEventListener('click', submitPayment);
+    $('expense-submit-btn')?.addEventListener('click', submitExpense);
+    $('supplier-submit-btn')?.addEventListener('click', submitSupplier);
+    $('purchase-submit-btn')?.addEventListener('click', submitPurchase);
+    $('material-submit-btn')?.addEventListener('click', submitMaterial);
+    $('produce-submit-btn')?.addEventListener('click', submitProduce);
+    // Modal opens
+    $('add-product-btn')?.addEventListener('click', () => openModal('product-modal'));
+    $('add-customer-btn')?.addEventListener('click', () => openModal('customer-modal'));
+    $('add-payment-btn')?.addEventListener('click', () => openModal('payment-modal'));
+    $('add-expense-btn')?.addEventListener('click', () => openModal('expense-modal'));
+    $('add-supplier-btn')?.addEventListener('click', () => openModal('supplier-modal'));
+    $('add-purchase-btn')?.addEventListener('click', openPurchaseModal);
+    $('add-material-btn')?.addEventListener('click', () => openModal('material-modal'));
+    $('produce-btn')?.addEventListener('click', openProduceModal);
+    $('sale-btn')?.addEventListener('click', openSaleModal);
+    // Product change handlers
+    $('s-product')?.addEventListener('change', onSaleProductChange);
+    $('prod-product')?.addEventListener('change', onProduceProductChange);
+    $('prod-qty')?.addEventListener('change', onProduceProductChange);
+
+    // Delete / duplicate
+    $('product-delete-btn')?.addEventListener('click', () => deleteRecord('products', 'product-modal'));
+    $('product-duplicate-btn')?.addEventListener('click', duplicateProduct);
+    $('customer-delete-btn')?.addEventListener('click', () => deleteRecord('customers', 'customer-modal'));
+    $('payment-delete-btn')?.addEventListener('click', () => deleteRecord('payments', 'payment-modal'));
+    $('expense-delete-btn')?.addEventListener('click', () => deleteRecord('expenses', 'expense-modal'));
+    $('supplier-delete-btn')?.addEventListener('click', () => deleteRecord('suppliers', 'supplier-modal'));
+    $('material-delete-btn')?.addEventListener('click', () => deleteRecord('raw_materials', 'material-modal'));
+    // Filters
+    $('cat-filter')?.addEventListener('change', renderProducts);
+    $('product-search')?.addEventListener('input', renderProducts);
+    // Mobile
+    $('mobile-menu-btn')?.addEventListener('click', toggleMobileMenu);
+    $('mobile-more-btn')?.addEventListener('click', toggleMoreMenu);
+    $('mobile-more-backdrop')?.addEventListener('click', toggleMoreMenu);
+    // Copy invite code
+    $('copy-invite-btn')?.addEventListener('click', copyInviteCode);
+  }
+
+
+  // Expose minimal API for inline event handlers still in HTML
+  window.TholeApp = {
+    openModal, closeModal, switchTab, toggleTheme, confirmSignOut,
+    openSaleModal, openEditProduct, openEditCustomer, openEditPayment,
+    openEditExpense, openEditSupplier, openPurchaseModal, openProduceModal,
+    openRecipeModal, openEditMaterial, deleteRecord, duplicateProduct,
+    voidSale, voidPurchase, copyInviteCode, toggleMoreMenu,
+    onSaleProductChange, onProduceProductChange, addRecipeItem, removeRecipeItem,
+    submitSale, submitProduct, submitCustomer, submitPayment, submitExpense,
+    submitSupplier, submitPurchase, submitMaterial, submitProduce,
+    handleLogin, handleSignup, handleCreateBusiness, finishInviteReveal,
+    showSignup, showLogin, showNewBusiness, renderProducts, renderDashboard,
+  };
+
+  return {
+    sb, currentUser, membership, cache, editingRecord, businessTypeKey,
+    loadEverything, renderDashboard, switchTab, toggleTheme,
+  };
+})();
 
 </body>
 </html>

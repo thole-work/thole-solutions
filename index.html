@@ -635,7 +635,7 @@
           <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); margin-bottom:4px;">Invite code</div>
           <div class="num" style="font-size:20px; font-weight:600; color:var(--accent);" id="team-invite-code">—</div>
         </div>
-        <button class="btn-ghost" onclick="copyInviteCode()">Copy</button>
+        <button class="btn-ghost" onclick="copyInviteCode(event)">Copy</button>
       </div>
       <div class="ledger" id="team-ledger"></div>
       <p style="font-size:12px; color:var(--ink-faint); margin-top:14px;">Share this code with new staff — they use it under "Redeem an invite code" when they sign up. You can promote them to Manager here after.</p>
@@ -930,6 +930,7 @@
   function setError(id, msg) { const el = document.getElementById(id); el.textContent = msg; show(id); }
   function clearError(id) { hide(id); }
   function escapeHtml(str) { const d = document.createElement("div"); d.textContent = str ?? ""; return d.innerHTML; }
+  function escapeAttr(str) { return String(str ?? "").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/'/g,"&#39;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
   function money(n) { return Number(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function abbreviateNumber(value) {
     const n = Number(value ?? 0);
@@ -956,8 +957,9 @@
 
   async function deleteRecord(table, modalId) {
     if (!editingRecord || editingRecord.table !== table) return;
-    if (!confirm("Delete this permanently? This can't be undone.")) return;
-    const { error } = await sb.from(table).delete().eq("id", editingRecord.id);
+    if (!confirm("Delete this record? It can be restored later by an admin.")) return;
+    const payload = table === "products" ? { is_active: false } : { deleted_at: new Date().toISOString() };
+    const { error } = await sb.from(table).update(payload).eq("id", editingRecord.id);
     if (error) return setError(modalId.replace("-modal", "-error"), error.message);
     closeModal(modalId);
     await loadEverything();
@@ -1300,11 +1302,11 @@
         const isLow = p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold);
         const margin = p.cost_price ? (((p.price - p.cost_price) / p.price) * 100).toFixed(0) : null;
         const showRecipeLink = businessUsesRawMaterials();
-        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr; cursor:pointer;" onclick="openEditProduct('${p.id}')">
+        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr; cursor:pointer;" onclick="openEditProduct('${escapeAttr(p.id)}')">
           <div>
             <div>${escapeHtml(p.name)}</div>
             ${p.category ? `<span class="cat-badge">${escapeHtml(p.category)}</span>` : ""}
-            ${showRecipeLink ? `<span style="color:var(--accent); font-size:11px; text-decoration:underline; margin-left:8px;" onclick="event.stopPropagation(); openRecipeModal('${p.id}')">Recipe</span>` : ""}
+            ${showRecipeLink ? `<span style="color:var(--accent); font-size:11px; text-decoration:underline; margin-left:8px;" onclick="event.stopPropagation(); openRecipeModal('${escapeAttr(p.id)}')">Recipe</span>` : ""}
             ${margin !== null ? `<div style="font-size:11px; color:var(--ink-faint); margin-top:2px;">${margin}% margin</div>` : ""}
           </div>
           <div class="${isLow ? "low-tag" : "num"}">${p.stock_qty !== null ? p.stock_qty + " " + escapeHtml(p.unit) : "—"}</div>
@@ -1418,8 +1420,12 @@
     if (itemErr) return setError("sale-error", itemErr.message);
 
     if (product.stock_qty !== null) {
-      const newStock = Number(product.stock_qty) - qty;
-      await sb.from("products").update({ stock_qty: newStock }).eq("id", productId);
+      const { data: fresh, error: freshErr } = await sb.from("products").select("stock_qty").eq("id", productId).single();
+      if (freshErr || fresh === null) { await sb.from("orders").delete().eq("id", order.id); return setError("sale-error", "Unable to verify stock level."); }
+      const currentStock = Number(fresh.stock_qty);
+      if (currentStock < qty) { await sb.from("orders").delete().eq("id", order.id); return setError("sale-error", `Insufficient stock — only ${currentStock} available.`); }
+      const { error: stockErr } = await sb.from("products").update({ stock_qty: currentStock - qty }).eq("id", productId).eq("stock_qty", currentStock);
+      if (stockErr) { await sb.from("orders").delete().eq("id", order.id); return setError("sale-error", "Stock changed during sale — please try again."); }
       await sb.from("stock_movements").insert({
         business_id: membership.business_id, item_type: "product", product_id: productId,
         quantity_change: -qty, reason: "sale", reference_type: "order", reference_id: order.id, created_by: currentUser.id,
@@ -1447,7 +1453,7 @@
         <div>${o.customers ? escapeHtml(o.customers.name) : "Walk-in"}</div>
         <div style="color:var(--ink-faint); font-size:12px;">${new Date(o.created_at).toLocaleDateString()}</div>
         <div class="num" style="text-align:right">${money(o.total_amount)}</div>
-        <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidSale('${o.id}')">Void</span></div>
+        <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidSale('${escapeAttr(o.id)}')">Void</span></div>
       </div>`).join("");
   }
 
@@ -1456,9 +1462,9 @@
 
     const { data: items } = await sb.from("order_items").select("*").eq("order_id", orderId);
     for (const item of items ?? []) {
-      const product = cache.products.find((p) => p.id === item.product_id);
-      if (product && product.stock_qty !== null) {
-        const restoredQty = Number(product.stock_qty) + Number(item.quantity);
+      const { data: fresh, error: freshErr } = await sb.from("products").select("stock_qty").eq("id", item.product_id).single();
+      if (!freshErr && fresh && fresh.stock_qty !== null) {
+        const restoredQty = Number(fresh.stock_qty) + Number(item.quantity);
         await sb.from("products").update({ stock_qty: restoredQty }).eq("id", item.product_id);
         await sb.from("stock_movements").insert({
           business_id: membership.business_id, item_type: "product", product_id: item.product_id,
@@ -1466,7 +1472,7 @@
         });
       }
     }
-    await sb.from("orders").delete().eq("id", orderId);
+    await sb.from("orders").update({ status: "voided", deleted_at: new Date().toISOString() }).eq("id", orderId);
 
     await Promise.all([loadProducts(), loadSales()]);
     renderDashboard();
@@ -1482,7 +1488,7 @@
     if (cache.customers.length === 0) { el.innerHTML = `<div class="empty-state">No customers yet.</div>`; return; }
     el.innerHTML =
       `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Name</div><div>Phone</div></div>` +
-      cache.customers.map((c) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr; cursor:pointer;" onclick="openEditCustomer('${c.id}')">
+      cache.customers.map((c) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr; cursor:pointer;" onclick="openEditCustomer('${escapeAttr(c.id)}')">
         <div>${escapeHtml(c.name)}</div><div style="color:var(--ink-faint)">${escapeHtml(c.phone ?? "—")}</div>
       </div>`).join("");
   }
@@ -1530,7 +1536,7 @@
     if (cache.payments.length === 0) { el.innerHTML = `<div class="empty-state">No payments recorded yet.</div>`; return; }
     el.innerHTML =
       `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Customer</div><div>Method</div><div style="text-align:right">Amount</div></div>` +
-      cache.payments.map((p) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr; cursor:pointer;" onclick="openEditPayment('${p.id}')">
+      cache.payments.map((p) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr; cursor:pointer;" onclick="openEditPayment('${escapeAttr(p.id)}')">
         <div>${p.customers ? escapeHtml(p.customers.name) : "—"}</div>
         <div style="color:var(--ink-faint); font-size:12px; text-transform:capitalize;">${escapeHtml(p.method.replace("_"," "))}</div>
         <div class="num" style="text-align:right">${money(p.amount)}</div>
@@ -1589,7 +1595,7 @@
     if (cache.expenses.length === 0) { el.innerHTML = `<div class="empty-state">No expenses recorded yet.</div>`; return; }
     el.innerHTML =
       `<div class="ledger-head" style="grid-template-columns: 1fr 2fr 1fr;"><div>Category</div><div>Description</div><div style="text-align:right">Amount</div></div>` +
-      cache.expenses.map((e) => `<div class="ledger-row" style="grid-template-columns: 1fr 2fr 1fr; cursor:pointer;" onclick="openEditExpense('${e.id}')">
+      cache.expenses.map((e) => `<div class="ledger-row" style="grid-template-columns: 1fr 2fr 1fr; cursor:pointer;" onclick="openEditExpense('${escapeAttr(e.id)}')">
         <div><span class="cat-badge" style="background:var(--amber-soft); color:var(--amber);">${escapeHtml(e.category)}</span></div>
         <div style="color:var(--ink-soft); font-size:13px;">${escapeHtml(e.description ?? "—")}</div>
         <div class="num" style="text-align:right">${money(e.amount)}</div>
@@ -1640,7 +1646,7 @@
     if (cache.suppliers.length === 0) { el.innerHTML = `<div class="empty-state">No suppliers yet.</div>`; return; }
     el.innerHTML =
       `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Name</div><div>Phone</div></div>` +
-      cache.suppliers.map((s) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr; cursor:pointer;" onclick="openEditSupplier('${s.id}')">
+      cache.suppliers.map((s) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr; cursor:pointer;" onclick="openEditSupplier('${escapeAttr(s.id)}')">
         <div>${escapeHtml(s.name)}</div><div style="color:var(--ink-faint)">${escapeHtml(s.phone ?? "—")}</div>
       </div>`).join("");
   }
@@ -1708,8 +1714,8 @@
 
     const currentStock = freshProduct.stock_qty === null ? 0 : Number(freshProduct.stock_qty);
     const newStock = currentStock + qty;
-    const { error: updateErr } = await sb.from("products").update({ stock_qty: newStock }).eq("id", productId);
-    if (updateErr) return setError("purchase-error", updateErr.message);
+    const { error: updateErr } = await sb.from("products").update({ stock_qty: newStock }).eq("id", productId).eq("stock_qty", currentStock);
+    if (updateErr) return setError("purchase-error", "Stock changed during purchase — please try again.");
 
     const { error: movementErr } = await sb.from("stock_movements").insert({
       business_id: membership.business_id, item_type: "product", product_id: productId,
@@ -1739,7 +1745,7 @@
         <div>${po.suppliers ? escapeHtml(po.suppliers.name) : "No supplier on file"}</div>
         <div style="color:var(--ink-faint); font-size:12px;">${new Date(po.created_at).toLocaleDateString()}</div>
         <div class="num" style="text-align:right">${money(po.total_amount)}</div>
-        <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidPurchase('${po.id}')">Void</span></div>
+        <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidPurchase('${escapeAttr(po.id)}')">Void</span></div>
       </div>`).join("");
   }
 
@@ -1748,17 +1754,17 @@
 
     const { data: items } = await sb.from("purchase_order_items").select("*").eq("purchase_order_id", poId);
     for (const item of items ?? []) {
-      const product = cache.products.find((p) => p.id === item.product_id);
-      if (product && product.stock_qty !== null) {
-        const reducedQty = Number(product.stock_qty) - Number(item.quantity);
-        await sb.from("products").update({ stock_qty: reducedQty }).eq("id", item.product_id);
+      const { data: fresh, error: freshErr } = await sb.from("products").select("stock_qty").eq("id", item.product_id).single();
+      if (!freshErr && fresh && fresh.stock_qty !== null) {
+        const reducedQty = Number(fresh.stock_qty) - Number(item.quantity);
+        await sb.from("products").update({ stock_qty: Math.max(0, reducedQty) }).eq("id", item.product_id);
         await sb.from("stock_movements").insert({
           business_id: membership.business_id, item_type: "product", product_id: item.product_id,
           quantity_change: -Number(item.quantity), reason: "purchase_voided", reference_type: "purchase_order", reference_id: poId, created_by: currentUser.id,
         });
       }
     }
-    await sb.from("purchase_orders").delete().eq("id", poId);
+    await sb.from("purchase_orders").update({ status: "voided", deleted_at: new Date().toISOString() }).eq("id", poId);
 
     await Promise.all([loadProducts(), loadPurchases()]);
     renderDashboard();
@@ -1769,7 +1775,7 @@
   // ============================================================
   async function loadTeam() {
     document.getElementById("team-invite-code").textContent = membership.businesses.invite_code;
-    const { data } = await sb.from("app_users").select("*").order("created_at");
+    const { data } = await sb.from("app_users").select("*").eq("business_id", membership.business_id).order("created_at");
     const el = document.getElementById("team-ledger");
     if (!el) return;
     if (!data || data.length === 0) { el.innerHTML = `<div class="empty-state">No team members found.</div>`; return; }
@@ -1791,21 +1797,21 @@
             }
           </div>
           <div style="text-align:right;">
-            ${isSelf ? "" : `<span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="removeTeamMember('${u.user_id}')">Remove</span>`}
+            ${isSelf ? "" : `<span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="removeTeamMember('${escapeAttr(u.user_id)}')">Remove</span>`}
           </div>
         </div>`;
       }).join("");
   }
 
   async function changeRole(userId, newRole) {
-    const { error } = await sb.from("app_users").update({ role: newRole }).eq("user_id", userId);
+    const { error } = await sb.from("app_users").update({ role: newRole }).eq("user_id", userId).eq("business_id", membership.business_id);
     if (error) { alert(error.message); }
     await loadTeam();
   }
 
   async function removeTeamMember(userId) {
     if (!confirm("Remove this person's access to the business? Their login stays, but they'll need a new invite code to rejoin.")) return;
-    const { error } = await sb.from("app_users").delete().eq("user_id", userId);
+    const { error } = await sb.from("app_users").delete().eq("user_id", userId).eq("business_id", membership.business_id);
     if (error) { alert(error.message); return; }
     await loadTeam();
   }
@@ -1944,9 +1950,9 @@
       </div>`).join("");
   }
 
-  function copyInviteCode() {
+  function copyInviteCode(evt) {
     navigator.clipboard.writeText(membership.businesses.invite_code);
-    const btn = event.target;
+    const btn = evt.target;
     const original = btn.textContent;
     btn.textContent = "Copied!";
     setTimeout(() => (btn.textContent = original), 1200);
@@ -1965,7 +1971,7 @@
       `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Name</div><div>Stock</div></div>` +
       cache.materials.map((m) => {
         const isLow = m.low_stock_threshold !== null && Number(m.stock_qty) <= Number(m.low_stock_threshold);
-        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr; cursor:pointer;" onclick="openEditMaterial('${m.id}')">
+        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr; cursor:pointer;" onclick="openEditMaterial('${escapeAttr(m.id)}')">
           <div>${escapeHtml(m.name)}</div>
           <div class="${isLow ? "low-tag" : "num"}">${m.stock_qty} ${escapeHtml(m.unit)}</div>
         </div>`;
@@ -2029,7 +2035,7 @@
       <div style="font-size:14px;">${escapeHtml(ri.raw_materials.name)}</div>
       <div style="display:flex; align-items:center; gap:10px;">
         <span class="num">${ri.quantity_required} ${escapeHtml(ri.raw_materials.unit)}</span>
-        <span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="removeRecipeItem('${ri.id}')">Remove</span>
+        <span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="removeRecipeItem('${escapeAttr(ri.id)}')">Remove</span>
       </div>
     </div>`).join("");
   }
@@ -2046,7 +2052,8 @@
   }
 
   async function removeRecipeItem(recipeItemId) {
-    await sb.from("recipe_items").delete().eq("id", recipeItemId);
+    const { error } = await sb.from("recipe_items").delete().eq("id", recipeItemId);
+    if (error) { document.getElementById("recipe-error").textContent = error.message; document.getElementById("recipe-error").classList.remove("hidden"); return; }
     await renderRecipeItems();
   }
 
@@ -2093,19 +2100,24 @@
     }
 
     for (const ri of recipe) {
-      const newQty = Number(ri.raw_materials.stock_qty) - Number(ri.quantity_required) * batchQty;
-      await sb.from("raw_materials").update({ stock_qty: newQty }).eq("id", ri.raw_material_id);
+      const needed = Number(ri.quantity_required) * batchQty;
+      const { data: freshMat, error: freshMatErr } = await sb.from("raw_materials").select("stock_qty").eq("id", ri.raw_material_id).single();
+      if (freshMatErr || !freshMat) return setError("produce-error", `Unable to verify stock for ${ri.raw_materials.name}.`);
+      if (Number(freshMat.stock_qty) < needed) return setError("produce-error", `Not enough ${ri.raw_materials.name} — need ${needed}, have ${Number(freshMat.stock_qty)}.`);
+      const { error: matErr } = await sb.from("raw_materials").update({ stock_qty: Number(freshMat.stock_qty) - needed }).eq("id", ri.raw_material_id).eq("stock_qty", Number(freshMat.stock_qty));
+      if (matErr) return setError("produce-error", `Stock changed for ${ri.raw_materials.name} — please try again.`);
       await sb.from("stock_movements").insert({
         business_id: membership.business_id, item_type: "raw_material", raw_material_id: ri.raw_material_id,
-        quantity_change: -(Number(ri.quantity_required) * batchQty), reason: "production_consumption",
+        quantity_change: -needed, reason: "production_consumption",
         reference_type: "product", reference_id: productId, created_by: currentUser.id,
       });
     }
 
-    const product = cache.products.find((p) => p.id === productId);
-    if (product && product.stock_qty !== null) {
-      const newStock = Number(product.stock_qty) + batchQty;
-      await sb.from("products").update({ stock_qty: newStock }).eq("id", productId);
+    const { data: freshProd, error: freshProdErr } = await sb.from("products").select("stock_qty").eq("id", productId).single();
+    if (!freshProdErr && freshProd) {
+      const currentProdStock = Number(freshProd.stock_qty);
+      const { error: prodStockErr } = await sb.from("products").update({ stock_qty: currentProdStock + batchQty }).eq("id", productId).eq("stock_qty", currentProdStock);
+      if (prodStockErr) return setError("produce-error", "Product stock changed during production — please try again.");
       await sb.from("stock_movements").insert({
         business_id: membership.business_id, item_type: "product", product_id: productId,
         quantity_change: batchQty, reason: "production_output", reference_type: "product", reference_id: productId, created_by: currentUser.id,

@@ -564,10 +564,10 @@
       <div class="page-header"><h2>Sales</h2><p>Record a sale — stock updates automatically.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="sales-filter-mode" onchange="const f=document.getElementById('sales-date-filter'); f.type=this.value; f.value=''; loadSales();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+          <select id="sales-filter-mode" onchange="const f=document.getElementById('sales-date-filter'); f.type=this.value; f.value=''; pagination.sales=0; loadSales();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
             <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
-          <input type="date" id="sales-date-filter" onchange="loadSales()" placeholder="YYYY" />
+          <input type="date" id="sales-date-filter" onchange="pagination.sales=0; loadSales()" placeholder="YYYY" />
         </div>
         <button class="btn-small" onclick="openSaleModal()">+ Record sale</button>
       </div>
@@ -584,10 +584,10 @@
       <div class="page-header"><h2>Payments</h2><p>Money received from customers.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="payments-filter-mode" onchange="const f=document.getElementById('payments-date-filter'); f.type=this.value; f.value=''; loadPayments();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+          <select id="payments-filter-mode" onchange="const f=document.getElementById('payments-date-filter'); f.type=this.value; f.value=''; pagination.payments=0; loadPayments();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
             <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
-          <input type="date" id="payments-date-filter" onchange="loadPayments()" placeholder="YYYY" />
+          <input type="date" id="payments-date-filter" onchange="pagination.payments=0; loadPayments()" placeholder="YYYY" />
         </div>
         <button class="btn-small" onclick="openModal('payment-modal')">+ Record payment</button>
       </div>
@@ -598,10 +598,10 @@
       <div class="page-header"><h2>Expenses</h2><p>Overhead costs — rent, wages, utilities, supplies.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="expenses-filter-mode" onchange="const f=document.getElementById('expenses-date-filter'); f.type=this.value; f.value=''; loadExpenses();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+          <select id="expenses-filter-mode" onchange="const f=document.getElementById('expenses-date-filter'); f.type=this.value; f.value=''; pagination.expenses=0; loadExpenses();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
             <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
-          <input type="date" id="expenses-date-filter" onchange="loadExpenses()" placeholder="YYYY" />
+          <input type="date" id="expenses-date-filter" onchange="pagination.expenses=0; loadExpenses()" placeholder="YYYY" />
         </div>
         <button class="btn-small" onclick="openModal('expense-modal')">+ Add expense</button>
       </div>
@@ -618,10 +618,10 @@
       <div class="page-header"><h2>Purchase Orders</h2><p>Restocking — this updates product stock automatically.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="purchases-filter-mode" onchange="const f=document.getElementById('purchases-date-filter'); f.type=this.value; f.value=''; loadPurchases();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+          <select id="purchases-filter-mode" onchange="const f=document.getElementById('purchases-date-filter'); f.type=this.value; f.value=''; pagination.purchases=0; loadPurchases();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
             <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
-          <input type="date" id="purchases-date-filter" onchange="loadPurchases()" placeholder="YYYY" />
+          <input type="date" id="purchases-date-filter" onchange="pagination.purchases=0; loadPurchases()" placeholder="YYYY" />
         </div>
         <button class="btn-small" onclick="openPurchaseModal()">+ New purchase</button>
       </div>
@@ -711,13 +711,13 @@
     <label>Category</label><input type="text" id="p-category" list="cat-suggestions" placeholder="e.g. Mains, Drinks, Sides" />
     <datalist id="cat-suggestions"></datalist>
     <div class="field-row">
-      <div><label>Selling price</label><input type="number" id="p-price" /></div>
+      <div><label>Selling price</label><input type="number" id="p-price" min="0" step="any" /></div>
     </div>
     <div class="field-row">
       <div><label>Unit</label><input type="text" id="p-unit" placeholder="plate, kg, item" /></div>
-      <div><label>Starting stock</label><input type="number" id="p-stock" placeholder="0" /></div>
+      <div><label>Starting stock</label><input type="number" id="p-stock" placeholder="0" min="0" /></div>
     </div>
-    <label>Low stock alert below</label><input type="number" id="p-threshold" placeholder="optional" />
+    <label>Low stock alert below</label><input type="number" id="p-threshold" placeholder="optional" min="0" />
     <button class="btn-primary" id="product-submit-btn" onclick="submitProduct()">Save product</button>
     <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('product-modal')">Cancel</button>
     <button class="btn-ghost" id="product-duplicate-btn" style="width:100%; margin-top:10px;" onclick="duplicateProduct()">Duplicate this product</button>
@@ -733,8 +733,8 @@
     <label>Product</label>
     <select id="s-product" onchange="onSaleProductChange()"></select>
     <div class="field-row">
-      <div><label>Quantity</label><input type="number" id="s-qty" value="1" /></div>
-      <div><label>Unit price</label><input type="number" id="s-price" /></div>
+      <div><label>Quantity</label><input type="number" id="s-qty" value="1" min="1" /></div>
+      <div><label>Unit price</label><input type="number" id="s-price" min="0" step="any" /></div>
     </div>
     <label>Customer (optional)</label>
     <select id="s-customer"><option value="">Walk-in / no customer</option></select>
@@ -764,7 +764,7 @@
     <label>Customer</label>
     <select id="pay-customer"></select>
     <div class="field-row">
-      <div><label>Amount</label><input type="number" id="pay-amount" /></div>
+      <div><label>Amount</label><input type="number" id="pay-amount" min="0" step="any" /></div>
       <div><label>Method</label>
         <select id="pay-method">
           <option value="cash">Cash</option>
@@ -794,7 +794,7 @@
     </select>
     <label>Description</label><input type="text" id="e-description" />
     <div class="field-row">
-      <div><label>Amount</label><input type="number" id="e-amount" /></div>
+      <div><label>Amount</label><input type="number" id="e-amount" min="0" step="any" /></div>
       <div><label>Date</label><input type="date" id="e-date" /></div>
     </div>
     <button class="btn-primary" id="expense-submit-btn" onclick="submitExpense()">Save expense</button>
@@ -824,8 +824,8 @@
     <label>Product</label>
     <select id="po-product"></select>
     <div class="field-row">
-      <div><label>Quantity received</label><input type="number" id="po-qty" value="1" /></div>
-      <div><label>Unit cost</label><input type="number" id="po-cost" /></div>
+      <div><label>Quantity received</label><input type="number" id="po-qty" value="1" min="1" /></div>
+      <div><label>Unit cost</label><input type="number" id="po-cost" min="0" step="any" /></div>
     </div>
     <button class="btn-primary" onclick="submitPurchase()">Save purchase</button>
     <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('purchase-modal')">Cancel</button>
@@ -840,11 +840,11 @@
     <label>Name</label><input type="text" id="m-name" />
     <div class="field-row">
       <div><label>Unit</label><input type="text" id="m-unit" placeholder="kg, litre, piece" /></div>
-      <div><label>Cost per unit</label><input type="number" id="m-cost" /></div>
+      <div><label>Cost per unit</label><input type="number" id="m-cost" min="0" step="any" /></div>
     </div>
     <div class="field-row">
-      <div><label>Starting stock</label><input type="number" id="m-stock" placeholder="0" /></div>
-      <div><label>Low stock alert below</label><input type="number" id="m-threshold" placeholder="optional" /></div>
+      <div><label>Starting stock</label><input type="number" id="m-stock" placeholder="0" min="0" /></div>
+      <div><label>Low stock alert below</label><input type="number" id="m-threshold" placeholder="optional" min="0" /></div>
     </div>
     <button class="btn-primary" id="material-submit-btn" onclick="submitMaterial()">Save raw material</button>
     <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('material-modal')">Cancel</button>
@@ -861,7 +861,7 @@
     <div id="recipe-items-list" style="margin:14px 0;"></div>
     <div class="field-row">
       <div><label>Raw material</label><select id="ri-material"></select></div>
-      <div><label>Qty per unit</label><input type="number" id="ri-qty" /></div>
+      <div><label>Qty per unit</label><input type="number" id="ri-qty" min="0.01" step="any" /></div>
     </div>
     <button class="btn-primary" onclick="addRecipeItem()">Add to recipe</button>
     <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('recipe-modal')">Cancel</button>
@@ -875,7 +875,7 @@
     <h3>Produce</h3>
     <label>Product</label>
     <select id="prod-product" onchange="onProduceProductChange()"></select>
-    <label>Batch quantity</label><input type="number" id="prod-qty" value="1" onchange="onProduceProductChange()" />
+    <label>Batch quantity</label><input type="number" id="prod-qty" value="1" min="1" onchange="onProduceProductChange()" />
     <div id="produce-requirements" style="margin:14px 0; font-size:13px; color:var(--ink-soft);"></div>
     <button class="btn-primary" onclick="submitProduce()">Produce</button>
     <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('produce-modal')">Cancel</button>
@@ -897,6 +897,8 @@
   let cache = { products: [], customers: [], sales: [], payments: [], expenses: [], purchases: [], materials: [] };
   let editingRecord = null; // { table: 'products', id: '...' } — null means "adding new"
   let businessTypeKey = null;
+  let pagination = { products: 0, customers: 0, sales: 0, payments: 0, expenses: 0, purchases: 0, materials: 0 };
+  const PAGE_SIZE = 25;
 
   // HELPER: Translates Day/Week/Month/Year inputs into Supabase time ranges
   function applyTimeFilter(query, val, mode, col = "created_at") {
@@ -937,6 +939,24 @@
   function clearError(id) { hide(id); }
   function escapeHtml(str) { const d = document.createElement("div"); d.textContent = str ?? ""; return d.innerHTML; }
   function escapeAttr(str) { return String(str ?? "").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/'/g,"&#39;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  function appendPaginated(el, html, key) {
+    const existing = el.innerHTML;
+    const hasContent = existing && !existing.includes("empty-state");
+    if (hasContent) {
+      const loadMoreBtn = el.querySelector(".load-more-btn");
+      if (loadMoreBtn) loadMoreBtn.remove();
+      el.insertAdjacentHTML("beforeend", html);
+    } else {
+      el.innerHTML = html;
+    }
+    if (pagination[key] > 0) {
+      el.insertAdjacentHTML("beforeend", `<div style="text-align:center; padding:12px;"><button class="btn-ghost load-more-btn" onclick="loadMore('${key}')">Load more</button></div>`);
+    }
+  }
+  async function loadMore(key) {
+    pagination[key] += PAGE_SIZE;
+    await { products: loadProducts, customers: loadCustomers, sales: loadSales, payments: loadPayments, expenses: loadExpenses, purchases: loadPurchases, materials: loadMaterials }[key](true);
+  }
   function money(n) { return Number(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function abbreviateNumber(value) {
     const n = Number(value ?? 0);
@@ -958,9 +978,10 @@
 
   async function deleteRecord(table, modalId) {
     if (!editingRecord || editingRecord.table !== table) return;
+    if (membership.role === "staff") return alert("Staff cannot delete records.");
     if (!confirm("Delete this record? It can be restored later by an admin.")) return;
     const payload = table === "products" ? { is_active: false } : { deleted_at: new Date().toISOString() };
-    const { error } = await sb.from(table).update(payload).eq("id", editingRecord.id);
+    const { error } = await sb.from(table).update(payload).eq("id", editingRecord.id).eq("business_id", membership.business_id);
     if (error) return setError(modalId.replace("-modal", "-error"), error.message);
     closeModal(modalId);
     await loadEverything();
@@ -1249,6 +1270,34 @@
     if (membership.role === "owner") await loadTeam();
     if (membership.role === "owner" || membership.role === "manager") await loadReports();
     renderDashboard();
+    setupRealtimeSubscriptions();
+  }
+
+  let realtimeChannel = null;
+  function setupRealtimeSubscriptions() {
+    if (realtimeChannel) { sb.removeChannel(realtimeChannel); }
+    realtimeChannel = sb.channel("business-realtime");
+    const tables = ["products", "orders", "order_items", "customers", "payments", "expenses", "purchase_orders", "raw_materials", "recipe_items"];
+    tables.forEach((table) => {
+      realtimeChannel.on("postgres_changes", { event: "*", schema: "public", table }, (payload) => {
+        handleRealtimeEvent(table);
+      });
+    });
+    realtimeChannel.subscribe();
+  }
+
+  const debounceTimers = {};
+  function handleRealtimeEvent(table) {
+    if (debounceTimers[table]) return;
+    debounceTimers[table] = setTimeout(() => { delete debounceTimers[table]; }, 1000);
+    const activeTab = document.querySelector('.nav-item.active')?.dataset.tab;
+    if (table === "products" || table === "order_items") { loadProducts(); }
+    if (table === "orders" && (activeTab === "sales" || activeTab === "dashboard")) { loadSales(); renderDashboard(); }
+    if (table === "customers") { loadCustomers(); }
+    if (table === "payments") { loadPayments(); }
+    if (table === "expenses") { loadExpenses(); }
+    if (table === "purchase_orders") { loadPurchases(); }
+    if (table === "raw_materials" || table === "recipe_items") { loadMaterials(); }
   }
 
   function renderDashboard() {
@@ -1277,9 +1326,11 @@
   // ============================================================
   // PRODUCTS
   // ============================================================
-  async function loadProducts() {
-    const { data } = await sb.from("products").select("*").eq("is_active", true).order("category").order("name");
-    cache.products = data ?? [];
+  async function loadProducts(append = false) {
+    const offset = append ? pagination.products : 0;
+    const { data } = await sb.from("products").select("*").eq("business_id", membership.business_id).eq("is_active", true).order("category").order("name").range(offset, offset + PAGE_SIZE - 1);
+    if (append) { cache.products = [...cache.products, ...(data ?? [])]; } else { cache.products = data ?? []; }
+    pagination.products = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
     const cats = [...new Set(cache.products.map((p) => p.category).filter(Boolean))];
     document.getElementById("cat-filter").innerHTML =
       `<option value="">All categories</option>` + cats.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
@@ -1354,12 +1405,15 @@
     const threshold = document.getElementById("p-threshold").value === "" ? null : parseFloat(document.getElementById("p-threshold").value);
 
     if (!name || isNaN(price)) return setError("product-error", "Name and price are required.");
+    if (price < 0) return setError("product-error", "Price cannot be negative.");
+    if (stock < 0) return setError("product-error", "Stock cannot be negative.");
+    if (threshold !== null && threshold < 0) return setError("product-error", "Threshold cannot be negative.");
 
     const payload = { name, category, price, unit, stock_qty: stock, low_stock_threshold: threshold };
 
     if (editingRecord) {
       const original = cache.products.find((p) => p.id === editingRecord.id);
-      const { error } = await sb.from("products").update(payload).eq("id", editingRecord.id);
+      const { error } = await sb.from("products").update(payload).eq("id", editingRecord.id).eq("business_id", membership.business_id);
       if (error) return setError("product-error", error.message);
     } else {
       const { error } = await sb.from("products").insert({ business_id: membership.business_id, ...payload });
@@ -1396,6 +1450,7 @@
     const product = cache.products.find((p) => p.id === productId);
 
     if (!product || isNaN(qty) || qty <= 0 || isNaN(price)) return setError("sale-error", "Check the product, quantity, and price.");
+    if (price < 0) return setError("sale-error", "Price cannot be negative.");
 
     const total = qty * price;
     const { data: order, error: orderErr } = await sb.from("orders").insert({
@@ -1409,11 +1464,11 @@
     if (itemErr) return setError("sale-error", itemErr.message);
 
     if (product.stock_qty !== null) {
-      const { data: fresh, error: freshErr } = await sb.from("products").select("stock_qty").eq("id", productId).single();
+      const { data: fresh, error: freshErr } = await sb.from("products").select("stock_qty").eq("id", productId).eq("business_id", membership.business_id).single();
       if (freshErr || fresh === null) { await sb.from("orders").delete().eq("id", order.id); return setError("sale-error", "Unable to verify stock level."); }
       const currentStock = Number(fresh.stock_qty);
       if (currentStock < qty) { await sb.from("orders").delete().eq("id", order.id); return setError("sale-error", `Insufficient stock — only ${currentStock} available.`); }
-      const { error: stockErr } = await sb.from("products").update({ stock_qty: currentStock - qty }).eq("id", productId).eq("stock_qty", currentStock);
+      const { error: stockErr } = await sb.from("products").update({ stock_qty: currentStock - qty }).eq("id", productId).eq("stock_qty", currentStock).eq("business_id", membership.business_id);
       if (stockErr) { await sb.from("orders").delete().eq("id", order.id); return setError("sale-error", "Stock changed during sale — please try again."); }
     }
 
@@ -1422,38 +1477,41 @@
     renderDashboard();
   }
 
-  async function loadSales() {
+  async function loadSales(append = false) {
     const dateFilter = document.getElementById("sales-date-filter")?.value;
     const mode = document.getElementById("sales-filter-mode")?.value || "date";
-    let query = sb.from("orders").select("*, customers(name)").order("created_at", { ascending: false }).limit(50);
+    const offset = append ? pagination.sales : 0;
+    let query = sb.from("orders").select("*, customers(name)").eq("business_id", membership.business_id).order("created_at", { ascending: false }).range(offset, offset + PAGE_SIZE - 1);
     query = applyTimeFilter(query, dateFilter, mode, "created_at");
     
     const { data } = await query;
-    cache.sales = data ?? [];
+    if (append) { cache.sales = [...cache.sales, ...(data ?? [])]; } else { cache.sales = data ?? []; }
+    pagination.sales = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
     const el = document.getElementById("sales-ledger");
     if (cache.sales.length === 0) { el.innerHTML = `<div class="empty-state">No sales recorded yet.</div>`; return; }
-    el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;"><div>Customer</div><div>Date</div><div style="text-align:right">Total</div><div></div></div>` +
-      cache.sales.map((o) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;">
+    const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;"><div>Customer</div><div>Date</div><div style="text-align:right">Total</div><div></div></div>`;
+    const rows = cache.sales.map((o) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;">
         <div>${o.customers ? escapeHtml(o.customers.name) : "Walk-in"}</div>
         <div style="color:var(--ink-faint); font-size:12px;">${new Date(o.created_at).toLocaleDateString()}</div>
         <div class="num" style="text-align:right">${money(o.total_amount)}</div>
         <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidSale('${escapeAttr(o.id)}')">Void</span></div>
       </div>`).join("");
+    appendPaginated(el, head + rows, "sales");
   }
 
   async function voidSale(orderId) {
     if (!confirm("Void this sale? Stock will be restored. This can't be undone.")) return;
+    if (membership.role === "staff") return alert("Staff cannot void sales.");
 
     const { data: items } = await sb.from("order_items").select("*").eq("order_id", orderId);
     for (const item of items ?? []) {
-      const { data: fresh, error: freshErr } = await sb.from("products").select("stock_qty").eq("id", item.product_id).single();
+      const { data: fresh, error: freshErr } = await sb.from("products").select("stock_qty").eq("id", item.product_id).eq("business_id", membership.business_id).single();
       if (!freshErr && fresh && fresh.stock_qty !== null) {
         const restoredQty = Number(fresh.stock_qty) + Number(item.quantity);
-        await sb.from("products").update({ stock_qty: restoredQty }).eq("id", item.product_id);
+        await sb.from("products").update({ stock_qty: restoredQty }).eq("id", item.product_id).eq("business_id", membership.business_id);
       }
     }
-    await sb.from("orders").update({ status: "voided", deleted_at: new Date().toISOString() }).eq("id", orderId);
+    await sb.from("orders").update({ status: "voided", deleted_at: new Date().toISOString() }).eq("id", orderId).eq("business_id", membership.business_id);
 
     await Promise.all([loadProducts(), loadSales()]);
     renderDashboard();
@@ -1462,16 +1520,18 @@
   // ============================================================
   // CUSTOMERS
   // ============================================================
-  async function loadCustomers() {
-    const { data } = await sb.from("customers").select("*").order("name");
-    cache.customers = data ?? [];
+  async function loadCustomers(append = false) {
+    const offset = append ? pagination.customers : 0;
+    const { data } = await sb.from("customers").select("*").eq("business_id", membership.business_id).order("name").range(offset, offset + PAGE_SIZE - 1);
+    if (append) { cache.customers = [...cache.customers, ...(data ?? [])]; } else { cache.customers = data ?? []; }
+    pagination.customers = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
     const el = document.getElementById("customers-ledger");
     if (cache.customers.length === 0) { el.innerHTML = `<div class="empty-state">No customers yet.</div>`; return; }
-    el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Name</div><div>Phone</div></div>` +
-      cache.customers.map((c) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr; cursor:pointer;" onclick="openEditCustomer('${escapeAttr(c.id)}')">
+    const rows = cache.customers.map((c) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr; cursor:pointer;" onclick="openEditCustomer('${escapeAttr(c.id)}')">
         <div>${escapeHtml(c.name)}</div><div style="color:var(--ink-faint)">${escapeHtml(c.phone ?? "—")}</div>
       </div>`).join("");
+    const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Name</div><div>Phone</div></div>`;
+    appendPaginated(el, head + rows, "customers");
   }
 
   function openEditCustomer(customerId) {
@@ -1505,23 +1565,25 @@
   // ============================================================
   // PAYMENTS
   // ============================================================
-  async function loadPayments() {
+  async function loadPayments(append = false) {
     const dateFilter = document.getElementById("payments-date-filter")?.value;
     const mode = document.getElementById("payments-filter-mode")?.value || "date";
-    let query = sb.from("payments").select("*, customers(name)").eq("direction", "in").order("created_at", { ascending: false }).limit(50);
+    const offset = append ? pagination.payments : 0;
+    let query = sb.from("payments").select("*, customers(name)").eq("business_id", membership.business_id).eq("direction", "in").order("created_at", { ascending: false }).range(offset, offset + PAGE_SIZE - 1);
     query = applyTimeFilter(query, dateFilter, mode, "created_at");
 
     const { data } = await query;
-    cache.payments = data ?? [];
+    if (append) { cache.payments = [...cache.payments, ...(data ?? [])]; } else { cache.payments = data ?? []; }
+    pagination.payments = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
     const el = document.getElementById("payments-ledger");
     if (cache.payments.length === 0) { el.innerHTML = `<div class="empty-state">No payments recorded yet.</div>`; return; }
-    el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Customer</div><div>Method</div><div style="text-align:right">Amount</div></div>` +
-      cache.payments.map((p) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr; cursor:pointer;" onclick="openEditPayment('${escapeAttr(p.id)}')">
+    const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Customer</div><div>Method</div><div style="text-align:right">Amount</div></div>`;
+    const rows = cache.payments.map((p) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr; cursor:pointer;" onclick="openEditPayment('${escapeAttr(p.id)}')">
         <div>${p.customers ? escapeHtml(p.customers.name) : "—"}</div>
         <div style="color:var(--ink-faint); font-size:12px; text-transform:capitalize;">${escapeHtml(p.method.replace("_"," "))}</div>
         <div class="num" style="text-align:right">${money(p.amount)}</div>
       </div>`).join("");
+    appendPaginated(el, head + rows, "payments");
   }
 
   function openEditPayment(paymentId) {
@@ -1564,23 +1626,25 @@
   // ============================================================
   // EXPENSES
   // ============================================================
-  async function loadExpenses() {
+  async function loadExpenses(append = false) {
     const dateFilter = document.getElementById("expenses-date-filter")?.value;
     const mode = document.getElementById("expenses-filter-mode")?.value || "date";
-    let query = sb.from("expenses").select("*").order("expense_date", { ascending: false }).limit(50);
+    const offset = append ? pagination.expenses : 0;
+    let query = sb.from("expenses").select("*").eq("business_id", membership.business_id).order("expense_date", { ascending: false }).range(offset, offset + PAGE_SIZE - 1);
     query = applyTimeFilter(query, dateFilter, mode, "expense_date");
 
     const { data } = await query;
-    cache.expenses = data ?? [];
+    if (append) { cache.expenses = [...cache.expenses, ...(data ?? [])]; } else { cache.expenses = data ?? []; }
+    pagination.expenses = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
     const el = document.getElementById("expenses-ledger");
     if (cache.expenses.length === 0) { el.innerHTML = `<div class="empty-state">No expenses recorded yet.</div>`; return; }
-    el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 1fr 2fr 1fr;"><div>Category</div><div>Description</div><div style="text-align:right">Amount</div></div>` +
-      cache.expenses.map((e) => `<div class="ledger-row" style="grid-template-columns: 1fr 2fr 1fr; cursor:pointer;" onclick="openEditExpense('${escapeAttr(e.id)}')">
+    const head = `<div class="ledger-head" style="grid-template-columns: 1fr 2fr 1fr;"><div>Category</div><div>Description</div><div style="text-align:right">Amount</div></div>`;
+    const rows = cache.expenses.map((e) => `<div class="ledger-row" style="grid-template-columns: 1fr 2fr 1fr; cursor:pointer;" onclick="openEditExpense('${escapeAttr(e.id)}')">
         <div><span class="cat-badge" style="background:var(--amber-soft); color:var(--amber);">${escapeHtml(e.category)}</span></div>
         <div style="color:var(--ink-soft); font-size:13px;">${escapeHtml(e.description ?? "—")}</div>
         <div class="num" style="text-align:right">${money(e.amount)}</div>
       </div>`).join("");
+    appendPaginated(el, head + rows, "expenses");
   }
 
   function openEditExpense(expenseId) {
@@ -1632,6 +1696,7 @@
     const product = cache.products.find((p) => p.id === productId);
 
     if (!product || isNaN(qty) || qty <= 0 || isNaN(cost)) return setError("purchase-error", "Check the product, quantity, and cost.");
+    if (cost < 0) return setError("purchase-error", "Cost cannot be negative.");
 
     const total = qty * cost;
     const { data: po, error: poErr } = await sb.from("purchase_orders").insert({
@@ -1644,12 +1709,12 @@
     });
     if (itemErr) return setError("purchase-error", itemErr.message);
 
-    const { data: freshProduct, error: freshErr } = await sb.from("products").select("stock_qty").eq("id", productId).single();
+    const { data: freshProduct, error: freshErr } = await sb.from("products").select("stock_qty").eq("id", productId).eq("business_id", membership.business_id).single();
     if (freshErr || !freshProduct) return setError("purchase-error", "Unable to refresh product stock.");
 
     const currentStock = freshProduct.stock_qty === null ? 0 : Number(freshProduct.stock_qty);
     const newStock = currentStock + qty;
-    const { error: updateErr } = await sb.from("products").update({ stock_qty: newStock }).eq("id", productId).eq("stock_qty", currentStock);
+    const { error: updateErr } = await sb.from("products").update({ stock_qty: newStock }).eq("id", productId).eq("stock_qty", currentStock).eq("business_id", membership.business_id);
     if (updateErr) return setError("purchase-error", "Stock changed during purchase — please try again.");
 
     closeModal("purchase-modal");
@@ -1660,7 +1725,7 @@
   async function loadPurchases() {
     const dateFilter = document.getElementById("purchases-date-filter")?.value;
     const mode = document.getElementById("purchases-filter-mode")?.value || "date";
-    let query = sb.from("purchase_orders").select("*").order("created_at", { ascending: false }).limit(50);
+    let query = sb.from("purchase_orders").select("*").eq("business_id", membership.business_id).order("created_at", { ascending: false }).limit(50);
     query = applyTimeFilter(query, dateFilter, mode, "created_at");
 
     const { data } = await query;
@@ -1680,16 +1745,17 @@
 
   async function voidPurchase(poId) {
     if (!confirm("Void this purchase? Stock added will be removed. This can't be undone.")) return;
+    if (membership.role === "staff") return alert("Staff cannot void purchases.");
 
     const { data: items } = await sb.from("purchase_order_items").select("*").eq("purchase_order_id", poId);
     for (const item of items ?? []) {
-      const { data: fresh, error: freshErr } = await sb.from("products").select("stock_qty").eq("id", item.product_id).single();
+      const { data: fresh, error: freshErr } = await sb.from("products").select("stock_qty").eq("id", item.product_id).eq("business_id", membership.business_id).single();
       if (!freshErr && fresh && fresh.stock_qty !== null) {
         const reducedQty = Number(fresh.stock_qty) - Number(item.quantity);
-        await sb.from("products").update({ stock_qty: Math.max(0, reducedQty) }).eq("id", item.product_id);
+        await sb.from("products").update({ stock_qty: Math.max(0, reducedQty) }).eq("id", item.product_id).eq("business_id", membership.business_id);
       }
     }
-    await sb.from("purchase_orders").update({ status: "voided", deleted_at: new Date().toISOString() }).eq("id", poId);
+    await sb.from("purchase_orders").update({ status: "voided", deleted_at: new Date().toISOString() }).eq("id", poId).eq("business_id", membership.business_id);
 
     await Promise.all([loadProducts(), loadPurchases()]);
     renderDashboard();
@@ -1886,21 +1952,23 @@
   // ============================================================
   // RAW MATERIALS
   // ============================================================
-  async function loadMaterials() {
-    const { data } = await sb.from("raw_materials").select("*").order("name");
-    cache.materials = data ?? [];
+  async function loadMaterials(append = false) {
+    const offset = append ? pagination.materials : 0;
+    const { data } = await sb.from("raw_materials").select("*").eq("business_id", membership.business_id).order("name").range(offset, offset + PAGE_SIZE - 1);
+    if (append) { cache.materials = [...cache.materials, ...(data ?? [])]; } else { cache.materials = data ?? []; }
+    pagination.materials = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
     const el = document.getElementById("materials-ledger");
     if (!el) return;
     if (cache.materials.length === 0) { el.innerHTML = `<div class="empty-state">No raw materials yet.</div>`; return; }
-    el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Name</div><div>Stock</div></div>` +
-      cache.materials.map((m) => {
+    const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Name</div><div>Stock</div></div>`;
+    const rows = cache.materials.map((m) => {
         const isLow = m.low_stock_threshold !== null && Number(m.stock_qty) <= Number(m.low_stock_threshold);
         return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr; cursor:pointer;" onclick="openEditMaterial('${escapeAttr(m.id)}')">
           <div>${escapeHtml(m.name)}</div>
           <div class="${isLow ? "low-tag" : "num"}">${m.stock_qty} ${escapeHtml(m.unit)}</div>
         </div>`;
       }).join("");
+    appendPaginated(el, head + rows, "materials");
   }
 
   function openEditMaterial(materialId) {
@@ -1926,6 +1994,9 @@
     const stock = document.getElementById("m-stock").value === "" ? 0 : parseFloat(document.getElementById("m-stock").value);
     const threshold = document.getElementById("m-threshold").value === "" ? null : parseFloat(document.getElementById("m-threshold").value);
     if (!name) return setError("material-error", "Name is required.");
+    if (cost < 0) return setError("material-error", "Cost cannot be negative.");
+    if (stock < 0) return setError("material-error", "Stock cannot be negative.");
+    if (threshold !== null && threshold < 0) return setError("material-error", "Threshold cannot be negative.");
 
     const payload = { name, unit, cost_per_unit: cost, stock_qty: stock, low_stock_threshold: threshold };
     const { error } = editingRecord
@@ -2026,17 +2097,17 @@
 
     for (const ri of recipe) {
       const needed = Number(ri.quantity_required) * batchQty;
-      const { data: freshMat, error: freshMatErr } = await sb.from("raw_materials").select("stock_qty").eq("id", ri.raw_material_id).single();
+      const { data: freshMat, error: freshMatErr } = await sb.from("raw_materials").select("stock_qty").eq("id", ri.raw_material_id).eq("business_id", membership.business_id).single();
       if (freshMatErr || !freshMat) return setError("produce-error", `Unable to verify stock for ${ri.raw_materials.name}.`);
       if (Number(freshMat.stock_qty) < needed) return setError("produce-error", `Not enough ${ri.raw_materials.name} — need ${needed}, have ${Number(freshMat.stock_qty)}.`);
-      const { error: matErr } = await sb.from("raw_materials").update({ stock_qty: Number(freshMat.stock_qty) - needed }).eq("id", ri.raw_material_id).eq("stock_qty", Number(freshMat.stock_qty));
+      const { error: matErr } = await sb.from("raw_materials").update({ stock_qty: Number(freshMat.stock_qty) - needed }).eq("id", ri.raw_material_id).eq("stock_qty", Number(freshMat.stock_qty)).eq("business_id", membership.business_id);
       if (matErr) return setError("produce-error", `Stock changed for ${ri.raw_materials.name} — please try again.`);
     }
 
-    const { data: freshProd, error: freshProdErr } = await sb.from("products").select("stock_qty").eq("id", productId).single();
+    const { data: freshProd, error: freshProdErr } = await sb.from("products").select("stock_qty").eq("id", productId).eq("business_id", membership.business_id).single();
     if (!freshProdErr && freshProd) {
       const currentProdStock = Number(freshProd.stock_qty);
-      const { error: prodStockErr } = await sb.from("products").update({ stock_qty: currentProdStock + batchQty }).eq("id", productId).eq("stock_qty", currentProdStock);
+      const { error: prodStockErr } = await sb.from("products").update({ stock_qty: currentProdStock + batchQty }).eq("id", productId).eq("stock_qty", currentProdStock).eq("business_id", membership.business_id);
       if (prodStockErr) return setError("produce-error", "Product stock changed during production — please try again.");
     }
 

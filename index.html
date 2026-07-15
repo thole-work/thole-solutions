@@ -710,7 +710,6 @@
     <label>Name</label><input type="text" id="p-name" />
     <label>Category</label><input type="text" id="p-category" list="cat-suggestions" placeholder="e.g. Mains, Drinks, Sides" />
     <datalist id="cat-suggestions"></datalist>
-    <label>SKU / Barcode (optional)</label><input type="text" id="p-sku" />
     <div class="field-row">
       <div><label>Selling price</label><input type="number" id="p-price" /></div>
     </div>
@@ -1295,7 +1294,7 @@
     const search = (document.getElementById("product-search")?.value ?? "").trim().toLowerCase();
     let list = filter ? cache.products.filter((p) => p.category === filter) : cache.products;
     if (search) {
-      list = list.filter((p) => p.name.toLowerCase().includes(search) || (p.sku ?? "").toLowerCase().includes(search));
+      list = list.filter((p) => p.name.toLowerCase().includes(search));
     }
     const el = document.getElementById("products-ledger");
     if (list.length === 0) { el.innerHTML = `<div class="empty-state">No products found.</div>`; return; }
@@ -1327,7 +1326,6 @@
     document.getElementById("product-duplicate-btn").classList.remove("hidden");
     document.getElementById("p-name").value = p.name;
     document.getElementById("p-category").value = p.category ?? "";
-    document.getElementById("p-sku").value = p.sku ?? "";
     document.getElementById("p-price").value = p.price;
     document.getElementById("p-unit").value = p.unit;
     document.getElementById("p-stock").value = p.stock_qty ?? "";
@@ -1340,7 +1338,7 @@
     const p = cache.products.find((x) => x.id === editingRecord.id);
     if (!p) return;
     const { error } = await sb.from("products").insert({
-      business_id: membership.business_id, name: `${p.name} (copy)`, category: p.category, sku: null,
+      business_id: membership.business_id, name: `${p.name} (copy)`, category: p.category,
       price: p.price, unit: p.unit, stock_qty: 0, low_stock_threshold: p.low_stock_threshold,
     });
     if (error) return setError("product-error", error.message);
@@ -1352,7 +1350,6 @@
     clearError("product-error");
     const name = document.getElementById("p-name").value.trim();
     const category = document.getElementById("p-category").value.trim() || null;
-    const sku = document.getElementById("p-sku").value.trim() || null;
     const price = parseFloat(document.getElementById("p-price").value);
     const unit = document.getElementById("p-unit").value.trim() || "item";
     const stock = document.getElementById("p-stock").value === "" ? 0 : parseFloat(document.getElementById("p-stock").value);

@@ -712,7 +712,6 @@
     <datalist id="cat-suggestions"></datalist>
     <label>SKU / Barcode (optional)</label><input type="text" id="p-sku" />
     <div class="field-row">
-      <div><label>Cost price</label><input type="number" id="p-cost-price" placeholder="optional" /></div>
       <div><label>Selling price</label><input type="number" id="p-price" /></div>
     </div>
     <div class="field-row">
@@ -1305,14 +1304,12 @@
       `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Product</div><div>Stock</div><div style="text-align:right">Price</div></div>` +
       list.map((p) => {
         const isLow = p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold);
-        const margin = p.cost_price ? (((p.price - p.cost_price) / p.price) * 100).toFixed(0) : null;
         const showRecipeLink = businessUsesRawMaterials();
         return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr; cursor:pointer;" onclick="openEditProduct('${escapeAttr(p.id)}')">
           <div>
             <div>${escapeHtml(p.name)}</div>
             ${p.category ? `<span class="cat-badge">${escapeHtml(p.category)}</span>` : ""}
             ${showRecipeLink ? `<span style="color:var(--accent); font-size:11px; text-decoration:underline; margin-left:8px;" onclick="event.stopPropagation(); openRecipeModal('${escapeAttr(p.id)}')">Recipe</span>` : ""}
-            ${margin !== null ? `<div style="font-size:11px; color:var(--ink-faint); margin-top:2px;">${margin}% margin</div>` : ""}
           </div>
           <div class="${isLow ? "low-tag" : "num"}">${p.stock_qty !== null ? p.stock_qty + " " + escapeHtml(p.unit) : "—"}</div>
           <div class="num" style="text-align:right">${money(p.price)}</div>
@@ -1331,7 +1328,6 @@
     document.getElementById("p-name").value = p.name;
     document.getElementById("p-category").value = p.category ?? "";
     document.getElementById("p-sku").value = p.sku ?? "";
-    document.getElementById("p-cost-price").value = p.cost_price ?? "";
     document.getElementById("p-price").value = p.price;
     document.getElementById("p-unit").value = p.unit;
     document.getElementById("p-stock").value = p.stock_qty ?? "";
@@ -1345,7 +1341,7 @@
     if (!p) return;
     const { error } = await sb.from("products").insert({
       business_id: membership.business_id, name: `${p.name} (copy)`, category: p.category, sku: null,
-      cost_price: p.cost_price, price: p.price, unit: p.unit, stock_qty: 0, low_stock_threshold: p.low_stock_threshold,
+      price: p.price, unit: p.unit, stock_qty: 0, low_stock_threshold: p.low_stock_threshold,
     });
     if (error) return setError("product-error", error.message);
     closeModal("product-modal");
@@ -1357,7 +1353,6 @@
     const name = document.getElementById("p-name").value.trim();
     const category = document.getElementById("p-category").value.trim() || null;
     const sku = document.getElementById("p-sku").value.trim() || null;
-    const costPrice = document.getElementById("p-cost-price").value === "" ? null : parseFloat(document.getElementById("p-cost-price").value);
     const price = parseFloat(document.getElementById("p-price").value);
     const unit = document.getElementById("p-unit").value.trim() || "item";
     const stock = document.getElementById("p-stock").value === "" ? 0 : parseFloat(document.getElementById("p-stock").value);
@@ -1365,7 +1360,7 @@
 
     if (!name || isNaN(price)) return setError("product-error", "Name and price are required.");
 
-    const payload = { name, category, sku, cost_price: costPrice, price, unit, stock_qty: stock, low_stock_threshold: threshold };
+    const payload = { name, category, sku, price, unit, stock_qty: stock, low_stock_threshold: threshold };
 
     if (editingRecord) {
       const original = cache.products.find((p) => p.id === editingRecord.id);

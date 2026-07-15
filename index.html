@@ -478,7 +478,7 @@
       <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers')"><span class="nav-icon">👥</span> Customers</div>
       <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments')"><span class="nav-icon">💳</span> Payments</div>
       <div class="nav-item nav-secondary" data-tab="expenses" onclick="switchTab('expenses')"><span class="nav-icon">💸</span> Expenses</div>
-      <div class="nav-item nav-secondary" data-tab="suppliers" onclick="switchTab('suppliers')"><span class="nav-icon">🚚</span> Suppliers</div>
+      <div class="nav-item nav-secondary hidden" data-tab="suppliers" onclick="switchTab('suppliers')"><span class="nav-icon">🚚</span> Suppliers</div>
       <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases')"><span class="nav-icon">🛒</span> Purchase Orders</div>
       <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team')"><span class="nav-icon">👤</span> Team</div>
       <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports')"><span class="nav-icon">📈</span> Reports</div>
@@ -496,7 +496,7 @@
     <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers'); toggleMoreMenu();"><span class="nav-icon">👥</span> Customers</div>
     <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments'); toggleMoreMenu();"><span class="nav-icon">💳</span> Payments</div>
     <div class="nav-item nav-secondary" data-tab="expenses" onclick="switchTab('expenses'); toggleMoreMenu();"><span class="nav-icon">💸</span> Expenses</div>
-    <div class="nav-item nav-secondary" data-tab="suppliers" onclick="switchTab('suppliers'); toggleMoreMenu();"><span class="nav-icon">🚚</span> Suppliers</div>
+    <div class="nav-item nav-secondary hidden" data-tab="suppliers" onclick="switchTab('suppliers'); toggleMoreMenu();"><span class="nav-icon">🚚</span> Suppliers</div>
     <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases'); toggleMoreMenu();"><span class="nav-icon">🛒</span> Purchase Orders</div>
     <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team'); toggleMoreMenu();"><span class="nav-icon">👤</span> Team</div>
     <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports'); toggleMoreMenu();"><span class="nav-icon">📈</span> Reports</div>
@@ -823,8 +823,6 @@
     <h3>New purchase</h3>
     <label>Product</label>
     <select id="po-product"></select>
-    <label>Supplier (optional)</label>
-    <select id="po-supplier"><option value="">No supplier on file</option></select>
     <div class="field-row">
       <div><label>Quantity received</label><input type="number" id="po-qty" value="1" /></div>
       <div><label>Unit cost</label><input type="number" id="po-cost" /></div>
@@ -896,7 +894,7 @@
 
   let currentUser = null;
   let membership = null; // { business_id, role, full_name, businesses: {...} }
-  let cache = { products: [], customers: [], sales: [], payments: [], expenses: [], suppliers: [], purchases: [], materials: [] };
+  let cache = { products: [], customers: [], sales: [], payments: [], expenses: [], purchases: [], materials: [] };
   let editingRecord = null; // { table: 'products', id: '...' } — null means "adding new"
   let businessTypeKey = null;
 
@@ -1022,7 +1020,7 @@
   // ============================================================
   function applyRolePermissions(role) {
     const isStaff = role === "staff";
-    document.querySelectorAll('.nav-item[data-tab="payments"], .nav-item[data-tab="expenses"], .nav-item[data-tab="suppliers"], .nav-item[data-tab="purchases"], .nav-item[data-tab="reports"]').forEach((el) => {
+    document.querySelectorAll('.nav-item[data-tab="payments"], .nav-item[data-tab="expenses"], .nav-item[data-tab="purchases"], .nav-item[data-tab="reports"]').forEach((el) => {
       el.classList.toggle("hidden", isStaff);
     });
     document.querySelectorAll('.nav-item[data-tab="team"]').forEach((el) => {
@@ -1030,7 +1028,7 @@
     });
     if (isStaff) {
       const activeTab = document.querySelector(".nav-item.active")?.dataset.tab;
-      if (["payments","expenses","suppliers","purchases","team","reports"].includes(activeTab)) switchTab("dashboard");
+      if (["payments","expenses","purchases","team","reports"].includes(activeTab)) switchTab("dashboard");
     }
     const addProductBtn = document.querySelector('button[onclick="openModal(\'product-modal\')"]');
     if (addProductBtn) addProductBtn.classList.toggle("hidden", isStaff);
@@ -1247,7 +1245,7 @@
   // LOAD EVERYTHING
   // ============================================================
   async function loadEverything() {
-    await Promise.all([loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses(), loadSuppliers(), loadPurchases(), loadMaterials()]);
+    await Promise.all([loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses(), loadPurchases(), loadMaterials()]);
     if (membership.role === "owner") await loadTeam();
     if (membership.role === "owner" || membership.role === "manager") await loadReports();
     renderDashboard();
@@ -1357,18 +1355,12 @@
 
     if (!name || isNaN(price)) return setError("product-error", "Name and price are required.");
 
-    const payload = { name, category, sku, price, unit, stock_qty: stock, low_stock_threshold: threshold };
+    const payload = { name, category, price, unit, stock_qty: stock, low_stock_threshold: threshold };
 
     if (editingRecord) {
       const original = cache.products.find((p) => p.id === editingRecord.id);
       const { error } = await sb.from("products").update(payload).eq("id", editingRecord.id);
       if (error) return setError("product-error", error.message);
-      if (original && original.stock_qty !== null && stock !== null && Number(original.stock_qty) !== stock) {
-        await sb.from("stock_movements").insert({
-          business_id: membership.business_id, item_type: "product", product_id: editingRecord.id,
-          quantity_change: stock - Number(original.stock_qty), reason: "adjustment", created_by: currentUser.id,
-        });
-      }
     } else {
       const { error } = await sb.from("products").insert({ business_id: membership.business_id, ...payload });
       if (error) return setError("product-error", error.message);
@@ -1423,10 +1415,6 @@
       if (currentStock < qty) { await sb.from("orders").delete().eq("id", order.id); return setError("sale-error", `Insufficient stock — only ${currentStock} available.`); }
       const { error: stockErr } = await sb.from("products").update({ stock_qty: currentStock - qty }).eq("id", productId).eq("stock_qty", currentStock);
       if (stockErr) { await sb.from("orders").delete().eq("id", order.id); return setError("sale-error", "Stock changed during sale — please try again."); }
-      await sb.from("stock_movements").insert({
-        business_id: membership.business_id, item_type: "product", product_id: productId,
-        quantity_change: -qty, reason: "sale", reference_type: "order", reference_id: order.id, created_by: currentUser.id,
-      });
     }
 
     closeModal("sale-modal");
@@ -1463,10 +1451,6 @@
       if (!freshErr && fresh && fresh.stock_qty !== null) {
         const restoredQty = Number(fresh.stock_qty) + Number(item.quantity);
         await sb.from("products").update({ stock_qty: restoredQty }).eq("id", item.product_id);
-        await sb.from("stock_movements").insert({
-          business_id: membership.business_id, item_type: "product", product_id: item.product_id,
-          quantity_change: Number(item.quantity), reason: "sale_voided", reference_type: "order", reference_id: orderId, created_by: currentUser.id,
-        });
       }
     }
     await sb.from("orders").update({ status: "voided", deleted_at: new Date().toISOString() }).eq("id", orderId);
@@ -1633,62 +1617,16 @@
   }
 
   // ============================================================
-  // SUPPLIERS
-  // ============================================================
-  async function loadSuppliers() {
-    const { data } = await sb.from("suppliers").select("*").order("name");
-    cache.suppliers = data ?? [];
-    const el = document.getElementById("suppliers-ledger");
-    if (!el) return;
-    if (cache.suppliers.length === 0) { el.innerHTML = `<div class="empty-state">No suppliers yet.</div>`; return; }
-    el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Name</div><div>Phone</div></div>` +
-      cache.suppliers.map((s) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr; cursor:pointer;" onclick="openEditSupplier('${escapeAttr(s.id)}')">
-        <div>${escapeHtml(s.name)}</div><div style="color:var(--ink-faint)">${escapeHtml(s.phone ?? "—")}</div>
-      </div>`).join("");
-  }
-
-  function openEditSupplier(supplierId) {
-    const s = cache.suppliers.find((x) => x.id === supplierId);
-    if (!s) return;
-    editingRecord = { table: "suppliers", id: s.id };
-    document.getElementById("supplier-modal-title").textContent = "Edit supplier";
-    document.getElementById("supplier-submit-btn").textContent = "Save changes";
-    document.getElementById("supplier-delete-btn").classList.remove("hidden");
-    document.getElementById("sup-name").value = s.name ?? "";
-    document.getElementById("sup-phone").value = s.phone ?? "";
-    openModal("supplier-modal");
-  }
-
-  async function submitSupplier() {
-    clearError("supplier-error");
-    const name = document.getElementById("sup-name").value.trim();
-    const phone = document.getElementById("sup-phone").value.trim() || null;
-    if (!name) return setError("supplier-error", "Name is required.");
-
-    const payload = { name, phone };
-    const { error } = editingRecord
-      ? await sb.from("suppliers").update(payload).eq("id", editingRecord.id)
-      : await sb.from("suppliers").insert({ business_id: membership.business_id, ...payload });
-
-    if (error) return setError("supplier-error", error.message);
-    closeModal("supplier-modal");
-    await loadSuppliers();
-  }
-
-  // ============================================================
   // PURCHASE ORDERS
   // ============================================================
   function openPurchaseModal() {
     document.getElementById("po-product").innerHTML = cache.products.map((p) => `<option value="${p.id}">${escapeHtml(p.name)} (stock: ${p.stock_qty ?? "—"})</option>`).join("");
-    document.getElementById("po-supplier").innerHTML = `<option value="">No supplier on file</option>` + cache.suppliers.map((s) => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("");
     openModal("purchase-modal");
   }
 
   async function submitPurchase() {
     clearError("purchase-error");
     const productId = document.getElementById("po-product").value;
-    const supplierId = document.getElementById("po-supplier").value || null;
     const qty = parseFloat(document.getElementById("po-qty").value);
     const cost = parseFloat(document.getElementById("po-cost").value);
     const product = cache.products.find((p) => p.id === productId);
@@ -1697,7 +1635,7 @@
 
     const total = qty * cost;
     const { data: po, error: poErr } = await sb.from("purchase_orders").insert({
-      business_id: membership.business_id, supplier_id: supplierId, status: "received", total_amount: total, created_by: currentUser.id, received_at: new Date().toISOString(),
+      business_id: membership.business_id, status: "received", total_amount: total, created_by: currentUser.id, received_at: new Date().toISOString(),
     }).select().single();
     if (poErr) return setError("purchase-error", poErr.message);
 
@@ -1714,12 +1652,6 @@
     const { error: updateErr } = await sb.from("products").update({ stock_qty: newStock }).eq("id", productId).eq("stock_qty", currentStock);
     if (updateErr) return setError("purchase-error", "Stock changed during purchase — please try again.");
 
-    const { error: movementErr } = await sb.from("stock_movements").insert({
-      business_id: membership.business_id, item_type: "product", product_id: productId,
-      quantity_change: qty, reason: "purchase", reference_type: "purchase_order", reference_id: po.id, created_by: currentUser.id,
-    });
-    if (movementErr) return setError("purchase-error", movementErr.message);
-
     closeModal("purchase-modal");
     await Promise.all([loadProducts(), loadPurchases()]);
     renderDashboard();
@@ -1728,7 +1660,7 @@
   async function loadPurchases() {
     const dateFilter = document.getElementById("purchases-date-filter")?.value;
     const mode = document.getElementById("purchases-filter-mode")?.value || "date";
-    let query = sb.from("purchase_orders").select("*, suppliers(name)").order("created_at", { ascending: false }).limit(50);
+    let query = sb.from("purchase_orders").select("*").order("created_at", { ascending: false }).limit(50);
     query = applyTimeFilter(query, dateFilter, mode, "created_at");
 
     const { data } = await query;
@@ -1737,10 +1669,10 @@
     if (!el) return;
     if (cache.purchases.length === 0) { el.innerHTML = `<div class="empty-state">No purchases recorded yet.</div>`; return; }
     el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;"><div>Supplier</div><div>Date</div><div style="text-align:right">Total</div><div></div></div>` +
+      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;"><div>Date</div><div>Status</div><div style="text-align:right">Total</div><div></div></div>` +
       cache.purchases.map((po) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;">
-        <div>${po.suppliers ? escapeHtml(po.suppliers.name) : "No supplier on file"}</div>
         <div style="color:var(--ink-faint); font-size:12px;">${new Date(po.created_at).toLocaleDateString()}</div>
+        <div><span class="cat-badge">${escapeHtml(po.status)}</span></div>
         <div class="num" style="text-align:right">${money(po.total_amount)}</div>
         <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidPurchase('${escapeAttr(po.id)}')">Void</span></div>
       </div>`).join("");
@@ -1755,10 +1687,6 @@
       if (!freshErr && fresh && fresh.stock_qty !== null) {
         const reducedQty = Number(fresh.stock_qty) - Number(item.quantity);
         await sb.from("products").update({ stock_qty: Math.max(0, reducedQty) }).eq("id", item.product_id);
-        await sb.from("stock_movements").insert({
-          business_id: membership.business_id, item_type: "product", product_id: item.product_id,
-          quantity_change: -Number(item.quantity), reason: "purchase_voided", reference_type: "purchase_order", reference_id: poId, created_by: currentUser.id,
-        });
       }
     }
     await sb.from("purchase_orders").update({ status: "voided", deleted_at: new Date().toISOString() }).eq("id", poId);
@@ -2103,11 +2031,6 @@
       if (Number(freshMat.stock_qty) < needed) return setError("produce-error", `Not enough ${ri.raw_materials.name} — need ${needed}, have ${Number(freshMat.stock_qty)}.`);
       const { error: matErr } = await sb.from("raw_materials").update({ stock_qty: Number(freshMat.stock_qty) - needed }).eq("id", ri.raw_material_id).eq("stock_qty", Number(freshMat.stock_qty));
       if (matErr) return setError("produce-error", `Stock changed for ${ri.raw_materials.name} — please try again.`);
-      await sb.from("stock_movements").insert({
-        business_id: membership.business_id, item_type: "raw_material", raw_material_id: ri.raw_material_id,
-        quantity_change: -needed, reason: "production_consumption",
-        reference_type: "product", reference_id: productId, created_by: currentUser.id,
-      });
     }
 
     const { data: freshProd, error: freshProdErr } = await sb.from("products").select("stock_qty").eq("id", productId).single();
@@ -2115,10 +2038,6 @@
       const currentProdStock = Number(freshProd.stock_qty);
       const { error: prodStockErr } = await sb.from("products").update({ stock_qty: currentProdStock + batchQty }).eq("id", productId).eq("stock_qty", currentProdStock);
       if (prodStockErr) return setError("produce-error", "Product stock changed during production — please try again.");
-      await sb.from("stock_movements").insert({
-        business_id: membership.business_id, item_type: "product", product_id: productId,
-        quantity_change: batchQty, reason: "production_output", reference_type: "product", reference_id: productId, created_by: currentUser.id,
-      });
     }
 
     closeModal("produce-modal");

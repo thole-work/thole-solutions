@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500&display=swap');
 
   :root {
     --paper: #F6F7FB;
@@ -27,18 +27,72 @@
     --danger: #A6432C;
     --danger-soft: #F4E6E1;
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; scrollbar-width: none; -ms-overflow-style: none; }
+  *::-webkit-scrollbar { display: none; width: 0; height: 0; }
   body {
     margin: 0; background: var(--paper); color: var(--ink);
-    font-family: 'Inter', sans-serif; min-height: 100vh;
+    font-family: 'Inter', 'Roboto', 'Open Sans', sans-serif; height: 100vh; overflow: hidden;
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
-  h1, h2, h3 { font-family: 'Source Serif 4', serif; font-weight: 600; margin: 0; }
+  .nav-item, .btn-small, .btn-ghost, .signout-btn, #theme-toggle, .metric-card, .report-card, .checklist li, .ledger-row, .modal, input, select, textarea, button, .toolbar select, .toolbar input[type="date"] {
+    transition: transform 0.22s cubic-bezier(.2,.8,.2,1), box-shadow 0.22s ease, background-color 0.22s ease, color 0.22s ease, border-color 0.22s ease, opacity 0.22s ease;
+  }
+  .nav-item:hover, .nav-item:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .nav-item.active {
+    transform: translateY(-1px);
+    box-shadow: inset 0 0 0 1px rgba(29,31,145,0.08);
+  }
+  .btn-small:hover, .btn-ghost:hover, .signout-btn:hover, #theme-toggle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(15,23,42,0.08);
+  }
+  .metric-card:hover, .report-card:hover, .checklist li:hover, .ledger-row:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 26px rgba(15,23,42,0.08);
+  }
+  .modal {
+    animation: modalIn 0.24s ease;
+  }
+  .tab-panel.is-entering {
+    animation: panelFadeIn 0.24s ease both;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(8px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes panelFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  h1, h2, h3 { font-family: 'Source Serif 4', 'Roboto', 'Open Sans', serif; font-weight: 600; margin: 0; }
   .num { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
-  button { font-family: 'Inter', sans-serif; cursor: pointer; }
+  button { font-family: 'Inter', 'Roboto', 'Open Sans', sans-serif; cursor: pointer; }
   .hidden { display: none !important; }
 
   /* ---------- AUTH ---------- */
   #auth-screen { max-width: 420px; margin: 0 auto; padding: 60px 20px; }
+  #loading {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    margin: 0;
+    background: #000;
+    z-index: 60;
+  }
+  #loading img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+  }
   .brand-mark { width: 44px; height: 44px; border-radius: 10px; overflow: hidden; margin-bottom: 18px; }
   .brand-mark img { width: 100%; height: 100%; object-fit: cover; display: block; }
   #auth-screen h1 { font-size: 26px; margin-bottom: 4px; }
@@ -46,7 +100,7 @@
   label { display: block; font-size: 12px; color: var(--ink-soft); margin: 14px 0 4px; }
   input, select, textarea {
     width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px;
-    background: white; font-size: 15px; font-family: 'Inter', sans-serif; color: var(--ink);
+    background: var(--card); font-size: 15px; font-family: 'Inter', sans-serif; color: var(--ink);
   }
   input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
   .btn-primary { width: 100%; margin-top: 20px; padding: 12px; border: none; border-radius: 6px; background: var(--accent); color: white; font-size: 15px; font-weight: 500; }
@@ -56,14 +110,22 @@
   .error { background: var(--danger-soft); color: var(--danger); padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-top: 14px; }
 
   /* ---------- APP SHELL ---------- */
-  #app-screen { display: flex; min-height: 100vh; }
+  #app-screen { display: flex; min-height: 100vh; height: 100vh; overflow: hidden; }
   aside {
     width: 220px; background: var(--card); border-right: 1px solid var(--line);
     display: flex; flex-direction: column; flex-shrink: 0;
   }
   .side-header { padding: 22px 18px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
   .side-header img { width: 32px; height: 32px; border-radius: 7px; flex-shrink: 0; }
-  .side-header .biz { font-family: 'Source Serif 4', serif; font-weight: 600; font-size: 15px; line-height: 1.2; }
+  .side-header .biz {
+    font-family: 'Source Serif 4', 'Roboto', 'Open Sans', serif;
+    font-weight: 700;
+    font-size: 17px;
+    line-height: 1.15;
+    letter-spacing: 0.01em;
+    color: var(--accent);
+    text-shadow: 0 1px 0 rgba(255,255,255,0.18);
+  }
   .side-header .type-tag { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
   nav { flex: 1; padding: 14px 10px; }
   .nav-item {
@@ -72,18 +134,30 @@
   }
   .nav-item:hover { background: var(--paper); color: var(--ink); }
   .nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
-  .nav-icon { width: 18px; text-align: center; font-size: 15px; }
+  .nav-icon { width: 24px; text-align: center; font-size: 18px; display: inline-flex; align-items: center; justify-content: center; }
   .mobile-more-btn { display: none; }
   #mobile-more-panel, #mobile-more-backdrop { display: none; }
-  .side-footer { padding: 14px 18px; border-top: 1px solid var(--line); }
+  .side-footer { display: none; }
   .user-name { font-size: 13px; font-weight: 500; }
   .user-role { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; }
   .logout-link { font-size: 12px; color: var(--ink-faint); text-decoration: underline; cursor: pointer; margin-top: 6px; display: inline-block; }
 
-  main { flex: 1; padding: 32px 40px; overflow-y: auto; max-width: 980px; }
-  .page-header { margin-bottom: 24px; }
-  .page-header h2 { font-size: 22px; }
-  .page-header p { color: var(--ink-soft); font-size: 13px; margin-top: 4px; }
+  main { flex: 1; display: flex; flex-direction: column; padding: 32px 40px 24px; overflow: hidden; max-width: 980px; min-width: 0; }
+  #app-topbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-shrink: 0; position: sticky; top: 0; z-index: 30; margin-bottom: 16px; background: rgba(29,31,145,0.96); color: white; padding: 12px 16px; border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; box-shadow: 0 20px 50px rgba(15,23,42,0.16); backdrop-filter: blur(18px); }
+  #app-topbar .title-group { min-width: 0; }
+  #app-topbar h2 { margin: 0; font-size: 18px; color: white; }
+  #app-topbar p { margin: 4px 0 0; color: rgba(255,255,255,0.85); font-size: 12px; }
+  #app-topbar .user-panel { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; min-width: 160px; }
+  #app-topbar .user-panel .user-name { font-weight: 600; color: #FFF; }
+  #app-topbar .user-panel .user-role { font-size: 11px; color: rgba(255,255,255,0.78); text-transform: uppercase; letter-spacing: 0.04em; }
+  #app-topbar .user-panel .signout-btn { border: none; border-radius: 999px; padding: 6px 10px; font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.18); color: white; cursor: pointer; width: auto; min-width: 0; }
+  #app-topbar .user-panel .signout-btn:hover { background: rgba(255,255,255,0.26); }
+  /* theme toggle button */
+  #theme-toggle { border: none; background: transparent; width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 16px; }
+  #theme-toggle:hover { background: rgba(255,255,255,0.06); transform: translateY(-1px); }
+  .tab-panel { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
+  .tab-panel .page-header { display: none; }
+  #pull-refresh-indicator { display: none; }
   .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 12px; flex-wrap: wrap; }
   .btn-small { padding: 9px 16px; border: none; border-radius: 6px; background: var(--accent); color: white; font-size: 13px; font-weight: 500; }
   .btn-small:hover { background: var(--accent-dark); }
@@ -91,10 +165,56 @@
 
   /* metric cards */
   .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 28px; }
-  .metric-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .metric-card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; box-shadow: 0 18px 34px rgba(15,23,42,0.06); backdrop-filter: blur(16px); overflow-wrap: anywhere; color: var(--ink); }
   .metric-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); margin-bottom: 6px; }
   .metric-card .value { font-size: 24px; font-weight: 600; }
+  .metric-card .note { margin-top: 10px; color: var(--ink-soft); font-size: 12px; line-height: 1.5; }
   .metric-card.warn .value { color: var(--danger); }
+
+  .report-card.compact-card { padding: 18px; }
+  .dashboard-summary-grid { display: grid; gap: 10px; margin-top: 8px; }
+  .dashboard-summary-grid div { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .card-label { color: var(--ink-faint); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  .reports-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 22px; }
+  .report-card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px; box-shadow: 0 20px 40px rgba(15,23,42,0.06); backdrop-filter: blur(18px); color: var(--ink); }
+  .report-card h3 { margin: 0 0 12px; font-size: 15px; }
+  .report-card header, .report-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+  .report-card-header p { margin: 0; color: var(--ink-soft); font-size: 12px; line-height: 1.4; }
+  .report-card canvas { width: 100%; max-height: 140px; }
+  .report-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; margin-bottom: 22px; }
+  .report-insight-card { display: flex; flex-direction: column; justify-content: space-between; }
+  .insight-list { display: grid; gap: 12px; }
+  .insight-list div { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .insight-list span { color: var(--ink-faint); font-size: 12px; }
+  .insight-list strong { font-size: 15px; }
+  .report-summary-card { display: flex; flex-direction: column; gap: 6px; }
+  .report-summary-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); }
+  /* Removed unused report chart controls to simplify reports layout */
+  .report-summary-card .value { font-size: 22px; font-weight: 700; color: var(--ink); }
+  .report-summary-card .note { color: var(--ink-soft); font-size: 12px; }
+  .onboarding-card h3 { margin: 0; font-size: 18px; }
+  .onboarding-card p { margin: 8px 0 0; color: var(--ink-soft); font-size: 13px; }
+  .onboarding-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 18px; }
+  .onboarding-badge { font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 7px 12px; }
+  .checklist { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+  .checklist li { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); }
+  .checklist li.done { border-color: var(--accent-soft); background: var(--accent-soft); }
+  .checklist li .marker { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; }
+  .checklist li.done .marker { background: var(--accent); color: white; }
+  .checklist li.pending .marker { background: var(--line); color: var(--ink-faint); }
+  .checklist li .checklist-label { flex: 1; min-width: 0; color: var(--ink); font-size: 14px; line-height: 1.35; }
+  .checklist li button { border: none; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 600; cursor: pointer; padding: 8px 12px; }
+  .checklist li button:hover { background: #e6e9ff; }
+
+  @media (max-width: 720px) {
+    .onboarding-card { padding: 16px; margin-bottom: 22px; }
+    .onboarding-header { flex-direction: column; align-items: stretch; }
+    .onboarding-badge { margin-top: 6px; align-self: flex-start; }
+    .checklist li { flex-direction: column; align-items: stretch; gap: 10px; }
+    .checklist li .checklist-label { font-size: 15px; }
+    .checklist li button { width: 100%; }
+  }
 
   /* ledger table */
   .ledger { background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
@@ -111,8 +231,45 @@
   .modal .close { text-align: right; font-size: 13px; color: var(--ink-soft); cursor: pointer; margin-bottom: 4px; }
   .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
+  /* Dark theme variables */
+  .theme-dark { --paper: #0B1020; --card: #0F1724; --ink: #E6EEF7; --ink-soft: #C3CEE6; --ink-faint: #9FB0D0; --line: rgba(255,255,255,0.06); --accent: #5E7CFF; --accent-soft: rgba(94,124,255,0.12); --sky: #5CACF7; --amber: #9C6B1F; --danger: #E06B5D; }
+
+  /* Force readable contrast inside key components */
+  .metric-card, .report-card, .ledger, .checklist li, .modal {
+    background: var(--card) !important;
+    color: var(--ink) !important;
+    border-color: var(--line) !important;
+  }
+
+  .ledger-head { background: var(--paper) !important; color: var(--ink-faint) !important; }
+  .ledger-row { color: var(--ink) !important; }
+  .empty-state { color: var(--ink-faint) !important; }
+
+  input::placeholder, textarea::placeholder { color: var(--ink-soft) !important; }
+
+  /* Toolbar filter controls (date/select) - ensure consistent theme colors */
+  .toolbar select, .toolbar input[type="date"] {
+    background: var(--card) !important;
+    color: var(--ink) !important;
+    border: 1px solid var(--line) !important;
+  }
+  .toolbar select option { color: var(--ink); }
+
+  /* Chrome-specific: ensure date input text and calendar icon are visible in dark mode */
+  .toolbar input[type="date"] {
+    -webkit-text-fill-color: var(--ink) !important;
+    color: var(--ink) !important;
+  }
+  .toolbar input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: none !important;
+    opacity: 0.9;
+  }
+  .theme-dark .toolbar input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(1.4) !important;
+  }
+
   @media (max-width: 720px) {
-    #app-screen { flex-direction: column; }
+    #app-screen { flex-direction: column; height: 100vh; }
     aside {
       width: 100%; flex-direction: row; align-items: center;
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 15;
@@ -120,15 +277,13 @@
       box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
     }
     .side-header, .side-footer { display: none; }
-    nav { display: flex; justify-content: space-around; padding: 6px 2px; width: 100%; }
+    nav { display: flex; justify-content: space-around; padding: 10px 4px; width: 100%; }
     .nav-item {
-      flex-direction: column; gap: 2px; padding: 6px 4px; font-size: 10px;
-      text-align: center; flex: 1; border-radius: 8px;
+      flex-direction: column; gap: 4px; padding: 10px 6px; font-size: 12px;
+      text-align: center; flex: 1; border-radius: 10px;
     }
-    .nav-icon { font-size: 18px; }
+    .nav-icon { font-size: 22px; }
 
-    /* Bottom bar shows only the 3 primary items + More; everything
-       else lives in the slide-up overflow panel instead. */
     nav .nav-secondary { display: none; }
     .mobile-more-btn { display: flex; }
 
@@ -136,20 +291,21 @@
       display: block; position: fixed; inset: 0; background: rgba(28,28,30,0.35); z-index: 16;
     }
     #mobile-more-panel.open {
-      display: flex; flex-direction: column; position: fixed; left: 0; right: 0; bottom: 62px;
-      background: var(--card); border-radius: 14px 14px 0 0; padding: 10px; z-index: 17;
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
+      position: fixed; left: 10px; right: 10px; bottom: 72px;
+      background: var(--card); border-radius: 14px; padding: 10px; z-index: 17;
       box-shadow: 0 -4px 16px rgba(0,0,0,0.12);
+      max-height: min(62vh, 420px); overflow-y: auto;
     }
     #mobile-more-panel .nav-item {
-      flex-direction: row; justify-content: flex-start; gap: 12px; padding: 14px 12px;
-      font-size: 15px; text-align: left; border-radius: 10px;
+      flex-direction: column; justify-content: center; align-items: center; gap: 4px; padding: 10px 8px;
+      font-size: 12px; text-align: center; border-radius: 10px; min-height: 72px;
     }
     #mobile-more-panel .nav-icon { font-size: 18px; width: 24px; }
 
     main { padding: 16px 14px 90px; }
     .field-row { grid-template-columns: 1fr; }
 
-    /* Ledger rows become stacked cards instead of cramped grid columns */
     .ledger-head { display: none; }
     .ledger-row {
       display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px;
@@ -157,20 +313,95 @@
     }
     .ledger-row > div:first-child { flex: 1; min-width: 60%; }
 
-    /* Modals become full-screen sheets, easier to use on small screens */
     .modal-backdrop { align-items: flex-end; padding: 0; }
     .modal { max-width: 100%; border-radius: 16px 16px 0 0; max-height: 92vh; }
 
-    .metrics { grid-template-columns: repeat(2, 1fr); }
+    .metrics { grid-template-columns: 1fr; }
+    .metric-card, .report-card, .report-card.compact-card { padding: 14px 14px; }
+    .report-grid { grid-template-columns: 1fr; gap: 16px; }
+    .dashboard-summary-grid { grid-template-columns: 1fr; }
+    .report-summary-card { width: 100%; }
+    .ledger { font-size: 13px; }
+    .ledger-row { padding: 12px 14px; }
+    .ledger-row > div { min-width: 0; }
+    .ledger-row > div:first-child { flex: 1 1 100%; min-width: 0; }
+    .ledger-row .num, .ledger-row .low-tag { flex: 0 0 auto; }
+    .chart-card, .report-card { width: 100%; }
+    .nav-item { min-width: 0; }
+    main { padding: 18px 14px 110px; }
+    .toolbar { flex-direction: column; align-items: stretch; }
+    .toolbar > * { width: 100%; }
+    .btn-small, .btn-ghost { width: 100%; }
+    #mobile-more-panel.open { bottom: 72px; }
     input, select, textarea, button { min-height: 44px; }
+    canvas { width: 100% !important; min-height: 180px !important; }
+
+    #pull-refresh-indicator {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      position: fixed;
+      top: 86px;
+      left: 50%;
+      transform: translate(-50%, -120%);
+      z-index: 35;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.96);
+      color: var(--ink-soft);
+      border: 1px solid var(--line);
+      box-shadow: 0 10px 24px rgba(15,23,42,0.10);
+      backdrop-filter: blur(10px);
+      font-size: 12px;
+      font-weight: 600;
+      pointer-events: none;
+      opacity: 0;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+    #pull-refresh-indicator.show { opacity: 1; transform: translate(-50%, 0); }
+    #pull-refresh-indicator.active { color: var(--accent); border-color: var(--accent-soft); }
+    #pull-refresh-indicator .icon { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 11px; }
+
+    #app-topbar {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(29,31,145,0.98);
+      box-shadow: 0 16px 34px rgba(15,23,42,0.16);
+    }
+    #app-topbar .title-group { margin-bottom: 0; }
+    #app-topbar .user-panel {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      width: auto;
+      flex-wrap: wrap;
+    }
+    #app-topbar .user-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+      min-width: 0;
+    }
+    #app-topbar .user-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #app-topbar .user-panel .signout-btn { width: auto; padding: 6px 10px; }
   }
 </style>
 </head>
 <body>
 
-<div id="loading" style="text-align:center; padding:80px; color: var(--ink-faint);">Loading…</div>
+<div id="loading"><img src="banner.png" alt="Thole Solutions" /></div>
 
-<!-- AUTH -->
 <div id="auth-screen" class="hidden">
   <div class="brand-mark"><img src="logo.png" alt="Thole Solutions" /></div>
   <h1 id="auth-title">Sign in</h1>
@@ -211,8 +442,6 @@
   <div id="auth-error" class="error hidden"></div>
 </div>
 
-<!-- Shown once, right after a new business is created — the owner's
-     one chance to see and copy their invite code before moving on. -->
 <div id="invite-reveal-screen" class="hidden" style="max-width: 420px; margin: 0 auto; padding: 60px 20px; text-align:center;">
   <div class="brand-mark" style="margin:0 auto 18px;"><img src="logo.png" alt="Thole Solutions" /></div>
   <h1>You're all set</h1>
@@ -222,7 +451,6 @@
   <button class="btn-primary" onclick="finishInviteReveal()">Go to dashboard</button>
 </div>
 
-<!-- ONBOARDING (invite code) — shown when logged in but no business yet -->
 <div id="onboarding-screen" class="hidden" style="max-width: 420px; margin: 0 auto; padding: 60px 20px;">
   <div class="brand-mark"><img src="logo.png" alt="Thole Solutions" /></div>
   <h1>Join your business</h1>
@@ -231,10 +459,9 @@
   <label>Invite code</label><input type="text" id="ob-code" placeholder="e.g. TEST-0001" />
   <button class="btn-primary" onclick="handleRedeem()">Join business</button>
   <div id="ob-error" class="error hidden"></div>
-  <div class="switch" style="margin-top:18px;"><a onclick="handleLogout()">Sign out and use a different account</a></div>
+  <div class="switch" style="margin-top:18px;"><a onclick="confirmSignOut()">Sign out and use a different account</a></div>
 </div>
 
-<!-- APP -->
 <div id="app-screen" class="hidden">
   <aside>
     <div class="side-header">
@@ -245,56 +472,82 @@
       </div>
     </div>
     <nav>
-      <div class="nav-item nav-primary active" data-tab="dashboard" onclick="switchTab('dashboard')"><span class="nav-icon">◆</span> Dashboard</div>
-      <div class="nav-item nav-primary" data-tab="products" onclick="switchTab('products')"><span class="nav-icon">▤</span> Products & Stock</div>
-      <div class="nav-item nav-primary" data-tab="sales" onclick="switchTab('sales')"><span class="nav-icon">✎</span> Sales</div>
-      <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers')"><span class="nav-icon">◈</span> Customers</div>
-      <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments')"><span class="nav-icon">◎</span> Payments</div>
-      <div class="nav-item nav-secondary" data-tab="expenses" onclick="switchTab('expenses')"><span class="nav-icon">▽</span> Expenses</div>
-      <div class="nav-item nav-secondary" data-tab="suppliers" onclick="switchTab('suppliers')"><span class="nav-icon">▣</span> Suppliers</div>
-      <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases')"><span class="nav-icon">▥</span> Purchase Orders</div>
-      <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team')"><span class="nav-icon">☺</span> Team</div>
-      <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports')"><span class="nav-icon">▲</span> Reports</div>
-      <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials')"><span class="nav-icon">◑</span> Raw Materials</div>
-      <div class="nav-item nav-secondary" data-tab="discards" onclick="switchTab('discards')"><span class="nav-icon">✕</span> Discard/Waste</div>
-      <div class="nav-item mobile-more-btn" onclick="toggleMoreMenu()"><span class="nav-icon">☰</span> More</div>
+      <div class="nav-item nav-primary active" data-tab="dashboard" onclick="switchTab('dashboard')"><span class="nav-icon">🏠</span> Dashboard</div>
+      <div class="nav-item nav-primary" data-tab="products" onclick="switchTab('products')"><span class="nav-icon">📦</span> Products & Stock</div>
+      <div class="nav-item nav-primary" data-tab="sales" onclick="switchTab('sales')"><span class="nav-icon">💰</span> Sales</div>
+      <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers')"><span class="nav-icon">👥</span> Customers</div>
+      <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments')"><span class="nav-icon">💳</span> Payments</div>
+      <div class="nav-item nav-secondary" data-tab="expenses" onclick="switchTab('expenses')"><span class="nav-icon">💸</span> Expenses</div>
+      <div class="nav-item nav-secondary" data-tab="suppliers" onclick="switchTab('suppliers')"><span class="nav-icon">🚚</span> Suppliers</div>
+      <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases')"><span class="nav-icon">🛒</span> Purchase Orders</div>
+      <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team')"><span class="nav-icon">👤</span> Team</div>
+      <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports')"><span class="nav-icon">📈</span> Reports</div>
+      <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials')"><span class="nav-icon">🧱</span> Raw Materials</div>
+      <div class="nav-item mobile-more-btn" onclick="toggleMoreMenu()"><span class="nav-icon">⋯</span> More</div>
     </nav>
     <div class="side-footer">
       <div class="user-name" id="user-name-display">—</div>
       <div class="user-role" id="user-role-display">—</div>
-      <span class="logout-link" onclick="handleLogout()">Sign out</span>
+      <span class="logout-link" onclick="confirmSignOut()">Sign out</span>
     </div>
   </aside>
 
-  <!-- Mobile-only overflow sheet — mirrors the secondary nav items,
-       slides up above the bottom bar when "More" is tapped. -->
   <div id="mobile-more-panel">
-    <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers'); toggleMoreMenu();"><span class="nav-icon">◈</span> Customers</div>
-    <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments'); toggleMoreMenu();"><span class="nav-icon">◎</span> Payments</div>
-    <div class="nav-item nav-secondary" data-tab="expenses" onclick="switchTab('expenses'); toggleMoreMenu();"><span class="nav-icon">▽</span> Expenses</div>
-    <div class="nav-item nav-secondary" data-tab="suppliers" onclick="switchTab('suppliers'); toggleMoreMenu();"><span class="nav-icon">▣</span> Suppliers</div>
-    <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases'); toggleMoreMenu();"><span class="nav-icon">▥</span> Purchase Orders</div>
-    <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team'); toggleMoreMenu();"><span class="nav-icon">☺</span> Team</div>
-    <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports'); toggleMoreMenu();"><span class="nav-icon">▲</span> Reports</div>
-    <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials'); toggleMoreMenu();"><span class="nav-icon">◑</span> Raw Materials</div>
-    <div class="nav-item nav-secondary" data-tab="discards" onclick="switchTab('discards'); toggleMoreMenu();"><span class="nav-icon">✕</span> Discard/Waste</div>
+    <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers'); toggleMoreMenu();"><span class="nav-icon">👥</span> Customers</div>
+    <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments'); toggleMoreMenu();"><span class="nav-icon">💳</span> Payments</div>
+    <div class="nav-item nav-secondary" data-tab="expenses" onclick="switchTab('expenses'); toggleMoreMenu();"><span class="nav-icon">💸</span> Expenses</div>
+    <div class="nav-item nav-secondary" data-tab="suppliers" onclick="switchTab('suppliers'); toggleMoreMenu();"><span class="nav-icon">🚚</span> Suppliers</div>
+    <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases'); toggleMoreMenu();"><span class="nav-icon">🛒</span> Purchase Orders</div>
+    <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team'); toggleMoreMenu();"><span class="nav-icon">👤</span> Team</div>
+    <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports'); toggleMoreMenu();"><span class="nav-icon">📈</span> Reports</div>
+    <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials'); toggleMoreMenu();"><span class="nav-icon">🧱</span> Raw Materials</div>
   </div>
   <div id="mobile-more-backdrop" onclick="toggleMoreMenu()"></div>
 
   <main>
-    <!-- DASHBOARD -->
+    <div id="app-topbar">
+      <div class="title-group">
+        <h2 id="page-title">Dashboard</h2>
+        <p id="page-sub">Overview of your workspace right now.</p>
+      </div>
+      <div class="user-panel">
+        <div class="user-meta">
+          <div class="user-name" id="user-name-top">—</div>
+          <div class="user-role" id="user-role-top">—</div>
+        </div>
+        <div class="user-actions">
+          <button id="theme-toggle" title="Toggle theme" aria-label="Toggle theme" onclick="toggleTheme()">🌙</button>
+          <button class="signout-btn" onclick="confirmSignOut()">Sign out</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="pull-refresh-indicator" aria-hidden="true">
+      <span class="icon">↻</span>
+      <span class="label">Pull to sync</span>
+    </div>
+
     <section id="tab-dashboard" class="tab-panel">
-      <div class="page-header"><h2>Dashboard</h2><p>Overview of your workspace right now.</p></div>
+      <div class="page-header"><h2>Dashboard</h2><p>Key business health metrics in one place.</p></div>
       <div class="metrics">
-        <div class="metric-card"><div class="label">Products</div><div class="value num" id="m-products">0</div></div>
-        <div class="metric-card warn"><div class="label">Low stock</div><div class="value num" id="m-lowstock">0</div></div>
-        <div class="metric-card"><div class="label">Sales recorded</div><div class="value num" id="m-sales">0</div></div>
-        <div class="metric-card"><div class="label">Revenue</div><div class="value num" id="m-revenue">0</div></div>
-        <div class="metric-card"><div class="label">Expenses</div><div class="value num" id="m-expenses">0</div></div>
+        <div class="metric-card"><div class="label">Revenue</div><div class="value num" id="m-revenue">0</div><div class="note">Total sales value for the current data set.</div></div>
+        <div class="metric-card"><div class="label">Net profit</div><div class="value num" id="m-profit">0</div><div class="note">Revenue minus expenses.</div></div>
+        <div class="metric-card warn"><div class="label">Low stock</div><div class="value num" id="m-lowstock">0</div><div class="note">Products at or below reorder threshold.</div></div>
+        <div class="metric-card"><div class="label">Recent orders</div><div class="value num" id="m-sales">0</div><div class="note">Orders processed in the current view.</div></div>
+      </div>
+      <div class="report-card compact-card">
+        <h3>Action needed</h3>
+        <p id="dashboard-top-priority" class="card-note">Loading the most important update...</p>
+      </div>
+      <div class="report-card compact-card">
+        <h3>Snapshot</h3>
+        <div class="dashboard-summary-grid">
+          <div><span class="card-label">Avg sale</span><strong id="dashboard-average-sale">$0.00</strong></div>
+          <div><span class="card-label">Worst stock</span><strong id="dashboard-low-stock-item">—</strong></div>
+        </div>
       </div>
     </section>
 
-    <!-- PRODUCTS -->
     <section id="tab-products" class="tab-panel hidden">
       <div class="page-header"><h2>Products & Stock</h2><p>Your catalog and current stock on hand.</p></div>
       <div class="toolbar">
@@ -307,51 +560,74 @@
       <div class="ledger" id="products-ledger"></div>
     </section>
 
-    <!-- SALES -->
     <section id="tab-sales" class="tab-panel hidden">
       <div class="page-header"><h2>Sales</h2><p>Record a sale — stock updates automatically.</p></div>
       <div class="toolbar">
-        <input type="date" id="sales-date-filter" onchange="loadSales()" />
+        <div style="display:flex; gap:6px;">
+          <select id="sales-filter-mode" onchange="const f=document.getElementById('sales-date-filter'); f.type=this.value; f.value=''; loadSales();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+            <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
+          </select>
+          <input type="date" id="sales-date-filter" onchange="loadSales()" placeholder="YYYY" />
+        </div>
         <button class="btn-small" onclick="openSaleModal()">+ Record sale</button>
       </div>
       <div class="ledger" id="sales-ledger"></div>
     </section>
 
-    <!-- CUSTOMERS -->
     <section id="tab-customers" class="tab-panel hidden">
       <div class="page-header"><h2>Customers</h2><p>People who buy from you.</p></div>
       <div class="toolbar"><div></div><button class="btn-small" onclick="openModal('customer-modal')">+ Add customer</button></div>
       <div class="ledger" id="customers-ledger"></div>
     </section>
 
-    <!-- PAYMENTS -->
     <section id="tab-payments" class="tab-panel hidden">
       <div class="page-header"><h2>Payments</h2><p>Money received from customers.</p></div>
-      <div class="toolbar"><input type="date" id="payments-date-filter" onchange="loadPayments()" /><button class="btn-small" onclick="openModal('payment-modal')">+ Record payment</button></div>
+      <div class="toolbar">
+        <div style="display:flex; gap:6px;">
+          <select id="payments-filter-mode" onchange="const f=document.getElementById('payments-date-filter'); f.type=this.value; f.value=''; loadPayments();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+            <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
+          </select>
+          <input type="date" id="payments-date-filter" onchange="loadPayments()" placeholder="YYYY" />
+        </div>
+        <button class="btn-small" onclick="openModal('payment-modal')">+ Record payment</button>
+      </div>
       <div class="ledger" id="payments-ledger"></div>
     </section>
 
-    <!-- EXPENSES -->
     <section id="tab-expenses" class="tab-panel hidden">
       <div class="page-header"><h2>Expenses</h2><p>Overhead costs — rent, wages, utilities, supplies.</p></div>
-      <div class="toolbar"><input type="date" id="expenses-date-filter" onchange="loadExpenses()" /><button class="btn-small" onclick="openModal('expense-modal')">+ Add expense</button></div>
+      <div class="toolbar">
+        <div style="display:flex; gap:6px;">
+          <select id="expenses-filter-mode" onchange="const f=document.getElementById('expenses-date-filter'); f.type=this.value; f.value=''; loadExpenses();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+            <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
+          </select>
+          <input type="date" id="expenses-date-filter" onchange="loadExpenses()" placeholder="YYYY" />
+        </div>
+        <button class="btn-small" onclick="openModal('expense-modal')">+ Add expense</button>
+      </div>
       <div class="ledger" id="expenses-ledger"></div>
     </section>
 
-    <!-- SUPPLIERS -->
     <section id="tab-suppliers" class="tab-panel hidden">
       <div class="page-header"><h2>Suppliers</h2><p>Who you buy from.</p></div>
       <div class="toolbar"><div></div><button class="btn-small" onclick="openModal('supplier-modal')">+ Add supplier</button></div>
       <div class="ledger" id="suppliers-ledger"></div>
     </section>
 
-    <!-- PURCHASE ORDERS -->
     <section id="tab-purchases" class="tab-panel hidden">
       <div class="page-header"><h2>Purchase Orders</h2><p>Restocking — this updates product stock automatically.</p></div>
-      <div class="toolbar"><input type="date" id="purchases-date-filter" onchange="loadPurchases()" /><button class="btn-small" onclick="openPurchaseModal()">+ New purchase</button></div>
+      <div class="toolbar">
+        <div style="display:flex; gap:6px;">
+          <select id="purchases-filter-mode" onchange="const f=document.getElementById('purchases-date-filter'); f.type=this.value; f.value=''; loadPurchases();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+            <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
+          </select>
+          <input type="date" id="purchases-date-filter" onchange="loadPurchases()" placeholder="YYYY" />
+        </div>
+        <button class="btn-small" onclick="openPurchaseModal()">+ New purchase</button>
+      </div>
       <div class="ledger" id="purchases-ledger"></div>
     </section>
-    <!-- TEAM -->
+    
     <section id="tab-team" class="tab-panel hidden">
       <div class="page-header"><h2>Team</h2><p>Everyone with access to this business.</p></div>
       <div style="background:var(--accent-soft); border-radius:10px; padding:16px 18px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
@@ -365,20 +641,57 @@
       <p style="font-size:12px; color:var(--ink-faint); margin-top:14px;">Share this code with new staff — they use it under "Redeem an invite code" when they sign up. You can promote them to Manager here after.</p>
     </section>
 
-    <!-- REPORTS -->
     <section id="tab-reports" class="tab-panel hidden">
       <div class="page-header"><h2>Reports</h2><p>Revenue trends, best sellers, and stock to watch.</p></div>
-      <div style="background:var(--card); border:1px solid var(--line); border-radius:10px; padding:18px; margin-bottom:22px;">
-        <h3 style="font-size:14px; margin-bottom:14px;">Revenue — last 14 days</h3>
-        <canvas id="revenue-chart" height="90"></canvas>
+      <div class="reports-metrics">
+        <div class="report-summary-card report-card">
+          <div class="label">Total revenue</div>
+          <div class="value num" id="report-total-revenue">0</div>
+          <div class="note">Sum of all sales in your business.</div>
+        </div>
+        <div class="report-summary-card report-card">
+          <div class="label">Average sale</div>
+          <div class="value num" id="report-avg-sale">0</div>
+          <div class="note">Average order value over all sales.</div>
+        </div>
+        <div class="report-summary-card report-card">
+          <div class="label">Top seller</div>
+          <div class="value" id="report-top-product">—</div>
+          <div class="note">Product generating the most revenue.</div>
+        </div>
+        <div class="report-summary-card report-card">
+          <div class="label">Low-stock items</div>
+          <div class="value num" id="report-low-stock-count">0</div>
+          <div class="note">Items at or below the reorder threshold.</div>
+        </div>
       </div>
-      <h3 style="font-size:14px; margin-bottom:10px;">Top selling products</h3>
-      <div class="ledger" id="top-products-ledger" style="margin-bottom:22px;"></div>
-      <h3 style="font-size:14px; margin-bottom:10px;">Low stock</h3>
-      <div class="ledger" id="low-stock-ledger"></div>
+      <div class="report-grid">
+        <div class="report-card">
+          <div class="report-card-header">
+            <h3>Category share</h3>
+            <p class="note">Compact breakdown of sales across product categories.</p>
+          </div>
+          <canvas id="category-chart" height="110"></canvas>
+        </div>
+        <div class="report-card report-insight-card">
+          <h3>Quick view</h3>
+          <div class="insight-list">
+            <div><span>Top category</span><strong id="report-top-category">—</strong></div>
+            <div><span>Top product</span><strong id="report-top-product-mini">—</strong></div>
+            <div><span>Low stock items</span><strong id="report-low-stock-count-mini">0</strong></div>
+          </div>
+        </div>
+      </div>
+      <div class="report-card" style="margin-bottom:22px;">
+        <h3>Top selling products</h3>
+        <div class="ledger" id="top-products-ledger"></div>
+      </div>
+      <div class="report-card">
+        <h3>Low stock</h3>
+        <div class="ledger" id="low-stock-ledger"></div>
+      </div>
     </section>
 
-    <!-- RAW MATERIALS -->
     <section id="tab-materials" class="tab-panel hidden">
       <div class="page-header"><h2>Raw Materials</h2><p>Ingredients or components used to make your products.</p></div>
       <div class="toolbar">
@@ -387,17 +700,9 @@
       </div>
       <div class="ledger" id="materials-ledger"></div>
     </section>
-
-    <!-- DISCARD / WASTE -->
-    <section id="tab-discards" class="tab-panel hidden">
-      <div class="page-header"><h2>Discard / Waste</h2><p>Stock written off — spoilage, damage, theft, expired.</p></div>
-      <div class="toolbar"><div></div><button class="btn-small" onclick="openDiscardModal()">+ Record discard</button></div>
-      <div class="ledger" id="discards-ledger"></div>
-    </section>
   </main>
 </div>
 
-<!-- MODAL: Add product -->
 <div id="product-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('product-modal')">Close</div>
@@ -422,7 +727,6 @@
   </div>
 </div>
 
-<!-- MODAL: Record sale -->
 <div id="sale-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('sale-modal')">Close</div>
@@ -430,22 +734,16 @@
     <label>Product</label>
     <select id="s-product" onchange="onSaleProductChange()"></select>
     <div class="field-row">
-      <div><label>Quantity</label><input type="number" id="s-qty" value="1" onchange="onSaleAmountChange()" /></div>
-      <div><label>Unit price</label><input type="number" id="s-price" onchange="onSaleAmountChange()" /></div>
+      <div><label>Quantity</label><input type="number" id="s-qty" value="1" /></div>
+      <div><label>Unit price</label><input type="number" id="s-price" /></div>
     </div>
-    <label>Customer (optional, required if not paid in full)</label>
+    <label>Customer (optional)</label>
     <select id="s-customer"><option value="">Walk-in / no customer</option></select>
-    <div class="field-row">
-      <div><label>Discount</label><input type="number" id="s-discount" value="0" onchange="onSaleAmountChange()" /></div>
-      <div><label>Amount paid now</label><input type="number" id="s-paid" /></div>
-    </div>
-    <div id="sale-balance-note" style="font-size:12px; color:var(--ink-faint); margin-top:-8px; margin-bottom:10px;"></div>
     <button class="btn-primary" onclick="submitSale()">Save sale</button>
     <div id="sale-error" class="error hidden"></div>
   </div>
 </div>
 
-<!-- MODAL: Add customer -->
 <div id="customer-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('customer-modal')">Close</div>
@@ -458,7 +756,6 @@
   </div>
 </div>
 
-<!-- MODAL: Record payment -->
 <div id="payment-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('payment-modal')">Close</div>
@@ -481,7 +778,6 @@
   </div>
 </div>
 
-<!-- MODAL: Add expense -->
 <div id="expense-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('expense-modal')">Close</div>
@@ -505,7 +801,6 @@
   </div>
 </div>
 
-<!-- MODAL: Add supplier -->
 <div id="supplier-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('supplier-modal')">Close</div>
@@ -518,7 +813,6 @@
   </div>
 </div>
 
-<!-- MODAL: New purchase order -->
 <div id="purchase-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('purchase-modal')">Close</div>
@@ -536,7 +830,6 @@
   </div>
 </div>
 
-<!-- MODAL: Add/edit raw material -->
 <div id="material-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('material-modal')">Close</div>
@@ -556,7 +849,6 @@
   </div>
 </div>
 
-<!-- MODAL: Recipe editor (opened from a product) -->
 <div id="recipe-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('recipe-modal')">Close</div>
@@ -572,7 +864,6 @@
   </div>
 </div>
 
-<!-- MODAL: Produce (consume raw materials, add finished stock) -->
 <div id="produce-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('produce-modal')">Close</div>
@@ -583,28 +874,6 @@
     <div id="produce-requirements" style="margin:14px 0; font-size:13px; color:var(--ink-soft);"></div>
     <button class="btn-primary" onclick="submitProduce()">Produce</button>
     <div id="produce-error" class="error hidden"></div>
-  </div>
-</div>
-
-<!-- MODAL: Record discard/waste -->
-<div id="discard-modal" class="modal-backdrop hidden">
-  <div class="modal">
-    <div class="close" onclick="closeModal('discard-modal')">Close</div>
-    <h3>Record discard</h3>
-    <label>Product</label>
-    <select id="d-product"></select>
-    <label>Quantity</label><input type="number" id="d-qty" value="1" />
-    <label>Reason</label>
-    <select id="d-reason">
-      <option value="spoilage">Spoilage</option>
-      <option value="damage">Damage</option>
-      <option value="expired">Expired</option>
-      <option value="theft">Theft</option>
-      <option value="other">Other</option>
-    </select>
-    <label>Notes (optional)</label><input type="text" id="d-notes" />
-    <button class="btn-primary" onclick="submitDiscard()">Save discard</button>
-    <div id="discard-error" class="error hidden"></div>
   </div>
 </div>
 
@@ -619,9 +888,42 @@
 
   let currentUser = null;
   let membership = null; // { business_id, role, full_name, businesses: {...} }
-  let cache = { products: [], customers: [], sales: [], payments: [], expenses: [], suppliers: [], purchases: [], materials: [], discards: [] };
+  let cache = { products: [], customers: [], sales: [], payments: [], expenses: [], suppliers: [], purchases: [], materials: [] };
   let editingRecord = null; // { table: 'products', id: '...' } — null means "adding new"
   let businessTypeKey = null;
+
+  // HELPER: Translates Day/Week/Month/Year inputs into Supabase time ranges
+  function applyTimeFilter(query, val, mode, col = "created_at") {
+    if (!val) return query;
+    try {
+      if (mode === "date") {
+        if (col === "expense_date") return query.eq(col, val); 
+        return query.gte(col, `${val}T00:00:00`).lte(col, `${val}T23:59:59`);
+      } else if (mode === "month") {
+        const [y, m] = val.split('-');
+        const last = new Date(y, m, 0).getDate();
+        return query.gte(col, `${y}-${m}-01T00:00:00`).lte(col, `${y}-${m}-${last}T23:59:59`);
+      } else if (mode === "number") { // Year
+        return query.gte(col, `${val}-01-01T00:00:00`).lte(col, `${val}-12-31T23:59:59`);
+      } else if (mode === "week") {
+        const [y, w] = val.split('-W');
+        const simple = new Date(y, 0, 1 + (w - 1) * 7);
+        const dow = simple.getDay();
+        const start = new Date(simple);
+        start.setDate(simple.getDate() - dow + (dow === 0 ? -6 : 1));
+        const end = new Date(start);
+        end.setDate(start.getDate() + 6);
+
+        const pad = (n) => n.toString().padStart(2, '0');
+        const d1 = `${start.getFullYear()}-${pad(start.getMonth()+1)}-${pad(start.getDate())}`;
+        const d2 = `${end.getFullYear()}-${pad(end.getMonth()+1)}-${pad(end.getDate())}`;
+        return query.gte(col, `${d1}T00:00:00`).lte(col, `${d2}T23:59:59`);
+      }
+    } catch (e) {
+      console.error("Time filter error", e);
+    }
+    return query;
+  }
 
   function show(id) { document.getElementById(id).classList.remove("hidden"); }
   function hide(id) { document.getElementById(id).classList.add("hidden"); }
@@ -629,6 +931,14 @@
   function clearError(id) { hide(id); }
   function escapeHtml(str) { const d = document.createElement("div"); d.textContent = str ?? ""; return d.innerHTML; }
   function money(n) { return Number(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function abbreviateNumber(value) {
+    const n = Number(value ?? 0);
+    if (Math.abs(n) >= 1e9) return `${(n / 1e9).toFixed(1).replace(/\.0$/, "")}B`;
+    if (Math.abs(n) >= 1e6) return `${(n / 1e6).toFixed(1).replace(/\.0$/, "")}M`;
+    if (Math.abs(n) >= 1e3) return `${(n / 1e3).toFixed(1).replace(/\.0$/, "")}K`;
+    return n.toString();
+  }
+  function abbreviateCurrency(value) { return "$" + abbreviateNumber(value); }
 
   function openModal(id) { show(id); }
   function closeModal(id) {
@@ -636,7 +946,6 @@
     document.querySelectorAll(`#${id} input`).forEach((i) => (i.value = ""));
     const errId = id.replace("-modal", "-error");
     if (document.getElementById(errId)) clearError(errId);
-    // reset edit-mode UI back to "add" state
     editingRecord = null;
     const prefix = id.replace("-modal", "");
     const deleteBtn = document.getElementById(`${prefix}-delete-btn`);
@@ -645,8 +954,6 @@
     if (duplicateBtn) duplicateBtn.classList.add("hidden");
   }
 
-  // Generic delete used by every modal's Delete button — asks for
-  // confirmation, deletes the row, refreshes the relevant list.
   async function deleteRecord(table, modalId) {
     if (!editingRecord || editingRecord.table !== table) return;
     if (!confirm("Delete this permanently? This can't be undone.")) return;
@@ -675,38 +982,42 @@
       .maybeSingle();
 
     if (error || !data) {
-      // Logged in, but not yet linked to a business — show the
-      // "finish joining" screen, NOT the signup form again.
       hide("auth-screen"); hide("app-screen"); show("onboarding-screen");
       return;
     }
     membership = data;
     document.getElementById("biz-name").textContent = data.businesses.name;
     document.getElementById("biz-type").textContent = data.businesses.business_types?.display_name ?? "";
-    document.getElementById("user-name-display").textContent = data.full_name || currentUser.email;
+    const userName = data.full_name || currentUser.email;
+    document.getElementById("user-name-display").textContent = userName;
     document.getElementById("user-role-display").textContent = data.role;
+    document.getElementById("user-name-top").textContent = userName;
+    document.getElementById("user-role-top").textContent = data.role;
     applyRolePermissions(data.role);
     applyBusinessTypeVisibility(data.businesses.business_types?.type_key);
     hide("auth-screen"); hide("onboarding-screen"); show("app-screen");
     await loadEverything();
+    updateTopbar(document.querySelector('.nav-item.active')?.dataset.tab || 'dashboard');
   }
 
   function applyBusinessTypeVisibility(typeKey) {
     businessTypeKey = typeKey;
-    const needsRawMaterials = typeKey === "restaurant" || typeKey === "factory";
-    // matches BOTH the sidebar item and its duplicate in the mobile
-    // overflow panel, since both share the same data-tab attribute
+    const needsRawMaterials = businessUsesRawMaterials();
     document.querySelectorAll('.nav-item[data-tab="materials"]').forEach((el) => {
       el.classList.toggle("hidden", !needsRawMaterials);
     });
   }
 
+  function businessUsesRawMaterials() {
+    return businessTypeKey === "restaurant" || businessTypeKey === "factory";
+  }
+
   // ============================================================
-  // ROLE PERMISSIONS — staff see day-to-day only, no financial tabs
+  // ROLE PERMISSIONS
   // ============================================================
   function applyRolePermissions(role) {
     const isStaff = role === "staff";
-    document.querySelectorAll('.nav-item[data-tab="payments"], .nav-item[data-tab="expenses"], .nav-item[data-tab="suppliers"], .nav-item[data-tab="purchases"], .nav-item[data-tab="reports"], .nav-item[data-tab="discards"]').forEach((el) => {
+    document.querySelectorAll('.nav-item[data-tab="payments"], .nav-item[data-tab="expenses"], .nav-item[data-tab="suppliers"], .nav-item[data-tab="purchases"], .nav-item[data-tab="reports"]').forEach((el) => {
       el.classList.toggle("hidden", isStaff);
     });
     document.querySelectorAll('.nav-item[data-tab="team"]').forEach((el) => {
@@ -714,10 +1025,8 @@
     });
     if (isStaff) {
       const activeTab = document.querySelector(".nav-item.active")?.dataset.tab;
-      if (["payments","expenses","suppliers","purchases","team","reports","discards"].includes(activeTab)) switchTab("dashboard");
+      if (["payments","expenses","suppliers","purchases","team","reports"].includes(activeTab)) switchTab("dashboard");
     }
-    // Staff can record sales and add customers, but not create new
-    // products (inventory/pricing changes stay owner/manager-only).
     const addProductBtn = document.querySelector('button[onclick="openModal(\'product-modal\')"]');
     if (addProductBtn) addProductBtn.classList.toggle("hidden", isStaff);
     const addMaterialBtn = document.querySelector('button[onclick="openModal(\'material-modal\')"]');
@@ -725,7 +1034,7 @@
   }
 
   // ============================================================
-  // ONBOARDING (invite code redemption for an already-logged-in user)
+  // ONBOARDING
   // ============================================================
   async function handleRedeem() {
     const errEl = "ob-error";
@@ -810,14 +1119,16 @@
     currentUser = data.user;
     const { error: rpcErr } = await sb.rpc("redeem_invite_code", { p_invite_code: code, p_full_name: fullName });
     if (rpcErr) {
-      // Account exists but redemption failed (e.g. bad code) — send
-      // them to the dedicated "finish joining" screen to retry,
-      // instead of leaving them on a dead-end signup form.
       hide("auth-screen"); show("onboarding-screen");
       return setError("ob-error", rpcErr.message);
     }
     await checkMembership();
   }
+  function confirmSignOut() {
+    if (!confirm("Are you sure you want to sign out?")) return;
+    handleLogout();
+  }
+
   async function handleLogout() {
     await sb.auth.signOut();
     currentUser = null; membership = null;
@@ -829,8 +1140,97 @@
   // ============================================================
   function switchTab(tab) {
     document.querySelectorAll(".tab-panel").forEach((el) => el.classList.add("hidden"));
-    document.getElementById(`tab-${tab}`).classList.remove("hidden");
+    const section = document.getElementById(`tab-${tab}`);
+    section.classList.remove("hidden");
+    section.classList.add("is-entering");
+    setTimeout(() => section.classList.remove("is-entering"), 260);
     document.querySelectorAll(".nav-item").forEach((el) => el.classList.toggle("active", el.dataset.tab === tab));
+    updateTopbar(tab);
+  }
+
+  function bindPullToRefresh() {
+    document.querySelectorAll('.tab-panel').forEach((panel) => {
+      if (panel.dataset.pullBound === '1') return;
+      panel.dataset.pullBound = '1';
+
+      let startY = 0;
+      let currentY = 0;
+      let dragging = false;
+      let triggered = false;
+      const indicator = document.getElementById('pull-refresh-indicator');
+
+      const resetIndicator = () => {
+        if (!indicator) return;
+        indicator.classList.remove('show', 'active');
+        indicator.querySelector('.label').textContent = 'Pull to sync';
+        indicator.style.transform = 'translate(-50%, -120%)';
+      };
+
+      const updateIndicator = (distance) => {
+        if (!indicator) return;
+        const eased = Math.min(distance * 0.6, 92);
+        indicator.classList.toggle('show', eased > 4);
+        indicator.classList.toggle('active', eased >= 84);
+        indicator.querySelector('.label').textContent = eased >= 84 ? 'Release to sync' : 'Pull to sync';
+        indicator.style.transform = `translate(-50%, ${Math.min(eased * 0.4, 28)}px)`;
+      };
+
+      const refreshActiveView = async () => {
+        if (!indicator) return;
+        indicator.querySelector('.label').textContent = 'Syncing…';
+        indicator.classList.add('active');
+        indicator.style.transform = 'translate(-50%, 0)';
+        try {
+          await loadEverything();
+          const activeTab = document.querySelector('.nav-item.active')?.dataset.tab || 'dashboard';
+          updateTopbar(activeTab);
+        } catch (err) {
+          console.error('Pull refresh failed', err);
+        } finally {
+          resetIndicator();
+        }
+      };
+
+      panel.addEventListener('touchstart', (e) => {
+        if (panel.scrollTop > 0 || panel.classList.contains('hidden') || e.touches.length !== 1) return;
+        startY = e.touches[0].clientY;
+        currentY = startY;
+        dragging = true;
+        triggered = false;
+      }, { passive: true });
+
+      panel.addEventListener('touchmove', (e) => {
+        if (!dragging || panel.scrollTop > 0 || panel.classList.contains('hidden') || e.touches.length !== 1) return;
+        currentY = e.touches[0].clientY;
+        const distance = currentY - startY;
+        if (distance > 0) {
+          e.preventDefault();
+          updateIndicator(distance);
+        }
+      }, { passive: false });
+
+      panel.addEventListener('touchend', () => {
+        if (!dragging) return;
+        dragging = false;
+        const distance = currentY - startY;
+        if (distance >= 84 && !triggered) {
+          triggered = true;
+          refreshActiveView();
+        } else {
+          resetIndicator();
+        }
+      });
+    });
+  }
+
+  function updateTopbar(tab) {
+    const section = document.getElementById(`tab-${tab}`);
+    const header = section?.querySelector('.page-header');
+    if (!header) return;
+    const title = header.querySelector('h2')?.textContent ?? '';
+    const sub = header.querySelector('p')?.textContent ?? '';
+    document.getElementById('page-title').textContent = title;
+    document.getElementById('page-sub').textContent = sub;
   }
 
   function toggleMoreMenu() {
@@ -842,20 +1242,33 @@
   // LOAD EVERYTHING
   // ============================================================
   async function loadEverything() {
-    await Promise.all([loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses(), loadSuppliers(), loadPurchases(), loadMaterials(), loadDiscards()]);
+    await Promise.all([loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses(), loadSuppliers(), loadPurchases(), loadMaterials()]);
     if (membership.role === "owner") await loadTeam();
     if (membership.role === "owner" || membership.role === "manager") await loadReports();
     renderDashboard();
   }
 
   function renderDashboard() {
-    document.getElementById("m-products").textContent = cache.products.length;
-    document.getElementById("m-lowstock").textContent = cache.products.filter(
+    const revenue = cache.sales.reduce((s, o) => s + Number(o.total_amount), 0);
+    const expenses = cache.expenses.reduce((s, e) => s + Number(e.amount), 0);
+    const lowStockProducts = cache.products.filter(
       (p) => p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold)
-    ).length;
+    );
+    const lowStockCount = lowStockProducts.length;
+    const averageSale = cache.sales.length ? revenue / cache.sales.length : 0;
+    const worstStock = lowStockProducts.length > 0 ? lowStockProducts.sort((a, b) => Number(a.stock_qty) - Number(b.stock_qty))[0].name : "All products healthy";
+
+    document.getElementById("m-lowstock").textContent = lowStockCount;
     document.getElementById("m-sales").textContent = cache.sales.length;
-    document.getElementById("m-revenue").textContent = money(cache.sales.reduce((s, o) => s + Number(o.total_amount), 0));
-    document.getElementById("m-expenses").textContent = money(cache.expenses.reduce((s, e) => s + Number(e.amount), 0));
+    document.getElementById("m-revenue").textContent = money(revenue);
+    document.getElementById("m-profit").textContent = money(revenue - expenses);
+
+    document.getElementById("dashboard-top-priority").textContent =
+      lowStockCount > 0
+        ? `There ${lowStockCount === 1 ? "is" : "are"} ${lowStockCount} low-stock item${lowStockCount === 1 ? "" : "s"}. Review stock levels to avoid shortages.`
+        : "Stock levels are healthy. Keep an eye on sales velocity and cash flow.";
+    document.getElementById("dashboard-average-sale").textContent = money(averageSale);
+    document.getElementById("dashboard-low-stock-item").textContent = escapeHtml(worstStock);
   }
 
   // ============================================================
@@ -886,7 +1299,7 @@
       list.map((p) => {
         const isLow = p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold);
         const margin = p.cost_price ? (((p.price - p.cost_price) / p.price) * 100).toFixed(0) : null;
-        const showRecipeLink = businessTypeKey === "restaurant" || businessTypeKey === "factory";
+        const showRecipeLink = businessUsesRawMaterials();
         return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr; cursor:pointer;" onclick="openEditProduct('${p.id}')">
           <div>
             <div>${escapeHtml(p.name)}</div>
@@ -940,7 +1353,7 @@
     const costPrice = document.getElementById("p-cost-price").value === "" ? null : parseFloat(document.getElementById("p-cost-price").value);
     const price = parseFloat(document.getElementById("p-price").value);
     const unit = document.getElementById("p-unit").value.trim() || "item";
-    const stock = document.getElementById("p-stock").value === "" ? null : parseFloat(document.getElementById("p-stock").value);
+    const stock = document.getElementById("p-stock").value === "" ? 0 : parseFloat(document.getElementById("p-stock").value);
     const threshold = document.getElementById("p-threshold").value === "" ? null : parseFloat(document.getElementById("p-threshold").value);
 
     if (!name || isNaN(price)) return setError("product-error", "Name and price are required.");
@@ -948,8 +1361,6 @@
     const payload = { name, category, sku, cost_price: costPrice, price, unit, stock_qty: stock, low_stock_threshold: threshold };
 
     if (editingRecord) {
-      // If stock was changed by hand while editing, log it as an
-      // "adjustment" so the audit trail explains the jump.
       const original = cache.products.find((p) => p.id === editingRecord.id);
       const { error } = await sb.from("products").update(payload).eq("id", editingRecord.id);
       if (error) return setError("product-error", error.message);
@@ -970,7 +1381,7 @@
   }
 
   // ============================================================
-  // SALES — recording one deducts stock + logs a stock_movement
+  // SALES
   // ============================================================
   async function openSaleModal() {
     const productSelect = document.getElementById("s-product");
@@ -984,38 +1395,20 @@
     const productId = document.getElementById("s-product").value;
     const product = cache.products.find((p) => p.id === productId);
     if (product) document.getElementById("s-price").value = product.price;
-    onSaleAmountChange();
   }
-
-  function onSaleAmountChange() {
-    const qty = parseFloat(document.getElementById("s-qty").value) || 0;
-    const price = parseFloat(document.getElementById("s-price").value) || 0;
-    const discount = parseFloat(document.getElementById("s-discount").value) || 0;
-    const total = Math.max(0, qty * price - discount);
-    document.getElementById("s-paid").value = total;
-    document.getElementById("sale-balance-note").textContent = `Total due: ${money(total)}`;
-  }
-
   async function submitSale() {
     clearError("sale-error");
     const productId = document.getElementById("s-product").value;
     const qty = parseFloat(document.getElementById("s-qty").value);
     const price = parseFloat(document.getElementById("s-price").value);
-    const discount = parseFloat(document.getElementById("s-discount").value) || 0;
     const customerId = document.getElementById("s-customer").value || null;
-    const amountPaid = parseFloat(document.getElementById("s-paid").value) || 0;
     const product = cache.products.find((p) => p.id === productId);
 
     if (!product || isNaN(qty) || qty <= 0 || isNaN(price)) return setError("sale-error", "Check the product, quantity, and price.");
 
-    const total = Math.max(0, qty * price - discount);
-    if (amountPaid < total && !customerId) return setError("sale-error", "A customer is required for partial or unpaid sales, so the balance can be tracked.");
-
-    const paymentStatus = amountPaid >= total ? "paid" : amountPaid > 0 ? "partial" : "unpaid";
-
+    const total = qty * price;
     const { data: order, error: orderErr } = await sb.from("orders").insert({
-      business_id: membership.business_id, customer_id: customerId, created_by: currentUser.id, status: "completed",
-      total_amount: total, discount, amount_paid: amountPaid, payment_status: paymentStatus,
+      business_id: membership.business_id, customer_id: customerId, created_by: currentUser.id, status: "completed", total_amount: total,
     }).select().single();
     if (orderErr) return setError("sale-error", orderErr.message);
 
@@ -1023,13 +1416,6 @@
       order_id: order.id, product_id: productId, quantity: qty, unit_price: price,
     });
     if (itemErr) return setError("sale-error", itemErr.message);
-
-    if (amountPaid > 0 && customerId) {
-      await sb.from("payments").insert({
-        business_id: membership.business_id, direction: "in", party_type: "customer", customer_id: customerId,
-        amount: amountPaid, method: "cash", order_id: order.id, created_by: currentUser.id,
-      });
-    }
 
     if (product.stock_qty !== null) {
       const newStock = Number(product.stock_qty) - qty;
@@ -1047,8 +1433,10 @@
 
   async function loadSales() {
     const dateFilter = document.getElementById("sales-date-filter")?.value;
+    const mode = document.getElementById("sales-filter-mode")?.value || "date";
     let query = sb.from("orders").select("*, customers(name)").order("created_at", { ascending: false }).limit(50);
-    if (dateFilter) query = query.gte("created_at", `${dateFilter}T00:00:00`).lte("created_at", `${dateFilter}T23:59:59`);
+    query = applyTimeFilter(query, dateFilter, mode, "created_at");
+    
     const { data } = await query;
     cache.sales = data ?? [];
     const el = document.getElementById("sales-ledger");
@@ -1056,16 +1444,13 @@
     el.innerHTML =
       `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;"><div>Customer</div><div>Date</div><div style="text-align:right">Total</div><div></div></div>` +
       cache.sales.map((o) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;">
-        <div>${o.customers ? escapeHtml(o.customers.name) : "Walk-in"}${o.payment_status !== "paid" ? ` <span class="cat-badge" style="background:var(--danger-soft); color:var(--danger);">${o.payment_status}</span>` : ""}</div>
+        <div>${o.customers ? escapeHtml(o.customers.name) : "Walk-in"}</div>
         <div style="color:var(--ink-faint); font-size:12px;">${new Date(o.created_at).toLocaleDateString()}</div>
         <div class="num" style="text-align:right">${money(o.total_amount)}</div>
         <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidSale('${o.id}')">Void</span></div>
       </div>`).join("");
   }
 
-  // Voiding a sale is NOT a simple delete — it must restore the stock
-  // that was deducted when the sale was recorded, and log that
-  // reversal in stock_movements, so the audit trail stays accurate.
   async function voidSale(orderId) {
     if (!confirm("Void this sale? Stock will be restored. This can't be undone.")) return;
 
@@ -1081,7 +1466,7 @@
         });
       }
     }
-    await sb.from("orders").delete().eq("id", orderId); // order_items cascade-delete automatically
+    await sb.from("orders").delete().eq("id", orderId);
 
     await Promise.all([loadProducts(), loadSales()]);
     renderDashboard();
@@ -1135,8 +1520,10 @@
   // ============================================================
   async function loadPayments() {
     const dateFilter = document.getElementById("payments-date-filter")?.value;
+    const mode = document.getElementById("payments-filter-mode")?.value || "date";
     let query = sb.from("payments").select("*, customers(name)").eq("direction", "in").order("created_at", { ascending: false }).limit(50);
-    if (dateFilter) query = query.gte("created_at", `${dateFilter}T00:00:00`).lte("created_at", `${dateFilter}T23:59:59`);
+    query = applyTimeFilter(query, dateFilter, mode, "created_at");
+
     const { data } = await query;
     cache.payments = data ?? [];
     const el = document.getElementById("payments-ledger");
@@ -1157,7 +1544,7 @@
     document.getElementById("payment-modal-title").textContent = "Edit payment";
     document.getElementById("payment-submit-btn").textContent = "Save changes";
     document.getElementById("payment-delete-btn").classList.remove("hidden");
-    openModal("payment-modal"); // populates the customer dropdown first
+    openModal("payment-modal"); 
     document.getElementById("pay-customer").value = p.customer_id;
     document.getElementById("pay-amount").value = p.amount;
     document.getElementById("pay-method").value = p.method;
@@ -1179,7 +1566,6 @@
     closeModal("payment-modal");
     await loadPayments();
   }
-  // populate payment customer dropdown whenever the modal opens fresh (add mode)
   const origOpenModal = openModal;
   window.openModal = function (id) {
     if (id === "payment-modal") {
@@ -1193,8 +1579,10 @@
   // ============================================================
   async function loadExpenses() {
     const dateFilter = document.getElementById("expenses-date-filter")?.value;
+    const mode = document.getElementById("expenses-filter-mode")?.value || "date";
     let query = sb.from("expenses").select("*").order("expense_date", { ascending: false }).limit(50);
-    if (dateFilter) query = query.eq("expense_date", dateFilter);
+    query = applyTimeFilter(query, dateFilter, mode, "expense_date");
+
     const { data } = await query;
     cache.expenses = data ?? [];
     const el = document.getElementById("expenses-ledger");
@@ -1286,7 +1674,7 @@
   }
 
   // ============================================================
-  // PURCHASE ORDERS — receiving stock, updates products + audit trail
+  // PURCHASE ORDERS
   // ============================================================
   function openPurchaseModal() {
     document.getElementById("po-product").innerHTML = cache.products.map((p) => `<option value="${p.id}">${escapeHtml(p.name)} (stock: ${p.stock_qty ?? "—"})</option>`).join("");
@@ -1315,14 +1703,19 @@
     });
     if (itemErr) return setError("purchase-error", itemErr.message);
 
-    if (product.stock_qty !== null) {
-      const newStock = Number(product.stock_qty) + qty;
-      await sb.from("products").update({ stock_qty: newStock }).eq("id", productId);
-      await sb.from("stock_movements").insert({
-        business_id: membership.business_id, item_type: "product", product_id: productId,
-        quantity_change: qty, reason: "purchase", reference_type: "purchase_order", reference_id: po.id, created_by: currentUser.id,
-      });
-    }
+    const { data: freshProduct, error: freshErr } = await sb.from("products").select("stock_qty").eq("id", productId).single();
+    if (freshErr || !freshProduct) return setError("purchase-error", "Unable to refresh product stock.");
+
+    const currentStock = freshProduct.stock_qty === null ? 0 : Number(freshProduct.stock_qty);
+    const newStock = currentStock + qty;
+    const { error: updateErr } = await sb.from("products").update({ stock_qty: newStock }).eq("id", productId);
+    if (updateErr) return setError("purchase-error", updateErr.message);
+
+    const { error: movementErr } = await sb.from("stock_movements").insert({
+      business_id: membership.business_id, item_type: "product", product_id: productId,
+      quantity_change: qty, reason: "purchase", reference_type: "purchase_order", reference_id: po.id, created_by: currentUser.id,
+    });
+    if (movementErr) return setError("purchase-error", movementErr.message);
 
     closeModal("purchase-modal");
     await Promise.all([loadProducts(), loadPurchases()]);
@@ -1331,8 +1724,10 @@
 
   async function loadPurchases() {
     const dateFilter = document.getElementById("purchases-date-filter")?.value;
+    const mode = document.getElementById("purchases-filter-mode")?.value || "date";
     let query = sb.from("purchase_orders").select("*, suppliers(name)").order("created_at", { ascending: false }).limit(50);
-    if (dateFilter) query = query.gte("created_at", `${dateFilter}T00:00:00`).lte("created_at", `${dateFilter}T23:59:59`);
+    query = applyTimeFilter(query, dateFilter, mode, "created_at");
+
     const { data } = await query;
     cache.purchases = data ?? [];
     const el = document.getElementById("purchases-ledger");
@@ -1348,8 +1743,6 @@
       </div>`).join("");
   }
 
-  // Voiding a purchase must REMOVE the stock it added (mirror of
-  // voidSale), and log that reversal for the audit trail.
   async function voidPurchase(poId) {
     if (!confirm("Void this purchase? Stock added will be removed. This can't be undone.")) return;
 
@@ -1365,14 +1758,14 @@
         });
       }
     }
-    await sb.from("purchase_orders").delete().eq("id", poId); // purchase_order_items cascade-delete automatically
+    await sb.from("purchase_orders").delete().eq("id", poId);
 
     await Promise.all([loadProducts(), loadPurchases()]);
     renderDashboard();
   }
 
   // ============================================================
-  // TEAM — owner only. Promote/demote roles, remove access.
+  // TEAM
   // ============================================================
   async function loadTeam() {
     document.getElementById("team-invite-code").textContent = membership.businesses.invite_code;
@@ -1418,54 +1811,102 @@
   }
 
   // ============================================================
-  // REPORTS — owner/manager only. Revenue trend, top sellers, low stock.
+  // REPORTS
   // ============================================================
-  let revenueChartInstance = null;
+  let categoryChartInstance = null;
 
   async function loadReports() {
-    await renderRevenueChart();
-    await renderTopProducts();
-    renderLowStockReport();
+    const orderItems = await getOrderItems();
+    renderReportSummary(orderItems);
+    await Promise.all([renderCategoryChart(orderItems), renderTopProducts(orderItems), renderLowStockReport()]);
   }
 
-  async function renderRevenueChart() {
-    const canvas = document.getElementById("revenue-chart");
+  async function getOrderItems() {
+    const orderIds = cache.sales.map((o) => o.id);
+    if (orderIds.length === 0) return [];
+    const { data } = await sb.from("order_items").select("product_id, quantity, line_total").in("order_id", orderIds);
+    return data ?? [];
+  }
+
+  function renderReportSummary(orderItems) {
+    const totalRevenue = cache.sales.reduce((sum, o) => sum + Number(o.total_amount), 0);
+    const avgSale = cache.sales.length ? totalRevenue / cache.sales.length : 0;
+    const lowStockCount = cache.products.filter((p) => p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold)).length;
+
+    const productRevenue = {};
+    for (const item of orderItems) {
+      productRevenue[item.product_id] = (productRevenue[item.product_id] || 0) + Number(item.line_total);
+    }
+    const topProduct = Object.entries(productRevenue)
+      .map(([pid, revenue]) => ({ pid, revenue }))
+      .sort((a, b) => b.revenue - a.revenue)[0];
+    const topProductName = topProduct ? (cache.products.find((p) => p.id === topProduct.pid)?.name ?? "Deleted product") : "None yet";
+
+    const totalRevenueEl = document.getElementById("report-total-revenue");
+    const avgSaleEl = document.getElementById("report-avg-sale");
+    totalRevenueEl.textContent = abbreviateCurrency(totalRevenue);
+    totalRevenueEl.title = money(totalRevenue);
+    avgSaleEl.textContent = abbreviateCurrency(avgSale);
+    avgSaleEl.title = money(avgSale);
+    document.getElementById("report-top-product").textContent = escapeHtml(topProductName);
+    document.getElementById("report-low-stock-count").textContent = lowStockCount;
+    document.getElementById("report-top-product-mini").textContent = escapeHtml(topProductName);
+    document.getElementById("report-low-stock-count-mini").textContent = lowStockCount;
+    const categoryTotals = {};
+    for (const item of orderItems) {
+      const product = cache.products.find((p) => p.id === item.product_id);
+      const category = product?.category || "Uncategorized";
+      categoryTotals[category] = (categoryTotals[category] || 0) + Number(item.line_total);
+    }
+    const topCategory = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "None yet";
+    document.getElementById("report-top-category").textContent = escapeHtml(topCategory);
+  }
+
+  async function renderCategoryChart(orderItems) {
+    const canvas = document.getElementById("category-chart");
     if (!canvas) return;
 
-    // Build the last 14 days as labels, sum this business's orders per day.
-    const days = [];
-    const totals = [];
-    for (let i = 13; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const key = d.toISOString().slice(0, 10);
-      days.push(d.toLocaleDateString(undefined, { month: "short", day: "numeric" }));
-      const dayTotal = cache.sales
-        .filter((o) => o.created_at.slice(0, 10) === key)
-        .reduce((sum, o) => sum + Number(o.total_amount), 0);
-      totals.push(dayTotal);
+    const categoryTotals = {};
+    for (const item of orderItems) {
+      const product = cache.products.find((p) => p.id === item.product_id);
+      const category = product?.category || "Uncategorized";
+      categoryTotals[category] = (categoryTotals[category] || 0) + Number(item.line_total);
     }
 
-    if (revenueChartInstance) revenueChartInstance.destroy();
-    revenueChartInstance = new Chart(canvas, {
-      type: "bar",
-      data: { labels: days, datasets: [{ data: totals, backgroundColor: "#1D1F91", borderRadius: 4 }] },
+    const entries = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    if (entries.length === 0) {
+      canvas.parentElement.innerHTML = `<div class="empty-state">No category data available.</div>`;
+      return;
+    }
+
+    const labels = entries.map(([category]) => category);
+    const data = entries.map(([, total]) => total);
+    const colors = ["#1D1F91","#5CACF7","#9C6B1F","#F59E0B","#10B981","#8B5CF6"];
+
+    if (categoryChartInstance) categoryChartInstance.destroy();
+    categoryChartInstance = new Chart(canvas, {
+      type: "doughnut",
+      data: {
+        labels,
+        datasets: [{ data, backgroundColor: colors.slice(0, labels.length), borderWidth: 0 }],
+      },
       options: {
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true } },
+        plugins: {
+          legend: { position: "bottom", labels: { color: "#374151", boxWidth: 12 } },
+        },
+        responsive: true,
+        maintainAspectRatio: false,
       },
     });
   }
 
-  async function renderTopProducts() {
+  async function renderTopProducts(orderItems) {
     const el = document.getElementById("top-products-ledger");
     if (!el) return;
-    const orderIds = cache.sales.map((o) => o.id);
-    if (orderIds.length === 0) { el.innerHTML = `<div class="empty-state">No sales yet.</div>`; return; }
+    if (orderItems.length === 0) { el.innerHTML = `<div class="empty-state">No sales yet.</div>`; return; }
 
-    const { data: items } = await sb.from("order_items").select("product_id, quantity, line_total").in("order_id", orderIds);
     const agg = {};
-    for (const it of items ?? []) {
+    for (const it of orderItems) {
       if (!agg[it.product_id]) agg[it.product_id] = { qty: 0, revenue: 0 };
       agg[it.product_id].qty += Number(it.quantity);
       agg[it.product_id].revenue += Number(it.line_total);
@@ -1473,16 +1914,17 @@
     const top = Object.entries(agg)
       .map(([pid, v]) => {
         const p = cache.products.find((x) => x.id === pid);
-        return { name: p ? p.name : "Deleted product", ...v };
+        return { name: p ? p.name : "Deleted product", category: p?.category ?? "—", ...v };
       })
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
 
     if (top.length === 0) { el.innerHTML = `<div class="empty-state">No sales yet.</div>`; return; }
     el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Product</div><div>Qty sold</div><div style="text-align:right">Revenue</div></div>` +
-      top.map((t) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr;">
+      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr;"><div>Product</div><div>Category</div><div>Qty sold</div><div style="text-align:right">Revenue</div></div>` +
+      top.map((t) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr;">
         <div>${escapeHtml(t.name)}</div>
+        <div>${escapeHtml(t.category)}</div>
         <div class="num">${t.qty}</div>
         <div class="num" style="text-align:right">${money(t.revenue)}</div>
       </div>`).join("");
@@ -1494,10 +1936,11 @@
     const low = cache.products.filter((p) => p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold));
     if (low.length === 0) { el.innerHTML = `<div class="empty-state">Nothing low right now.</div>`; return; }
     el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Product</div><div>Stock left</div></div>` +
-      low.map((p) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr;">
+      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Product</div><div>Stock left</div><div style="text-align:right">Reorder</div></div>` +
+      low.map((p) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr;">
         <div>${escapeHtml(p.name)}</div>
         <div class="low-tag">${p.stock_qty} ${escapeHtml(p.unit)}</div>
+        <div style="text-align:right">${p.low_stock_threshold}</div>
       </div>`).join("");
   }
 
@@ -1564,11 +2007,12 @@
   }
 
   // ============================================================
-  // RECIPES — how much of each raw material makes one unit of a product
+  // RECIPES
   // ============================================================
   let recipeProductId = null;
 
   async function openRecipeModal(productId) {
+    if (!businessUsesRawMaterials()) return;
     recipeProductId = productId;
     const p = cache.products.find((x) => x.id === productId);
     document.getElementById("recipe-product-name").textContent = p ? p.name : "";
@@ -1607,9 +2051,10 @@
   }
 
   // ============================================================
-  // PRODUCE — consume raw materials per recipe, add finished stock
+  // PRODUCE
   // ============================================================
   function openProduceModal() {
+    if (!businessUsesRawMaterials()) return;
     document.getElementById("prod-product").innerHTML = cache.products.map((p) => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("");
     openModal("produce-modal");
     onProduceProductChange();
@@ -1672,58 +2117,29 @@
     renderDashboard();
   }
 
-  // ============================================================
-  // DISCARD / WASTE
-  // ============================================================
-  function openDiscardModal() {
-    document.getElementById("d-product").innerHTML = cache.products.map((p) => `<option value="${p.id}">${escapeHtml(p.name)} (stock: ${p.stock_qty ?? "—"})</option>`).join("");
-    openModal("discard-modal");
+  // initialize theme (reads preference) then boot app
+  function setThemeClass(isDark) {
+    if (isDark) document.documentElement.classList.add('theme-dark');
+    else document.documentElement.classList.remove('theme-dark');
+    const btn = document.getElementById('theme-toggle');
+    if (btn) btn.textContent = isDark ? '☀️' : '🌙';
   }
 
-  async function submitDiscard() {
-    clearError("discard-error");
-    const productId = document.getElementById("d-product").value;
-    const qty = parseFloat(document.getElementById("d-qty").value);
-    const reason = document.getElementById("d-reason").value;
-    const notes = document.getElementById("d-notes").value.trim() || null;
-    const product = cache.products.find((p) => p.id === productId);
-
-    if (!product || isNaN(qty) || qty <= 0) return setError("discard-error", "Check the product and quantity.");
-
-    const { error } = await sb.from("stock_discards").insert({
-      business_id: membership.business_id, product_id: productId, quantity: qty, reason, notes, created_by: currentUser.id,
-    });
-    if (error) return setError("discard-error", error.message);
-
-    if (product.stock_qty !== null) {
-      const newStock = Number(product.stock_qty) - qty;
-      await sb.from("products").update({ stock_qty: newStock }).eq("id", productId);
-      await sb.from("stock_movements").insert({
-        business_id: membership.business_id, item_type: "product", product_id: productId,
-        quantity_change: -qty, reason: "discard_" + reason, created_by: currentUser.id,
-      });
-    }
-
-    closeModal("discard-modal");
-    await Promise.all([loadProducts(), loadDiscards()]);
-    renderDashboard();
+  function toggleTheme() {
+    const dark = !document.documentElement.classList.contains('theme-dark');
+    localStorage.setItem('thole:dark', dark ? '1' : '0');
+    setThemeClass(dark);
   }
 
-  async function loadDiscards() {
-    const { data } = await sb.from("stock_discards").select("*, products(name, unit)").order("created_at", { ascending: false }).limit(50);
-    cache.discards = data ?? [];
-    const el = document.getElementById("discards-ledger");
-    if (!el) return;
-    if (cache.discards.length === 0) { el.innerHTML = `<div class="empty-state">No discards recorded.</div>`; return; }
-    el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Product</div><div>Reason</div><div style="text-align:right">Qty</div></div>` +
-      cache.discards.map((d) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr;">
-        <div>${d.products ? escapeHtml(d.products.name) : "Deleted product"}${d.notes ? `<div style="font-size:11px; color:var(--ink-faint);">${escapeHtml(d.notes)}</div>` : ""}</div>
-        <div><span class="cat-badge" style="background:var(--danger-soft); color:var(--danger);">${escapeHtml(d.reason)}</span></div>
-        <div class="num" style="text-align:right">${d.quantity} ${d.products ? escapeHtml(d.products.unit) : ""}</div>
-      </div>`).join("");
+  function initTheme() {
+    const stored = localStorage.getItem('thole:dark');
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const useDark = stored === null ? prefersDark : stored === '1';
+    setThemeClass(!!useDark);
   }
 
+  initTheme();
+  bindPullToRefresh();
   boot();
 </script>
 

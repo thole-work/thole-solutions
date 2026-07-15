@@ -721,8 +721,9 @@
     </div>
     <label>Low stock alert below</label><input type="number" id="p-threshold" placeholder="optional" />
     <button class="btn-primary" id="product-submit-btn" onclick="submitProduct()">Save product</button>
-    <button class="btn-ghost hidden" id="product-duplicate-btn" style="width:100%; margin-top:10px;" onclick="duplicateProduct()">Duplicate this product</button>
-    <button class="btn-ghost hidden" id="product-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('products', 'product-modal')">Delete product</button>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('product-modal')">Cancel</button>
+    <button class="btn-ghost" id="product-duplicate-btn" style="width:100%; margin-top:10px;" onclick="duplicateProduct()">Duplicate this product</button>
+    <button class="btn-ghost" id="product-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('products', 'product-modal')">Delete product</button>
     <div id="product-error" class="error hidden"></div>
   </div>
 </div>
@@ -740,6 +741,7 @@
     <label>Customer (optional)</label>
     <select id="s-customer"><option value="">Walk-in / no customer</option></select>
     <button class="btn-primary" onclick="submitSale()">Save sale</button>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('sale-modal')">Cancel</button>
     <div id="sale-error" class="error hidden"></div>
   </div>
 </div>
@@ -751,7 +753,8 @@
     <label>Name</label><input type="text" id="c-name" />
     <label>Phone</label><input type="text" id="c-phone" />
     <button class="btn-primary" id="customer-submit-btn" onclick="submitCustomer()">Save customer</button>
-    <button class="btn-ghost hidden" id="customer-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('customers', 'customer-modal')">Delete customer</button>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('customer-modal')">Cancel</button>
+    <button class="btn-ghost" id="customer-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('customers', 'customer-modal')">Delete customer</button>
     <div id="customer-error" class="error hidden"></div>
   </div>
 </div>
@@ -773,7 +776,8 @@
       </div>
     </div>
     <button class="btn-primary" id="payment-submit-btn" onclick="submitPayment()">Save payment</button>
-    <button class="btn-ghost hidden" id="payment-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('payments', 'payment-modal')">Delete payment</button>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('payment-modal')">Cancel</button>
+    <button class="btn-ghost" id="payment-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('payments', 'payment-modal')">Delete payment</button>
     <div id="payment-error" class="error hidden"></div>
   </div>
 </div>
@@ -796,7 +800,8 @@
       <div><label>Date</label><input type="date" id="e-date" /></div>
     </div>
     <button class="btn-primary" id="expense-submit-btn" onclick="submitExpense()">Save expense</button>
-    <button class="btn-ghost hidden" id="expense-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('expenses', 'expense-modal')">Delete expense</button>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('expense-modal')">Cancel</button>
+    <button class="btn-ghost" id="expense-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('expenses', 'expense-modal')">Delete expense</button>
     <div id="expense-error" class="error hidden"></div>
   </div>
 </div>
@@ -808,7 +813,8 @@
     <label>Name</label><input type="text" id="sup-name" />
     <label>Phone</label><input type="text" id="sup-phone" />
     <button class="btn-primary" id="supplier-submit-btn" onclick="submitSupplier()">Save supplier</button>
-    <button class="btn-ghost hidden" id="supplier-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('suppliers', 'supplier-modal')">Delete supplier</button>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('supplier-modal')">Cancel</button>
+    <button class="btn-ghost" id="supplier-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('suppliers', 'supplier-modal')">Delete supplier</button>
     <div id="supplier-error" class="error hidden"></div>
   </div>
 </div>
@@ -826,6 +832,7 @@
       <div><label>Unit cost</label><input type="number" id="po-cost" /></div>
     </div>
     <button class="btn-primary" onclick="submitPurchase()">Save purchase</button>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('purchase-modal')">Cancel</button>
     <div id="purchase-error" class="error hidden"></div>
   </div>
 </div>
@@ -844,7 +851,8 @@
       <div><label>Low stock alert below</label><input type="number" id="m-threshold" placeholder="optional" /></div>
     </div>
     <button class="btn-primary" id="material-submit-btn" onclick="submitMaterial()">Save raw material</button>
-    <button class="btn-ghost hidden" id="material-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('raw_materials', 'material-modal')">Delete raw material</button>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('material-modal')">Cancel</button>
+    <button class="btn-ghost" id="material-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('raw_materials', 'material-modal')">Delete raw material</button>
     <div id="material-error" class="error hidden"></div>
   </div>
 </div>
@@ -860,6 +868,7 @@
       <div><label>Qty per unit</label><input type="number" id="ri-qty" /></div>
     </div>
     <button class="btn-primary" onclick="addRecipeItem()">Add to recipe</button>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('recipe-modal')">Cancel</button>
     <div id="recipe-error" class="error hidden"></div>
   </div>
 </div>
@@ -873,6 +882,7 @@
     <label>Batch quantity</label><input type="number" id="prod-qty" value="1" onchange="onProduceProductChange()" />
     <div id="produce-requirements" style="margin:14px 0; font-size:13px; color:var(--ink-soft);"></div>
     <button class="btn-primary" onclick="submitProduce()">Produce</button>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('produce-modal')">Cancel</button>
     <div id="produce-error" class="error hidden"></div>
   </div>
 </div>
@@ -948,11 +958,6 @@
     const errId = id.replace("-modal", "-error");
     if (document.getElementById(errId)) clearError(errId);
     editingRecord = null;
-    const prefix = id.replace("-modal", "");
-    const deleteBtn = document.getElementById(`${prefix}-delete-btn`);
-    if (deleteBtn) deleteBtn.classList.add("hidden");
-    const duplicateBtn = document.getElementById(`${prefix}-duplicate-btn`);
-    if (duplicateBtn) duplicateBtn.classList.add("hidden");
   }
 
   async function deleteRecord(table, modalId) {

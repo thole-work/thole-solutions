@@ -69,6 +69,10 @@
     from { opacity: 0; transform: translateY(6px); }
     to { opacity: 1; transform: translateY(0); }
   }
+  @keyframes rowIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
   h1, h2, h3 { font-family: 'Source Serif 4', 'Roboto', 'Open Sans', serif; font-weight: 600; margin: 0; }
   .num { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
   button { font-family: 'Inter', 'Roboto', 'Open Sans', sans-serif; cursor: pointer; }
@@ -143,7 +147,8 @@
   .logout-link { font-size: 12px; color: var(--ink-faint); text-decoration: underline; cursor: pointer; margin-top: 6px; display: inline-block; }
 
   main { flex: 1; display: flex; flex-direction: column; padding: 32px 40px 24px; overflow: hidden; max-width: 980px; min-width: 0; }
-  #app-topbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-shrink: 0; position: sticky; top: 0; z-index: 30; margin-bottom: 16px; background: rgba(29,31,145,0.96); color: white; padding: 12px 16px; border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; box-shadow: 0 20px 50px rgba(15,23,42,0.16); backdrop-filter: blur(18px); }
+  #app-topbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-shrink: 0; position: sticky; top: 0; z-index: 30; margin-bottom: 16px; background: rgba(29,31,145,0.96); color: white; padding: 12px 16px; border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; box-shadow: 0 20px 50px rgba(15,23,42,0.16); backdrop-filter: blur(18px); transition: opacity 0.3s ease, transform 0.3s ease, filter 0.3s ease; }
+  #app-topbar.topbar-dimmed { opacity: 0.15; transform: translateY(-12px); filter: blur(8px); pointer-events: none; }
   #app-topbar .title-group { min-width: 0; }
   #app-topbar h2 { margin: 0; font-size: 18px; color: white; }
   #app-topbar p { margin: 4px 0 0; color: rgba(255,255,255,0.85); font-size: 12px; }
@@ -226,10 +231,63 @@
   .empty-state { text-align: center; padding: 50px 20px; color: var(--ink-faint); font-size: 14px; }
 
   /* modal */
-  .modal-backdrop { position: fixed; inset: 0; background: rgba(28,28,30,0.4); display: flex; align-items: center; justify-content: center; z-index: 20; padding: 20px; }
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(28,28,30,0.55); display: flex; align-items: center; justify-content: center; z-index: 20; padding: 20px; }
   .modal { background: var(--paper); width: 100%; max-width: 440px; border-radius: 12px; padding: 24px; max-height: 85vh; overflow-y: auto; }
   .modal .close { text-align: right; font-size: 13px; color: var(--ink-soft); cursor: pointer; margin-bottom: 4px; }
   .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* --- 3. Button loading states --- */
+  .btn-primary.loading, .btn-small.loading { position: relative; color: transparent; pointer-events: none; }
+  .btn-primary.loading::after, .btn-small.loading::after {
+    content: ""; position: absolute; width: 18px; height: 18px; top: 50%; left: 50%; margin: -9px 0 0 -9px;
+    border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* --- 4. Toast notifications --- */
+  #toast-container { position: fixed; top: 20px; right: 20px; z-index: 90; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+  .toast {
+    pointer-events: auto; padding: 12px 18px; border-radius: 10px; font-size: 13px; font-weight: 500;
+    background: var(--card); color: var(--ink); border: 1px solid var(--line);
+    box-shadow: 0 8px 24px rgba(15,23,42,0.12); backdrop-filter: blur(12px);
+    animation: toastIn 0.3s ease both;
+  }
+  .toast.toast-success { border-left: 3px solid #22C55E; }
+  .toast.toast-error { border-left: 3px solid var(--danger); }
+  .toast.toast-out { animation: toastOut 0.25s ease both; }
+  @keyframes toastIn { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(24px); } }
+
+  /* --- 6. Staggered ledger row entrance --- */
+  .ledger-row { animation: rowIn 0.2s ease both; }
+  .ledger-row:nth-child(1) { animation-delay: 0ms; }
+  .ledger-row:nth-child(2) { animation-delay: 30ms; }
+  .ledger-row:nth-child(3) { animation-delay: 60ms; }
+  .ledger-row:nth-child(4) { animation-delay: 90ms; }
+  .ledger-row:nth-child(5) { animation-delay: 120ms; }
+  .ledger-row:nth-child(6) { animation-delay: 150ms; }
+  .ledger-row:nth-child(7) { animation-delay: 180ms; }
+  .ledger-row:nth-child(8) { animation-delay: 210ms; }
+  .ledger-row:nth-child(9) { animation-delay: 240ms; }
+  .ledger-row:nth-child(10) { animation-delay: 270ms; }
+
+  /* --- 7. Page title crossfade --- */
+  #page-title, #page-sub { transition: opacity 0.15s ease; }
+  #page-title.fading, #page-sub.fading { opacity: 0; }
+
+  /* --- 10. Mobile nav active indicator --- */
+  @media (max-width: 720px) {
+    nav .nav-item.active { position: relative; }
+    nav .nav-item.active::after {
+      content: ""; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
+      width: 20px; height: 3px; border-radius: 2px; background: var(--accent);
+    }
+    #toast-container { top: auto; bottom: 84px; right: 12px; left: 12px; }
+  }
+
+  /* --- 11. Focus ring polish --- */
+  *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offset: 1px; }
 
   /* Dark theme variables */
   .theme-dark { --paper: #0B1020; --card: #0F1724; --ink: #E6EEF7; --ink-soft: #C3CEE6; --ink-faint: #9FB0D0; --line: rgba(255,255,255,0.06); --accent: #5E7CFF; --accent-soft: rgba(94,124,255,0.12); --sky: #5CACF7; --amber: #9C6B1F; --danger: #E06B5D; }
@@ -399,6 +457,7 @@
 </style>
 </head>
 <body>
+<div id="toast-container"></div>
 
 <div id="loading"><img src="banner.png" alt="Thole Solutions" /></div>
 
@@ -738,7 +797,7 @@
     </div>
     <label>Customer (optional)</label>
     <select id="s-customer"><option value="">Walk-in / no customer</option></select>
-    <button class="btn-primary" onclick="submitSale()">Save sale</button>
+    <button class="btn-primary" id="sale-submit-btn" onclick="submitSale()">Save sale</button>
     <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('sale-modal')">Cancel</button>
     <div id="sale-error" class="error hidden"></div>
   </div>
@@ -827,7 +886,7 @@
       <div><label>Quantity received</label><input type="number" id="po-qty" value="1" min="1" /></div>
       <div><label>Unit cost</label><input type="number" id="po-cost" min="0" step="any" /></div>
     </div>
-    <button class="btn-primary" onclick="submitPurchase()">Save purchase</button>
+    <button class="btn-primary" id="purchase-submit-btn" onclick="submitPurchase()">Save purchase</button>
     <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('purchase-modal')">Cancel</button>
     <div id="purchase-error" class="error hidden"></div>
   </div>
@@ -863,7 +922,7 @@
       <div><label>Raw material</label><select id="ri-material"></select></div>
       <div><label>Qty per unit</label><input type="number" id="ri-qty" min="0.01" step="any" /></div>
     </div>
-    <button class="btn-primary" onclick="addRecipeItem()">Add to recipe</button>
+    <button class="btn-primary" id="recipe-submit-btn" onclick="addRecipeItem()">Add to recipe</button>
     <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('recipe-modal')">Cancel</button>
     <div id="recipe-error" class="error hidden"></div>
   </div>
@@ -877,7 +936,7 @@
     <select id="prod-product" onchange="onProduceProductChange()"></select>
     <label>Batch quantity</label><input type="number" id="prod-qty" value="1" min="1" onchange="onProduceProductChange()" />
     <div id="produce-requirements" style="margin:14px 0; font-size:13px; color:var(--ink-soft);"></div>
-    <button class="btn-primary" onclick="submitProduce()">Produce</button>
+    <button class="btn-primary" id="produce-submit-btn" onclick="submitProduce()">Produce</button>
     <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('produce-modal')">Cancel</button>
     <div id="produce-error" class="error hidden"></div>
   </div>
@@ -899,6 +958,7 @@
   let businessTypeKey = null;
   let pagination = { products: 0, customers: 0, sales: 0, payments: 0, expenses: 0, purchases: 0, materials: 0 };
   const PAGE_SIZE = 25;
+  let reqVersion = { products: 0, customers: 0, sales: 0, payments: 0, expenses: 0, purchases: 0, materials: 0 };
 
   // HELPER: Translates Day/Week/Month/Year inputs into Supabase time ranges
   function applyTimeFilter(query, val, mode, col = "created_at") {
@@ -967,9 +1027,41 @@
   }
   function abbreviateCurrency(value) { return "$" + abbreviateNumber(value); }
 
-  function openModal(id) { show(id); }
+  // --- 4. Toast notifications ---
+  function showToast(msg, type = "success") {
+    const c = document.getElementById("toast-container");
+    const t = document.createElement("div");
+    t.className = `toast toast-${type}`;
+    t.textContent = msg;
+    c.appendChild(t);
+    setTimeout(() => { t.classList.add("toast-out"); }, 2800);
+    setTimeout(() => { t.remove(); }, 3100);
+  }
+
+  // --- 3. Button loading helpers ---
+  function setBtnLoading(btn, loading) {
+    if (!btn) return;
+    if (loading) { btn.classList.add("loading"); btn.disabled = true; }
+    else { btn.classList.remove("loading"); btn.disabled = false; }
+  }
+
+  // --- 8. Number counter animation ---
+  function animateValue(el, end, duration = 500) {
+    const start = 0;
+    const startTime = performance.now();
+    const step = (now) => {
+      const progress = Math.min((now - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = money(start + (end - start) * eased);
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  function openModal(id) { show(id); document.getElementById("app-topbar").classList.add("topbar-dimmed"); const firstInput = document.querySelector(`#${id} .modal input:not([type=hidden]), #${id} .modal select`); if (firstInput) setTimeout(() => firstInput.focus(), 100); }
   function closeModal(id) {
     hide(id);
+    document.getElementById("app-topbar").classList.remove("topbar-dimmed");
     document.querySelectorAll(`#${id} input`).forEach((i) => (i.value = ""));
     const errId = id.replace("-modal", "-error");
     if (document.getElementById(errId)) clearError(errId);
@@ -978,12 +1070,13 @@
 
   async function deleteRecord(table, modalId) {
     if (!editingRecord || editingRecord.table !== table) return;
-    if (membership.role === "staff") return alert("Staff cannot delete records.");
+    if (membership.role === "staff") { showToast("Staff cannot delete records.", "error"); return; }
     if (!confirm("Delete this record? It can be restored later by an admin.")) return;
     const payload = table === "products" ? { is_active: false } : { deleted_at: new Date().toISOString() };
     const { error } = await sb.from(table).update(payload).eq("id", editingRecord.id).eq("business_id", membership.business_id);
     if (error) return setError(modalId.replace("-modal", "-error"), error.message);
     closeModal(modalId);
+    showToast("Record deleted");
     await loadEverything();
   }
 
@@ -1253,8 +1346,16 @@
     if (!header) return;
     const title = header.querySelector('h2')?.textContent ?? '';
     const sub = header.querySelector('p')?.textContent ?? '';
-    document.getElementById('page-title').textContent = title;
-    document.getElementById('page-sub').textContent = sub;
+    const titleEl = document.getElementById('page-title');
+    const subEl = document.getElementById('page-sub');
+    titleEl.classList.add("fading");
+    subEl.classList.add("fading");
+    setTimeout(() => {
+      titleEl.textContent = title;
+      subEl.textContent = sub;
+      titleEl.classList.remove("fading");
+      subEl.classList.remove("fading");
+    }, 150);
   }
 
   function toggleMoreMenu() {
@@ -1312,8 +1413,8 @@
 
     document.getElementById("m-lowstock").textContent = lowStockCount;
     document.getElementById("m-sales").textContent = cache.sales.length;
-    document.getElementById("m-revenue").textContent = money(revenue);
-    document.getElementById("m-profit").textContent = money(revenue - expenses);
+    animateValue(document.getElementById("m-revenue"), revenue);
+    animateValue(document.getElementById("m-profit"), revenue - expenses);
 
     document.getElementById("dashboard-top-priority").textContent =
       lowStockCount > 0
@@ -1327,8 +1428,10 @@
   // PRODUCTS
   // ============================================================
   async function loadProducts(append = false) {
+    const ver = ++reqVersion.products;
     const offset = append ? pagination.products : 0;
     const { data } = await sb.from("products").select("*").eq("business_id", membership.business_id).eq("is_active", true).order("category").order("name").range(offset, offset + PAGE_SIZE - 1);
+    if (ver !== reqVersion.products) return;
     if (append) { cache.products = [...cache.products, ...(data ?? [])]; } else { cache.products = data ?? []; }
     pagination.products = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
     const cats = [...new Set(cache.products.map((p) => p.category).filter(Boolean))];
@@ -1346,7 +1449,7 @@
       list = list.filter((p) => p.name.toLowerCase().includes(search));
     }
     const el = document.getElementById("products-ledger");
-    if (list.length === 0) { el.innerHTML = `<div class="empty-state">No products found.</div>`; return; }
+    if (list.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">📦</div>No products yet.<br><span style="font-size:12px;">Add your first product to start tracking stock.</span></div>`; return; }
 
     el.innerHTML =
       `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Product</div><div>Stock</div><div style="text-align:right">Price</div></div>` +
@@ -1397,6 +1500,7 @@
 
   async function submitProduct() {
     clearError("product-error");
+    const btn = document.getElementById("product-submit-btn");
     const name = document.getElementById("p-name").value.trim();
     const category = document.getElementById("p-category").value.trim() || null;
     const price = parseFloat(document.getElementById("p-price").value);
@@ -1410,17 +1514,21 @@
     if (threshold !== null && threshold < 0) return setError("product-error", "Threshold cannot be negative.");
 
     const payload = { name, category, price, unit, stock_qty: stock, low_stock_threshold: threshold };
+    setBtnLoading(btn, true);
 
     if (editingRecord) {
       const original = cache.products.find((p) => p.id === editingRecord.id);
       const { error } = await sb.from("products").update(payload).eq("id", editingRecord.id).eq("business_id", membership.business_id);
+      setBtnLoading(btn, false);
       if (error) return setError("product-error", error.message);
     } else {
       const { error } = await sb.from("products").insert({ business_id: membership.business_id, ...payload });
+      setBtnLoading(btn, false);
       if (error) return setError("product-error", error.message);
     }
 
     closeModal("product-modal");
+    showToast(editingRecord ? "Product updated" : "Product added");
     await loadProducts();
     renderDashboard();
   }
@@ -1443,6 +1551,7 @@
   }
   async function submitSale() {
     clearError("sale-error");
+    const btn = document.getElementById("sale-submit-btn");
     const productId = document.getElementById("s-product").value;
     const qty = parseFloat(document.getElementById("s-qty").value);
     const price = parseFloat(document.getElementById("s-price").value);
@@ -1453,31 +1562,35 @@
     if (price < 0) return setError("sale-error", "Price cannot be negative.");
 
     const total = qty * price;
+    setBtnLoading(btn, true);
     const { data: order, error: orderErr } = await sb.from("orders").insert({
       business_id: membership.business_id, customer_id: customerId, created_by: currentUser.id, status: "completed", total_amount: total,
     }).select().single();
-    if (orderErr) return setError("sale-error", orderErr.message);
+    if (orderErr) { setBtnLoading(btn, false); return setError("sale-error", orderErr.message); }
 
     const { error: itemErr } = await sb.from("order_items").insert({
       order_id: order.id, product_id: productId, quantity: qty, unit_price: price,
     });
-    if (itemErr) return setError("sale-error", itemErr.message);
+    if (itemErr) { setBtnLoading(btn, false); return setError("sale-error", itemErr.message); }
 
     if (product.stock_qty !== null) {
       const { data: fresh, error: freshErr } = await sb.from("products").select("stock_qty").eq("id", productId).eq("business_id", membership.business_id).single();
-      if (freshErr || fresh === null) { await sb.from("orders").delete().eq("id", order.id); return setError("sale-error", "Unable to verify stock level."); }
+      if (freshErr || fresh === null) { await sb.from("orders").delete().eq("id", order.id); setBtnLoading(btn, false); return setError("sale-error", "Unable to verify stock level."); }
       const currentStock = Number(fresh.stock_qty);
-      if (currentStock < qty) { await sb.from("orders").delete().eq("id", order.id); return setError("sale-error", `Insufficient stock — only ${currentStock} available.`); }
+      if (currentStock < qty) { await sb.from("orders").delete().eq("id", order.id); setBtnLoading(btn, false); return setError("sale-error", `Insufficient stock — only ${currentStock} available.`); }
       const { error: stockErr } = await sb.from("products").update({ stock_qty: currentStock - qty }).eq("id", productId).eq("stock_qty", currentStock).eq("business_id", membership.business_id);
-      if (stockErr) { await sb.from("orders").delete().eq("id", order.id); return setError("sale-error", "Stock changed during sale — please try again."); }
+      if (stockErr) { await sb.from("orders").delete().eq("id", order.id); setBtnLoading(btn, false); return setError("sale-error", "Stock changed during sale — please try again."); }
     }
 
+    setBtnLoading(btn, false);
     closeModal("sale-modal");
+    showToast("Sale recorded");
     await Promise.all([loadProducts(), loadSales()]);
     renderDashboard();
   }
 
   async function loadSales(append = false) {
+    const ver = ++reqVersion.sales;
     const dateFilter = document.getElementById("sales-date-filter")?.value;
     const mode = document.getElementById("sales-filter-mode")?.value || "date";
     const offset = append ? pagination.sales : 0;
@@ -1485,10 +1598,11 @@
     query = applyTimeFilter(query, dateFilter, mode, "created_at");
     
     const { data } = await query;
+    if (ver !== reqVersion.sales) return;
     if (append) { cache.sales = [...cache.sales, ...(data ?? [])]; } else { cache.sales = data ?? []; }
     pagination.sales = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
     const el = document.getElementById("sales-ledger");
-    if (cache.sales.length === 0) { el.innerHTML = `<div class="empty-state">No sales recorded yet.</div>`; return; }
+    if (cache.sales.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💰</div>No sales recorded yet.<br><span style="font-size:12px;">Record your first sale to see it here.</span></div>`; return; }
     const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;"><div>Customer</div><div>Date</div><div style="text-align:right">Total</div><div></div></div>`;
     const rows = cache.sales.map((o) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;">
         <div>${o.customers ? escapeHtml(o.customers.name) : "Walk-in"}</div>
@@ -1501,7 +1615,7 @@
 
   async function voidSale(orderId) {
     if (!confirm("Void this sale? Stock will be restored. This can't be undone.")) return;
-    if (membership.role === "staff") return alert("Staff cannot void sales.");
+    if (membership.role === "staff") { showToast("Staff cannot void sales.", "error"); return; }
 
     const { data: items } = await sb.from("order_items").select("*").eq("order_id", orderId);
     for (const item of items ?? []) {
@@ -1514,6 +1628,7 @@
     await sb.from("orders").update({ status: "voided", deleted_at: new Date().toISOString() }).eq("id", orderId).eq("business_id", membership.business_id);
 
     await Promise.all([loadProducts(), loadSales()]);
+    showToast("Sale voided and stock restored");
     renderDashboard();
   }
 
@@ -1521,12 +1636,14 @@
   // CUSTOMERS
   // ============================================================
   async function loadCustomers(append = false) {
+    const ver = ++reqVersion.customers;
     const offset = append ? pagination.customers : 0;
     const { data } = await sb.from("customers").select("*").eq("business_id", membership.business_id).order("name").range(offset, offset + PAGE_SIZE - 1);
+    if (ver !== reqVersion.customers) return;
     if (append) { cache.customers = [...cache.customers, ...(data ?? [])]; } else { cache.customers = data ?? []; }
     pagination.customers = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
     const el = document.getElementById("customers-ledger");
-    if (cache.customers.length === 0) { el.innerHTML = `<div class="empty-state">No customers yet.</div>`; return; }
+    if (cache.customers.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">👥</div>No customers yet.<br><span style="font-size:12px;">Add customers to track who's buying from you.</span></div>`; return; }
     const rows = cache.customers.map((c) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr; cursor:pointer;" onclick="openEditCustomer('${escapeAttr(c.id)}')">
         <div>${escapeHtml(c.name)}</div><div style="color:var(--ink-faint)">${escapeHtml(c.phone ?? "—")}</div>
       </div>`).join("");
@@ -1548,17 +1665,21 @@
 
   async function submitCustomer() {
     clearError("customer-error");
+    const btn = document.getElementById("customer-submit-btn");
     const name = document.getElementById("c-name").value.trim();
     const phone = document.getElementById("c-phone").value.trim() || null;
     if (!name) return setError("customer-error", "Name is required.");
 
     const payload = { name, phone };
+    setBtnLoading(btn, true);
     const { error } = editingRecord
       ? await sb.from("customers").update(payload).eq("id", editingRecord.id)
       : await sb.from("customers").insert({ business_id: membership.business_id, ...payload });
+    setBtnLoading(btn, false);
 
     if (error) return setError("customer-error", error.message);
     closeModal("customer-modal");
+    showToast(editingRecord ? "Customer updated" : "Customer added");
     await loadCustomers();
   }
 
@@ -1566,6 +1687,7 @@
   // PAYMENTS
   // ============================================================
   async function loadPayments(append = false) {
+    const ver = ++reqVersion.payments;
     const dateFilter = document.getElementById("payments-date-filter")?.value;
     const mode = document.getElementById("payments-filter-mode")?.value || "date";
     const offset = append ? pagination.payments : 0;
@@ -1573,10 +1695,11 @@
     query = applyTimeFilter(query, dateFilter, mode, "created_at");
 
     const { data } = await query;
+    if (ver !== reqVersion.payments) return;
     if (append) { cache.payments = [...cache.payments, ...(data ?? [])]; } else { cache.payments = data ?? []; }
     pagination.payments = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
     const el = document.getElementById("payments-ledger");
-    if (cache.payments.length === 0) { el.innerHTML = `<div class="empty-state">No payments recorded yet.</div>`; return; }
+    if (cache.payments.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💳</div>No payments recorded yet.<br><span style="font-size:12px;">Payments from customers will appear here.</span></div>`; return; }
     const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Customer</div><div>Method</div><div style="text-align:right">Amount</div></div>`;
     const rows = cache.payments.map((p) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr; cursor:pointer;" onclick="openEditPayment('${escapeAttr(p.id)}')">
         <div>${p.customers ? escapeHtml(p.customers.name) : "—"}</div>
@@ -1601,18 +1724,22 @@
 
   async function submitPayment() {
     clearError("payment-error");
+    const btn = document.getElementById("payment-submit-btn");
     const customerId = document.getElementById("pay-customer").value;
     const amount = parseFloat(document.getElementById("pay-amount").value);
     const method = document.getElementById("pay-method").value;
     if (!customerId || isNaN(amount) || amount <= 0) return setError("payment-error", "Select a customer and a valid amount.");
 
     const payload = { customer_id: customerId, amount, method };
+    setBtnLoading(btn, true);
     const { error } = editingRecord
       ? await sb.from("payments").update(payload).eq("id", editingRecord.id)
       : await sb.from("payments").insert({ business_id: membership.business_id, direction: "in", party_type: "customer", created_by: currentUser.id, ...payload });
+    setBtnLoading(btn, false);
 
     if (error) return setError("payment-error", error.message);
     closeModal("payment-modal");
+    showToast(editingRecord ? "Payment updated" : "Payment recorded");
     await loadPayments();
   }
   const origOpenModal = openModal;
@@ -1627,6 +1754,7 @@
   // EXPENSES
   // ============================================================
   async function loadExpenses(append = false) {
+    const ver = ++reqVersion.expenses;
     const dateFilter = document.getElementById("expenses-date-filter")?.value;
     const mode = document.getElementById("expenses-filter-mode")?.value || "date";
     const offset = append ? pagination.expenses : 0;
@@ -1634,10 +1762,11 @@
     query = applyTimeFilter(query, dateFilter, mode, "expense_date");
 
     const { data } = await query;
+    if (ver !== reqVersion.expenses) return;
     if (append) { cache.expenses = [...cache.expenses, ...(data ?? [])]; } else { cache.expenses = data ?? []; }
     pagination.expenses = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
     const el = document.getElementById("expenses-ledger");
-    if (cache.expenses.length === 0) { el.innerHTML = `<div class="empty-state">No expenses recorded yet.</div>`; return; }
+    if (cache.expenses.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💸</div>No expenses recorded yet.<br><span style="font-size:12px;">Track rent, wages, utilities, and more.</span></div>`; return; }
     const head = `<div class="ledger-head" style="grid-template-columns: 1fr 2fr 1fr;"><div>Category</div><div>Description</div><div style="text-align:right">Amount</div></div>`;
     const rows = cache.expenses.map((e) => `<div class="ledger-row" style="grid-template-columns: 1fr 2fr 1fr; cursor:pointer;" onclick="openEditExpense('${escapeAttr(e.id)}')">
         <div><span class="cat-badge" style="background:var(--amber-soft); color:var(--amber);">${escapeHtml(e.category)}</span></div>
@@ -1663,6 +1792,7 @@
 
   async function submitExpense() {
     clearError("expense-error");
+    const btn = document.getElementById("expense-submit-btn");
     const category = document.getElementById("e-category").value;
     const description = document.getElementById("e-description").value.trim() || null;
     const amount = parseFloat(document.getElementById("e-amount").value);
@@ -1670,14 +1800,16 @@
     if (isNaN(amount) || amount <= 0) return setError("expense-error", "Enter a valid amount.");
 
     const payload = { category, description, amount, expense_date: date };
+    setBtnLoading(btn, true);
     const { error } = editingRecord
       ? await sb.from("expenses").update(payload).eq("id", editingRecord.id)
       : await sb.from("expenses").insert({ business_id: membership.business_id, created_by: currentUser.id, ...payload });
+    setBtnLoading(btn, false);
 
     if (error) return setError("expense-error", error.message);
     closeModal("expense-modal");
+    showToast(editingRecord ? "Expense updated" : "Expense added");
     await loadExpenses();
-    renderDashboard();
   }
 
   // ============================================================
@@ -1690,6 +1822,7 @@
 
   async function submitPurchase() {
     clearError("purchase-error");
+    const btn = document.getElementById("purchase-submit-btn");
     const productId = document.getElementById("po-product").value;
     const qty = parseFloat(document.getElementById("po-qty").value);
     const cost = parseFloat(document.getElementById("po-cost").value);
@@ -1699,53 +1832,60 @@
     if (cost < 0) return setError("purchase-error", "Cost cannot be negative.");
 
     const total = qty * cost;
+    setBtnLoading(btn, true);
     const { data: po, error: poErr } = await sb.from("purchase_orders").insert({
       business_id: membership.business_id, status: "received", total_amount: total, created_by: currentUser.id, received_at: new Date().toISOString(),
     }).select().single();
-    if (poErr) return setError("purchase-error", poErr.message);
+    if (poErr) { setBtnLoading(btn, false); return setError("purchase-error", poErr.message); }
 
     const { error: itemErr } = await sb.from("purchase_order_items").insert({
       purchase_order_id: po.id, product_id: productId, quantity: qty, unit_cost: cost,
     });
-    if (itemErr) return setError("purchase-error", itemErr.message);
+    if (itemErr) { setBtnLoading(btn, false); return setError("purchase-error", itemErr.message); }
 
     const { data: freshProduct, error: freshErr } = await sb.from("products").select("stock_qty").eq("id", productId).eq("business_id", membership.business_id).single();
-    if (freshErr || !freshProduct) return setError("purchase-error", "Unable to refresh product stock.");
+    if (freshErr || !freshProduct) { setBtnLoading(btn, false); return setError("purchase-error", "Unable to refresh product stock."); }
 
     const currentStock = freshProduct.stock_qty === null ? 0 : Number(freshProduct.stock_qty);
     const newStock = currentStock + qty;
     const { error: updateErr } = await sb.from("products").update({ stock_qty: newStock }).eq("id", productId).eq("stock_qty", currentStock).eq("business_id", membership.business_id);
-    if (updateErr) return setError("purchase-error", "Stock changed during purchase — please try again.");
+    if (updateErr) { setBtnLoading(btn, false); return setError("purchase-error", "Stock changed during purchase — please try again."); }
 
+    setBtnLoading(btn, false);
     closeModal("purchase-modal");
+    showToast("Purchase recorded");
     await Promise.all([loadProducts(), loadPurchases()]);
     renderDashboard();
   }
 
-  async function loadPurchases() {
+  async function loadPurchases(append = false) {
+    const ver = ++reqVersion.purchases;
     const dateFilter = document.getElementById("purchases-date-filter")?.value;
     const mode = document.getElementById("purchases-filter-mode")?.value || "date";
-    let query = sb.from("purchase_orders").select("*").eq("business_id", membership.business_id).order("created_at", { ascending: false }).limit(50);
+    const offset = append ? pagination.purchases : 0;
+    let query = sb.from("purchase_orders").select("*").eq("business_id", membership.business_id).order("created_at", { ascending: false }).range(offset, offset + PAGE_SIZE - 1);
     query = applyTimeFilter(query, dateFilter, mode, "created_at");
 
     const { data } = await query;
-    cache.purchases = data ?? [];
+    if (ver !== reqVersion.purchases) return;
+    if (append) { cache.purchases = [...cache.purchases, ...(data ?? [])]; } else { cache.purchases = data ?? []; }
     const el = document.getElementById("purchases-ledger");
     if (!el) return;
-    if (cache.purchases.length === 0) { el.innerHTML = `<div class="empty-state">No purchases recorded yet.</div>`; return; }
-    el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;"><div>Date</div><div>Status</div><div style="text-align:right">Total</div><div></div></div>` +
-      cache.purchases.map((po) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;">
+    if (cache.purchases.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">🛒</div>No purchases recorded yet.<br><span style="font-size:12px;">Restock your products by logging purchases.</span></div>`; return; }
+    pagination.purchases = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
+    const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;"><div>Date</div><div>Status</div><div style="text-align:right">Total</div><div></div></div>`;
+    const rows = cache.purchases.map((po) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;">
         <div style="color:var(--ink-faint); font-size:12px;">${new Date(po.created_at).toLocaleDateString()}</div>
         <div><span class="cat-badge">${escapeHtml(po.status)}</span></div>
         <div class="num" style="text-align:right">${money(po.total_amount)}</div>
         <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidPurchase('${escapeAttr(po.id)}')">Void</span></div>
       </div>`).join("");
+    appendPaginated(el, head + rows, "purchases");
   }
 
   async function voidPurchase(poId) {
     if (!confirm("Void this purchase? Stock added will be removed. This can't be undone.")) return;
-    if (membership.role === "staff") return alert("Staff cannot void purchases.");
+    if (membership.role === "staff") { showToast("Staff cannot void purchases.", "error"); return; }
 
     const { data: items } = await sb.from("purchase_order_items").select("*").eq("purchase_order_id", poId);
     for (const item of items ?? []) {
@@ -1758,6 +1898,7 @@
     await sb.from("purchase_orders").update({ status: "voided", deleted_at: new Date().toISOString() }).eq("id", poId).eq("business_id", membership.business_id);
 
     await Promise.all([loadProducts(), loadPurchases()]);
+    showToast("Purchase voided and stock restored");
     renderDashboard();
   }
 
@@ -1769,7 +1910,7 @@
     const { data } = await sb.from("app_users").select("*").eq("business_id", membership.business_id).order("created_at");
     const el = document.getElementById("team-ledger");
     if (!el) return;
-    if (!data || data.length === 0) { el.innerHTML = `<div class="empty-state">No team members found.</div>`; return; }
+    if (!data || data.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">👤</div>No team members found.<br><span style="font-size:12px;">Share your invite code to add staff.</span></div>`; return; }
 
     el.innerHTML =
       `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 0.8fr;"><div>Name</div><div>Role</div><div></div></div>` +
@@ -1796,14 +1937,14 @@
 
   async function changeRole(userId, newRole) {
     const { error } = await sb.from("app_users").update({ role: newRole }).eq("user_id", userId).eq("business_id", membership.business_id);
-    if (error) { alert(error.message); }
+    if (error) { showToast(error.message, "error"); }
     await loadTeam();
   }
 
   async function removeTeamMember(userId) {
     if (!confirm("Remove this person's access to the business? Their login stays, but they'll need a new invite code to rejoin.")) return;
     const { error } = await sb.from("app_users").delete().eq("user_id", userId).eq("business_id", membership.business_id);
-    if (error) { alert(error.message); return; }
+    if (error) { showToast(error.message, "error"); return; }
     await loadTeam();
   }
 
@@ -1953,13 +2094,15 @@
   // RAW MATERIALS
   // ============================================================
   async function loadMaterials(append = false) {
+    const ver = ++reqVersion.materials;
     const offset = append ? pagination.materials : 0;
     const { data } = await sb.from("raw_materials").select("*").eq("business_id", membership.business_id).order("name").range(offset, offset + PAGE_SIZE - 1);
+    if (ver !== reqVersion.materials) return;
     if (append) { cache.materials = [...cache.materials, ...(data ?? [])]; } else { cache.materials = data ?? []; }
     pagination.materials = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
     const el = document.getElementById("materials-ledger");
     if (!el) return;
-    if (cache.materials.length === 0) { el.innerHTML = `<div class="empty-state">No raw materials yet.</div>`; return; }
+    if (cache.materials.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">🧱</div>No raw materials yet.<br><span style="font-size:12px;">Add ingredients or components for your recipes.</span></div>`; return; }
     const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Name</div><div>Stock</div></div>`;
     const rows = cache.materials.map((m) => {
         const isLow = m.low_stock_threshold !== null && Number(m.stock_qty) <= Number(m.low_stock_threshold);
@@ -1988,6 +2131,7 @@
 
   async function submitMaterial() {
     clearError("material-error");
+    const btn = document.getElementById("material-submit-btn");
     const name = document.getElementById("m-name").value.trim();
     const unit = document.getElementById("m-unit").value.trim() || "unit";
     const cost = document.getElementById("m-cost").value === "" ? 0 : parseFloat(document.getElementById("m-cost").value);
@@ -1999,12 +2143,15 @@
     if (threshold !== null && threshold < 0) return setError("material-error", "Threshold cannot be negative.");
 
     const payload = { name, unit, cost_per_unit: cost, stock_qty: stock, low_stock_threshold: threshold };
+    setBtnLoading(btn, true);
     const { error } = editingRecord
       ? await sb.from("raw_materials").update(payload).eq("id", editingRecord.id)
       : await sb.from("raw_materials").insert({ business_id: membership.business_id, ...payload });
+    setBtnLoading(btn, false);
 
     if (error) return setError("material-error", error.message);
     closeModal("material-modal");
+    showToast(editingRecord ? "Material updated" : "Material added");
     await loadMaterials();
   }
 
@@ -2038,11 +2185,15 @@
 
   async function addRecipeItem() {
     clearError("recipe-error");
+    const btn = document.getElementById("recipe-submit-btn");
     const materialId = document.getElementById("ri-material").value;
     const qty = parseFloat(document.getElementById("ri-qty").value);
     if (!materialId || isNaN(qty) || qty <= 0) return setError("recipe-error", "Pick a raw material and a valid quantity.");
+    setBtnLoading(btn, true);
     const { error } = await sb.from("recipe_items").insert({ product_id: recipeProductId, raw_material_id: materialId, quantity_required: qty });
+    setBtnLoading(btn, false);
     if (error) return setError("recipe-error", error.message);
+    showToast("Ingredient added to recipe");
     document.getElementById("ri-qty").value = "";
     await renderRecipeItems();
   }
@@ -2081,6 +2232,7 @@
 
   async function submitProduce() {
     clearError("produce-error");
+    const btn = document.getElementById("produce-submit-btn");
     const productId = document.getElementById("prod-product").value;
     const batchQty = parseFloat(document.getElementById("prod-qty").value);
     if (isNaN(batchQty) || batchQty <= 0) return setError("produce-error", "Enter a valid batch quantity.");
@@ -2095,23 +2247,26 @@
       }
     }
 
+    setBtnLoading(btn, true);
     for (const ri of recipe) {
       const needed = Number(ri.quantity_required) * batchQty;
       const { data: freshMat, error: freshMatErr } = await sb.from("raw_materials").select("stock_qty").eq("id", ri.raw_material_id).eq("business_id", membership.business_id).single();
-      if (freshMatErr || !freshMat) return setError("produce-error", `Unable to verify stock for ${ri.raw_materials.name}.`);
-      if (Number(freshMat.stock_qty) < needed) return setError("produce-error", `Not enough ${ri.raw_materials.name} — need ${needed}, have ${Number(freshMat.stock_qty)}.`);
+      if (freshMatErr || !freshMat) { setBtnLoading(btn, false); return setError("produce-error", `Unable to verify stock for ${ri.raw_materials.name}.`); }
+      if (Number(freshMat.stock_qty) < needed) { setBtnLoading(btn, false); return setError("produce-error", `Not enough ${ri.raw_materials.name} — need ${needed}, have ${Number(freshMat.stock_qty)}.`); }
       const { error: matErr } = await sb.from("raw_materials").update({ stock_qty: Number(freshMat.stock_qty) - needed }).eq("id", ri.raw_material_id).eq("stock_qty", Number(freshMat.stock_qty)).eq("business_id", membership.business_id);
-      if (matErr) return setError("produce-error", `Stock changed for ${ri.raw_materials.name} — please try again.`);
+      if (matErr) { setBtnLoading(btn, false); return setError("produce-error", `Stock changed for ${ri.raw_materials.name} — please try again.`); }
     }
 
     const { data: freshProd, error: freshProdErr } = await sb.from("products").select("stock_qty").eq("id", productId).eq("business_id", membership.business_id).single();
     if (!freshProdErr && freshProd) {
       const currentProdStock = Number(freshProd.stock_qty);
       const { error: prodStockErr } = await sb.from("products").update({ stock_qty: currentProdStock + batchQty }).eq("id", productId).eq("stock_qty", currentProdStock).eq("business_id", membership.business_id);
-      if (prodStockErr) return setError("produce-error", "Product stock changed during production — please try again.");
+      if (prodStockErr) { setBtnLoading(btn, false); return setError("produce-error", "Product stock changed during production — please try again."); }
     }
 
+    setBtnLoading(btn, false);
     closeModal("produce-modal");
+    showToast(`${batchQty} unit${batchQty === 1 ? "" : "s"} produced`);
     await Promise.all([loadProducts(), loadMaterials()]);
     renderDashboard();
   }
@@ -2139,6 +2294,34 @@
 
   initTheme();
   bindPullToRefresh();
+
+  // --- 1. Escape key closes modals ---
+  // --- 5. Enter key submits active modal ---
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      const openModals = document.querySelectorAll(".modal-backdrop:not(.hidden)");
+      if (openModals.length > 0) {
+        const last = openModals[openModals.length - 1];
+        closeModal(last.id);
+      }
+    }
+    if (e.key === "Enter" && !e.target.matches("textarea")) {
+      const openModals = document.querySelectorAll(".modal-backdrop:not(.hidden)");
+      if (openModals.length > 0) {
+        const last = openModals[openModals.length - 1];
+        const primaryBtn = last.querySelector(".btn-primary");
+        if (primaryBtn && !primaryBtn.disabled) primaryBtn.click();
+      }
+    }
+  });
+
+  // --- 12. Modal backdrop click to close ---
+  document.querySelectorAll(".modal-backdrop").forEach((bd) => {
+    bd.addEventListener("click", (e) => {
+      if (e.target === bd) closeModal(bd.id);
+    });
+  });
+
   boot();
 </script>
 

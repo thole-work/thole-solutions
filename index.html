@@ -999,15 +999,12 @@
   function clearError(id) { hide(id); }
   function escapeHtml(str) { const d = document.createElement("div"); d.textContent = str ?? ""; return d.innerHTML; }
   function escapeAttr(str) { return String(str ?? "").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/'/g,"&#39;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
-  function appendPaginated(el, html, key) {
-    const existing = el.innerHTML;
-    const hasContent = existing && !existing.includes("empty-state");
-    if (hasContent) {
+  function appendPaginated(el, html, key, append = false) {
+    if (!append) { el.innerHTML = html; }
+    else {
       const loadMoreBtn = el.querySelector(".load-more-btn");
       if (loadMoreBtn) loadMoreBtn.remove();
       el.insertAdjacentHTML("beforeend", html);
-    } else {
-      el.innerHTML = html;
     }
     if (pagination[key] > 0) {
       el.insertAdjacentHTML("beforeend", `<div style="text-align:center; padding:12px;"><button class="btn-ghost load-more-btn" onclick="loadMore('${key}')">Load more</button></div>`);
@@ -1610,7 +1607,7 @@
         <div class="num" style="text-align:right">${money(o.total_amount)}</div>
         <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidSale('${escapeAttr(o.id)}')">Void</span></div>
       </div>`).join("");
-    appendPaginated(el, head + rows, "sales");
+    appendPaginated(el, head + rows, "sales", append);
   }
 
   async function voidSale(orderId) {
@@ -1648,7 +1645,7 @@
         <div>${escapeHtml(c.name)}</div><div style="color:var(--ink-faint)">${escapeHtml(c.phone ?? "—")}</div>
       </div>`).join("");
     const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Name</div><div>Phone</div></div>`;
-    appendPaginated(el, head + rows, "customers");
+    appendPaginated(el, head + rows, "customers", append);
   }
 
   function openEditCustomer(customerId) {
@@ -1706,7 +1703,7 @@
         <div style="color:var(--ink-faint); font-size:12px; text-transform:capitalize;">${escapeHtml(p.method.replace("_"," "))}</div>
         <div class="num" style="text-align:right">${money(p.amount)}</div>
       </div>`).join("");
-    appendPaginated(el, head + rows, "payments");
+    appendPaginated(el, head + rows, "payments", append);
   }
 
   function openEditPayment(paymentId) {
@@ -1773,7 +1770,7 @@
         <div style="color:var(--ink-soft); font-size:13px;">${escapeHtml(e.description ?? "—")}</div>
         <div class="num" style="text-align:right">${money(e.amount)}</div>
       </div>`).join("");
-    appendPaginated(el, head + rows, "expenses");
+    appendPaginated(el, head + rows, "expenses", append);
   }
 
   function openEditExpense(expenseId) {
@@ -1880,7 +1877,7 @@
         <div class="num" style="text-align:right">${money(po.total_amount)}</div>
         <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidPurchase('${escapeAttr(po.id)}')">Void</span></div>
       </div>`).join("");
-    appendPaginated(el, head + rows, "purchases");
+    appendPaginated(el, head + rows, "purchases", append);
   }
 
   async function voidPurchase(poId) {
@@ -2111,7 +2108,7 @@
           <div class="${isLow ? "low-tag" : "num"}">${m.stock_qty} ${escapeHtml(m.unit)}</div>
         </div>`;
       }).join("");
-    appendPaginated(el, head + rows, "materials");
+    appendPaginated(el, head + rows, "materials", append);
   }
 
   function openEditMaterial(materialId) {

@@ -578,7 +578,7 @@
   <div id="login-form">
     <label>Email</label><input type="email" id="login-email" />
     <label>Password</label><input type="password" id="login-password" />
-    <button class="btn-primary" onclick="handleLogin()">Sign in</button>
+    <button class="btn-primary" id="login-submit-btn" onclick="handleLogin()">Sign in</button>
     <div class="switch">New here? <a onclick="showSignup()">Redeem an invite code</a> or <a onclick="showNewBusiness()">start a new business</a></div>
   </div>
 
@@ -587,7 +587,7 @@
     <label>Invite code</label><input type="text" id="signup-code" placeholder="e.g. TEST-0001" />
     <label>Email</label><input type="email" id="signup-email" />
     <label>Password</label><input type="password" id="signup-password" placeholder="At least 6 characters" />
-    <button class="btn-primary" onclick="handleSignup()">Redeem & create account</button>
+    <button class="btn-primary" id="signup-submit-btn" onclick="handleSignup()">Redeem & create account</button>
     <div class="switch">Already have an account? <a onclick="showLogin()">Sign in</a></div>
   </div>
 
@@ -2550,32 +2550,50 @@
   }
   async function handleLogin() {
     clearError("auth-error");
+    const btn = document.getElementById("login-submit-btn");
     const email = document.getElementById("login-email").value.trim();
     const password = document.getElementById("login-password").value;
-    const { data, error } = await sb.auth.signInWithPassword({ email, password });
-    if (error) return setError("auth-error", error.message);
-    currentUser = data.user;
-    await checkMembership();
+    setBtnLoading(btn, true);
+    try {
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) return setError("auth-error", error.message);
+      currentUser = data.user;
+      await checkMembership();
+    } catch (err) {
+      console.error("handleLogin error:", err);
+      setError("auth-error", "Something went wrong signing in. Please try again.");
+    } finally {
+      setBtnLoading(btn, false);
+    }
   }
   async function handleSignup() {
     clearError("auth-error");
+    const btn = document.getElementById("signup-submit-btn");
     const fullName = document.getElementById("signup-name").value.trim();
     const code = document.getElementById("signup-code").value.trim();
     const email = document.getElementById("signup-email").value.trim();
     const password = document.getElementById("signup-password").value;
     if (!fullName || !code) return setError("auth-error", "Full name and invite code are required.");
 
-    const { data, error } = await sb.auth.signUp({ email, password });
-    if (error) return setError("auth-error", error.message);
-    if (!data.session) return setError("auth-error", "Account created but not signed in — check if email confirmation is required.");
+    setBtnLoading(btn, true);
+    try {
+      const { data, error } = await sb.auth.signUp({ email, password });
+      if (error) return setError("auth-error", error.message);
+      if (!data.session) return setError("auth-error", "Account created but not signed in — check if email confirmation is required.");
 
-    currentUser = data.user;
-    const { error: rpcErr } = await sb.rpc("redeem_invite_code", { p_invite_code: code, p_full_name: fullName });
-    if (rpcErr) {
-      hide("auth-screen"); show("onboarding-screen");
-      return setError("ob-error", rpcErr.message);
+      currentUser = data.user;
+      const { error: rpcErr } = await sb.rpc("redeem_invite_code", { p_invite_code: code, p_full_name: fullName });
+      if (rpcErr) {
+        hide("auth-screen"); show("onboarding-screen");
+        return setError("ob-error", rpcErr.message);
+      }
+      await checkMembership();
+    } catch (err) {
+      console.error("handleSignup error:", err);
+      setError("auth-error", "Something went wrong redeeming your invite. Please try again.");
+    } finally {
+      setBtnLoading(btn, false);
     }
-    await checkMembership();
   }
   function confirmSignOut() {
     if (!confirm("Are you sure you want to sign out?")) return;

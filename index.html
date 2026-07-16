@@ -2399,37 +2399,49 @@
   // BOOT
   // ============================================================
   async function boot() {
-    const { data: { session } } = await sb.auth.getSession();
-    hide("loading");
-    if (!session) { show("auth-screen"); showLogin(); return; }
-    currentUser = session.user;
-    await checkMembership();
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      hide("loading");
+      if (!session) { show("auth-screen"); showLogin(); return; }
+      currentUser = session.user;
+      await checkMembership();
+    } catch(err) {
+      console.error("boot error:", err);
+      hide("loading");
+      show("auth-screen");
+      showLogin();
+    }
   }
 
   async function checkMembership() {
-    const { data, error } = await sb
-      .from("app_users")
-      .select("business_id, role, full_name, businesses(name, invite_code, business_types(display_name, type_key))")
-      .eq("user_id", currentUser.id)
-      .maybeSingle();
+    try {
+      const { data, error } = await sb
+        .from("app_users")
+        .select("business_id, role, full_name, businesses(name, invite_code, business_types(display_name, type_key))")
+        .eq("user_id", currentUser.id)
+        .maybeSingle();
 
-    if (error || !data) {
+      if (error || !data) {
+        hide("auth-screen"); hide("app-screen"); show("onboarding-screen");
+        return;
+      }
+      membership = data;
+      document.getElementById("biz-name").textContent = data.businesses.name;
+      document.getElementById("biz-type").textContent = data.businesses.business_types?.display_name ?? "";
+      const userName = data.full_name || currentUser.email;
+      document.getElementById("user-name-display").textContent = userName;
+      document.getElementById("user-role-display").textContent = data.role;
+      document.getElementById("user-name-top").textContent = userName;
+      document.getElementById("user-role-top").textContent = data.role;
+      applyRolePermissions(data.role);
+      applyBusinessTypeVisibility(data.businesses.business_types?.type_key);
+      hide("auth-screen"); hide("onboarding-screen"); show("app-screen");
+      await loadEverything();
+      updateTopbar(document.querySelector('.nav-item.active')?.dataset.tab || 'dashboard');
+    } catch(err) {
+      console.error("checkMembership error:", err);
       hide("auth-screen"); hide("app-screen"); show("onboarding-screen");
-      return;
     }
-    membership = data;
-    document.getElementById("biz-name").textContent = data.businesses.name;
-    document.getElementById("biz-type").textContent = data.businesses.business_types?.display_name ?? "";
-    const userName = data.full_name || currentUser.email;
-    document.getElementById("user-name-display").textContent = userName;
-    document.getElementById("user-role-display").textContent = data.role;
-    document.getElementById("user-name-top").textContent = userName;
-    document.getElementById("user-role-top").textContent = data.role;
-    applyRolePermissions(data.role);
-    applyBusinessTypeVisibility(data.businesses.business_types?.type_key);
-    hide("auth-screen"); hide("onboarding-screen"); show("app-screen");
-    await loadEverything();
-    updateTopbar(document.querySelector('.nav-item.active')?.dataset.tab || 'dashboard');
   }
 
   function applyBusinessTypeVisibility(typeKey) {
@@ -2684,13 +2696,18 @@
   // LOAD EVERYTHING
   // ============================================================
   async function loadEverything() {
-    await Promise.all([loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses(), loadPurchases(), loadMaterials()]);
-    if (membership.role === "owner") await loadTeam();
-    if (membership.role === "owner" || membership.role === "manager") await loadReports();
-    await Promise.all([loadWaste(), loadShifts(), loadProduceBatches()]);
-    renderDashboard();
-    setupRealtimeSubscriptions();
-    loadSettings();
+    try {
+      await Promise.all([loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses(), loadPurchases(), loadMaterials()]);
+      if (membership.role === "owner") await loadTeam();
+      if (membership.role === "owner" || membership.role === "manager") await loadReports();
+      await Promise.all([loadWaste(), loadShifts(), loadProduceBatches()]);
+      renderDashboard();
+      setupRealtimeSubscriptions();
+      loadSettings();
+    } catch(err) {
+      console.error("loadEverything error:", err);
+      renderDashboard();
+    }
   }
 
   let realtimeChannel = null;

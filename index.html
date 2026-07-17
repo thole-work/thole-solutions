@@ -646,11 +646,12 @@
       <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers')"><span class="nav-icon">👥</span> Customers</div>
       <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments')"><span class="nav-icon">💳</span> Payments</div>
       <div class="nav-item nav-secondary" data-tab="expenses" onclick="switchTab('expenses')"><span class="nav-icon">💸</span> Expenses</div>
-      <div class="nav-item nav-secondary hidden" data-tab="suppliers" onclick="switchTab('suppliers')"><span class="nav-icon">🚚</span> Suppliers</div>
+      <div class="nav-item nav-secondary" data-tab="suppliers" onclick="switchTab('suppliers')"><span class="nav-icon">🚚</span> Suppliers</div>
       <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases')"><span class="nav-icon">🛒</span> Purchase Orders</div>
       <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team')"><span class="nav-icon">👤</span> Team</div>
       <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports')"><span class="nav-icon">📈</span> Reports</div>
       <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials')"><span class="nav-icon">🧱</span> Raw Materials</div>
+      <div class="nav-item nav-secondary" data-tab="stock-movements" onclick="switchTab('stock-movements')"><span class="nav-icon">📊</span> Stock Movements</div>
       <div class="nav-item nav-secondary" data-tab="efficiency" onclick="switchTab('efficiency')"><span class="nav-icon">⚙️</span> Efficiency</div>
       <div class="nav-item nav-secondary" data-tab="settings" onclick="switchTab('settings')"><span class="nav-icon">🔧</span> Settings</div>
       <div class="nav-item mobile-more-btn" onclick="toggleMoreMenu()"><span class="nav-icon">⋯</span> More</div>
@@ -666,11 +667,12 @@
     <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers'); toggleMoreMenu();"><span class="nav-icon">👥</span> Customers</div>
     <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments'); toggleMoreMenu();"><span class="nav-icon">💳</span> Payments</div>
     <div class="nav-item nav-secondary" data-tab="expenses" onclick="switchTab('expenses'); toggleMoreMenu();"><span class="nav-icon">💸</span> Expenses</div>
-    <div class="nav-item nav-secondary hidden" data-tab="suppliers" onclick="switchTab('suppliers'); toggleMoreMenu();"><span class="nav-icon">🚚</span> Suppliers</div>
+    <div class="nav-item nav-secondary" data-tab="suppliers" onclick="switchTab('suppliers'); toggleMoreMenu();"><span class="nav-icon">🚚</span> Suppliers</div>
     <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases'); toggleMoreMenu();"><span class="nav-icon">🛒</span> Purchase Orders</div>
     <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team'); toggleMoreMenu();"><span class="nav-icon">👤</span> Team</div>
     <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports'); toggleMoreMenu();"><span class="nav-icon">📈</span> Reports</div>
     <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials'); toggleMoreMenu();"><span class="nav-icon">🧱</span> Raw Materials</div>
+    <div class="nav-item nav-secondary" data-tab="stock-movements" onclick="switchTab('stock-movements'); toggleMoreMenu();"><span class="nav-icon">📊</span> Stock Movements</div>
     <div class="nav-item nav-secondary" data-tab="efficiency" onclick="switchTab('efficiency'); toggleMoreMenu();"><span class="nav-icon">⚙️</span> Efficiency</div>
     <div class="nav-item nav-secondary" data-tab="settings" onclick="switchTab('settings'); toggleMoreMenu();"><span class="nav-icon">🔧</span> Settings</div>
   </div>
@@ -786,7 +788,7 @@
           </select>
           <input type="date" id="payments-date-filter" onchange="pagination.payments=0; loadPayments()" placeholder="YYYY" />
         </div>
-        <button class="btn-small" onclick="openModal('payment-modal')">+ Record payment</button>
+        <button class="btn-small" onclick="openModal('payment-crud-modal')">+ Record payment</button>
       </div>
       <div class="ledger" id="payments-ledger"></div>
     </section>
@@ -898,6 +900,20 @@
       <div class="ledger" id="materials-ledger"></div>
     </section>
 
+    <!-- ========== STOCK MOVEMENTS TAB ========== -->
+    <section id="tab-stock-movements" class="tab-panel hidden">
+      <div class="page-header"><h2>Stock Movements</h2><p>Full audit trail of all stock changes.</p></div>
+      <div class="toolbar">
+        <div style="display:flex; gap:6px;">
+          <select id="movements-filter-mode" onchange="const f=document.getElementById('movements-date-filter'); f.type=this.value; f.value=''; pagination.movements=0; loadMovements();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+            <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
+          </select>
+          <input type="date" id="movements-date-filter" onchange="pagination.movements=0; loadMovements()" />
+        </div>
+      </div>
+      <div class="ledger" id="movements-ledger"></div>
+    </section>
+
     <!-- ========== EFFICIENCY TAB ========== -->
     <section id="tab-efficiency" class="tab-panel hidden">
       <div class="page-header"><h2>Efficiency</h2><p>Food cost, labor, waste tracking, and production batches.</p></div>
@@ -944,7 +960,19 @@
 
     <!-- ========== SETTINGS TAB ========== -->
     <section id="tab-settings" class="tab-panel hidden">
-      <div class="page-header"><h2>Settings</h2><p>Configure tax, currency, and receipt options.</p></div>
+      <div class="page-header"><h2>Settings</h2><p>Configure your business info, tax, currency, and receipt options.</p></div>
+
+      <div class="report-card" style="max-width:480px; margin-bottom:22px;">
+        <h3>Business Info (for receipts)</h3>
+        <label>Business Name</label>
+        <input type="text" id="setting-biz-name" placeholder="Your business name" />
+        <label>Address</label>
+        <input type="text" id="setting-address" placeholder="123 Main St, City" />
+        <label>Phone</label>
+        <input type="text" id="setting-phone" placeholder="(555) 123-4567" />
+        <label>Tax ID</label>
+        <input type="text" id="setting-tax-id" placeholder="XX-1234567" />
+      </div>
 
       <div class="report-card" style="max-width:480px;">
         <h3>Tax & Currency</h3>
@@ -1016,16 +1044,16 @@
   </div>
 </div>
 
-<div id="payment-modal" class="modal-backdrop hidden">
+<div id="payment-crud-modal" class="modal-backdrop hidden">
   <div class="modal">
-    <div class="close" onclick="closeModal('payment-modal')">Close</div>
-    <h3 id="payment-modal-title">Record payment</h3>
+    <div class="close" onclick="closeModal('payment-crud-modal')">Close</div>
+    <h3 id="payment-crud-modal-title">Record payment</h3>
     <label>Customer</label>
     <select id="pay-customer"></select>
     <div class="field-row">
       <div><label>Amount</label><input type="number" id="pay-amount" min="0" step="any" /></div>
       <div><label>Method</label>
-        <select id="pay-method">
+        <select id="pay-crud-method">
           <option value="cash">Cash</option>
           <option value="bank_transfer">Bank transfer</option>
           <option value="mobile_money">Mobile money</option>
@@ -1033,9 +1061,9 @@
       </div>
     </div>
     <button class="btn-primary" id="payment-submit-btn" onclick="submitPayment()">Save payment</button>
-    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('payment-modal')">Cancel</button>
-    <button class="btn-ghost" id="payment-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('payments', 'payment-modal')">Delete payment</button>
-    <div id="payment-error" class="error hidden"></div>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('payment-crud-modal')">Cancel</button>
+    <button class="btn-ghost" id="payment-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('payments', 'payment-crud-modal')">Delete payment</button>
+    <div id="payment-crud-error" class="error hidden"></div>
   </div>
 </div>
 
@@ -1339,13 +1367,13 @@
 
   let currentUser = null;
   let membership = null; // { business_id, role, full_name, businesses: {...} }
-  let cache = { products: [], customers: [], sales: [], payments: [], expenses: [], purchases: [], materials: [] };
+  let cache = { products: [], customers: [], sales: [], payments: [], expenses: [], purchases: [], materials: [], suppliers: [], movements: [] };
   let editingRecord = null; // { table: 'products', id: '...' } — null means "adding new"
   let businessTypeKey = null;
-  let pagination = { products: 0, customers: 0, sales: 0, payments: 0, expenses: 0, purchases: 0, materials: 0 };
+  let pagination = { products: 0, customers: 0, sales: 0, payments: 0, expenses: 0, purchases: 0, materials: 0, suppliers: 0, movements: 0 };
   const PAGE_SIZE = 25;
-  let reqVersion = { products: 0, customers: 0, sales: 0, payments: 0, expenses: 0, purchases: 0, materials: 0 };
-  let loading = { products: false, customers: false, sales: false, payments: false, expenses: false, purchases: false, materials: false };
+  let reqVersion = { products: 0, customers: 0, sales: 0, payments: 0, expenses: 0, purchases: 0, materials: 0, suppliers: 0, movements: 0 };
+  let loading = { products: false, customers: false, sales: false, payments: false, expenses: false, purchases: false, materials: false, suppliers: false, movements: false };
 
   // HELPER: Translates Day/Week/Month/Year inputs into Supabase time ranges
   function applyTimeFilter(query, val, mode, col = "created_at") {
@@ -1399,7 +1427,7 @@
   }
   async function loadMore(key) {
     pagination[key] += PAGE_SIZE;
-    await { products: loadProducts, customers: loadCustomers, sales: loadSales, payments: loadPayments, expenses: loadExpenses, purchases: loadPurchases, materials: loadMaterials }[key](true);
+    await { products: loadProducts, customers: loadCustomers, sales: loadSales, payments: loadPayments, expenses: loadExpenses, purchases: loadPurchases, materials: loadMaterials, suppliers: loadSuppliers, movements: loadMovements }[key](true);
   }
   function money(n) { return Number(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function abbreviateNumber(value) {
@@ -1471,6 +1499,34 @@
     posState = { cart: [], tableId: null, tableNumber: null, orderId: null, orderType: 'dine_in', customerId: null, appliedDiscount: 0, discountType: 'amount', posSessionId: null };
   }
 
+  // ============================================================
+  // STOCK HELPERS
+  // ============================================================
+  async function adjustStock(table, id, qtyChange, businessId) {
+    const { data: fresh, error: freshErr } = await sb.from(table).select("stock_qty").eq("id", id).eq("business_id", businessId).single();
+    if (freshErr || !fresh || fresh.stock_qty === null) return { error: freshErr || new Error("No stock data") };
+    const current = Number(fresh.stock_qty);
+    const newQty = current + qtyChange;
+    const { error } = await sb.from(table).update({ stock_qty: newQty }).eq("id", id).eq("stock_qty", current).eq("business_id", businessId);
+    if (error) return { error };
+    return { oldQty: current, newQty };
+  }
+
+  async function logStockMovement({ itemType, productId, materialId, qtyChange, reason, refType, refId }) {
+    const payload = {
+      business_id: membership.business_id,
+      item_type: itemType,
+      quantity_change: qtyChange,
+      reason: reason || '',
+      reference_type: refType || null,
+      reference_id: refId || null,
+      created_by: currentUser.id,
+    };
+    if (itemType === "product") payload.product_id = productId;
+    else if (itemType === "raw_material") payload.raw_material_id = materialId;
+    await sb.from("stock_movements").insert(payload);
+  }
+
   // ========== OFFLINE DRAFT QUEUE ==========
   const OFFLINE_QUEUE_KEY = 'thole_pos_offline_queue';
   
@@ -1482,24 +1538,6 @@
   
   function saveOfflineQueue(queue) {
     localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
-  }
-  
-  async function posSaveOfflineDraft() {
-    if (posState.cart.length === 0) return;
-    const queue = getOfflineQueue();
-    queue.push({
-      id: crypto.randomUUID(),
-      cart: [...posState.cart],
-      tableId: posState.tableId,
-      tableNumber: posState.tableNumber,
-      orderType: posState.orderType,
-      customerId: posState.customerId,
-      appliedDiscount: posState.appliedDiscount,
-      discountType: posState.discountType,
-      createdAt: new Date().toISOString(),
-    });
-    saveOfflineQueue(queue);
-    showToast('Order saved offline');
   }
   
   async function posSyncOfflineQueue() {
@@ -1519,14 +1557,17 @@
         const { subtotal, discount, tax, total } = posCalcTotals();
         const { data: order } = await sb.from('orders').insert({
           business_id: membership.business_id,
-          table_id: posState.tableId,
-          customer_id: posState.customerId,
-          order_type: posState.orderType,
+          table_id: posState.tableId || null,
+          customer_id: posState.customerId || null,
+          order_type: posState.tableId ? 'dine_in' : (posState.orderType || 'takeout'),
           status: 'completed',
           subtotal,
           discount,
+          discount_type: posState.discountType || 'amount',
+          tax_rate: posCalcTotals().taxRate,
           tax,
           total_amount: total,
+          payment_method: 'cash',
           created_by: currentUser.id,
         }).select().single();
         
@@ -1541,21 +1582,8 @@
         
         // Update stock & movements
         for (const item of posState.cart) {
-          const { data: fresh } = await sb.from('products').select('stock_qty').eq('id', item.product_id).eq('business_id', membership.business_id).single();
-          if (fresh && fresh.stock_qty !== null) {
-            const newStock = Number(fresh.stock_qty) - item.qty;
-            await sb.from('products').update({ stock_qty: newStock }).eq('id', item.product_id).eq('stock_qty', Number(fresh.stock_qty)).eq('business_id', membership.business_id);
-            await sb.from('stock_movements').insert({
-              business_id: membership.business_id,
-              product_id: item.product_id,
-              movement_type: 'sale',
-              quantity: -item.qty,
-              unit_cost: item.price,
-              reference_id: order.id,
-              reference_type: 'order',
-              created_by: currentUser.id,
-            });
-          }
+          await adjustStock('products', item.product_id, -item.qty, membership.business_id);
+          await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: -item.qty, reason: 'sale', refType: 'order', refId: order.id });
         }
         
         // Payment record
@@ -1682,9 +1710,11 @@
       discount = posState.appliedDiscount;
     }
     const taxable = subtotal - discount;
-    const tax = taxable * 0.1; // 10% tax - make configurable later
+    const settings = JSON.parse(localStorage.getItem('thole:settings') || '{}');
+    const taxRate = (settings.tax_rate || 0) / 100;
+    const tax = taxable * taxRate;
     const total = taxable + tax;
-    return { subtotal, discount, tax, total };
+    return { subtotal, discount, tax, total, taxRate };
   }
 
   function posRenderCart() {
@@ -1843,19 +1873,6 @@
   }
 
   // --- POS Cart Modal Actions ---
-  function posApplyDiscount() {
-    const type = document.getElementById('pos-discount-type').value;
-    const val = parseFloat(document.getElementById('pos-discount-value').value) || 0;
-    posState.discountType = type;
-    posState.appliedDiscount = val;
-    posRenderCart();
-  }
-
-  function posClearDiscount() {
-    posState.appliedDiscount = 0;
-    document.getElementById('pos-discount-value').value = '';
-    posRenderCart();
-  }
 
   function posOpenPayment() {
     if (posState.cart.length === 0) return showToast('Cart is empty', 'error');
@@ -1905,7 +1922,8 @@
   }
 
   function posUpdatePaymentTotal(newTotal) {
-    document.getElementById('payment-total').textContent = money(newTotal);
+    const el = document.getElementById('payment-total-due');
+    if (el) el.textContent = money(newTotal);
   }
 
   async function completePayment() {
@@ -1913,7 +1931,7 @@
     setBtnLoading(btn, true);
     clearError('payment-error');
 
-    const { subtotal, discount, tax, total } = posCalcTotals();
+    const { subtotal, discount, tax, total, taxRate } = posCalcTotals();
     const tip = parseFloat(document.getElementById('custom-tip').value) || 0;
     const finalTotal = total + tip;
     const method = document.getElementById('pay-method').value;
@@ -1921,15 +1939,18 @@
     // 1. Create order
     const { data: order, error: orderErr } = await sb.from('orders').insert({
       business_id: membership.business_id,
-      table_id: posState.tableId,
-      customer_id: posState.customerId,
-      order_type: posState.orderType,
+      table_id: posState.tableId || null,
+      customer_id: posState.customerId || null,
+      order_type: posState.tableId ? 'dine_in' : (posState.orderType || 'takeout'),
       status: 'completed',
       subtotal,
       discount,
+      discount_type: posState.discountType || 'amount',
+      tax_rate: taxRate,
       tax,
       tip,
       total_amount: finalTotal,
+      payment_method: method,
       created_by: currentUser.id,
     }).select().single();
     if (orderErr) { setBtnLoading(btn, false); return setError('payment-error', orderErr.message); }
@@ -1947,22 +1968,8 @@
 
     // 3. Update stock
     for (const item of posState.cart) {
-      const { data: fresh } = await sb.from('products').select('stock_qty').eq('id', item.product_id).eq('business_id', membership.business_id).single();
-      if (fresh && fresh.stock_qty !== null) {
-        const newStock = Number(fresh.stock_qty) - item.qty;
-        await sb.from('products').update({ stock_qty: newStock }).eq('id', item.product_id).eq('stock_qty', Number(fresh.stock_qty)).eq('business_id', membership.business_id);
-        // Stock movement
-        await sb.from('stock_movements').insert({
-          business_id: membership.business_id,
-          product_id: item.product_id,
-          movement_type: 'sale',
-          quantity: -item.qty,
-          unit_cost: item.price,
-          reference_id: order.id,
-          reference_type: 'order',
-          created_by: currentUser.id,
-        });
-      }
+      await adjustStock('products', item.product_id, -item.qty, membership.business_id);
+      await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: -item.qty, reason: 'sale', refType: 'order', refId: order.id });
     }
 
     // 4. Payment record
@@ -1985,28 +1992,43 @@
     closeModal('payment-modal');
     
     // Show receipt
-    await posShowReceipt(order.id, finalTotal, method, tip);
+    await posShowReceipt(order.id);
     posReset();
     await loadProducts();
     await loadSales();
     renderDashboard();
   }
 
-  async function posShowReceipt(orderId, total, method, tip) {
-    const { data: order } = await sb.from('orders').select('*, order_items(*, products(name, price))').eq('id', orderId).single();
+  async function posShowReceipt(orderId) {
+    const { data: order } = await sb.from('orders')
+      .select('*, customers(name), order_items(*, products(name))')
+      .eq('id', orderId).single();
     if (!order) return;
+    const { data: business } = await sb.from('businesses')
+      .select('name, address, phone, tax_id')
+      .eq('id', membership.business_id).single();
+    const biz = business || membership.businesses || {};
+    const cashierName = membership.full_name || currentUser.email;
+    const receiptNum = order.receipt_number ? `#${order.receipt_number}` : `#${order.id.slice(0,8).toUpperCase()}`;
+    const settings = JSON.parse(localStorage.getItem('thole:settings') || '{}');
+    const receiptFooter = settings.receipt_footer || 'Thank you!';
     const content = document.getElementById('receipt-content');
     content.innerHTML = `
       <div class="receipt-header">
-        <h3>${escapeHtml(membership.businesses?.name || 'Thole Solutions')}</h3>
-        <p>Order #${order.id.slice(0,8).toUpperCase()}</p>
+        <h3>${escapeHtml(biz.name || 'Thole Solutions')}</h3>
+        ${biz.address ? `<p>${escapeHtml(biz.address)}</p>` : ''}
+        ${biz.phone ? `<p>${escapeHtml(biz.phone)}</p>` : ''}
+        ${biz.tax_id ? `<p>Tax ID: ${escapeHtml(biz.tax_id)}</p>` : ''}
+        <p>Receipt ${receiptNum}</p>
         <p>${new Date(order.created_at).toLocaleString()}</p>
-        ${posState.tableNumber ? `<p>Table: ${escapeHtml(posState.tableNumber)}</p>` : ''}
+        ${order.order_type ? `<p>${escapeHtml(order.order_type.replace('_',' '))}</p>` : ''}
+        ${order.table_id ? `<p>Table: ${escapeHtml(order.table_id)}</p>` : ''}
+        <p>Cashier: ${escapeHtml(cashierName)}</p>
       </div>
       <div class="receipt-items">
-        ${order.order_items.map(item => `
+        ${(order.order_items || []).map(item => `
           <div class="receipt-line">
-            <span>${escapeHtml(item.products?.name)} × ${item.quantity}</span>
+            <span>${escapeHtml(item.products?.name || 'Item')} x${item.quantity}</span>
             <span>${money(item.line_total)}</span>
           </div>
         `).join('')}
@@ -2014,80 +2036,21 @@
       <div class="receipt-totals">
         <div><span>Subtotal</span><span>${money(order.subtotal)}</span></div>
         ${order.discount > 0 ? `<div><span>Discount</span><span>-${money(order.discount)}</span></div>` : ''}
-        <div><span>Tax</span><span>${money(order.tax)}</span></div>
-        ${tip > 0 ? `<div><span>Tip</span><span>${money(tip)}</span></div>` : ''}
+        ${order.tax > 0 ? `<div><span>Tax (${((order.tax_rate || 0) * 100).toFixed(0)}%)</span><span>${money(order.tax)}</span></div>` : ''}
+        ${order.tip > 0 ? `<div><span>Tip</span><span>${money(order.tip)}</span></div>` : ''}
         <div class="receipt-total"><span>Total</span><span>${money(order.total_amount)}</span></div>
-        <div><span>Payment</span><span>${escapeHtml(method.replace('_',' '))}</span></div>
+        <div><span>Payment</span><span>${escapeHtml((order.payment_method || 'cash').replace('_',' '))}</span></div>
+        ${order.change_given > 0 ? `<div><span>Change</span><span>${money(order.change_given)}</span></div>` : ''}
       </div>
-      <div class="receipt-footer">Thank you for dining with us!</div>
+      <div class="receipt-footer">${escapeHtml(receiptFooter)}</div>
     `;
     openModal('receipt-modal');
-  }
-
-  // ========== TABLE MANAGEMENT (Settings) ==========
-  async function loadTables() {
-    const { data } = await sb.from('restaurant_tables').select('*').eq('business_id', membership.business_id).order('table_number');
-    const el = document.getElementById('tables-ledger');
-    if (!data || data.length === 0) { el.innerHTML = '<div class="empty-state">No tables yet.</div>'; return; }
-    el.innerHTML = `
-      <div class="toolbar"><button class="btn-small" onclick="openModal('table-modal')">+ Add Table</button></div>
-      <div class="ledger">
-        <div class="ledger-head" style="grid-template-columns: 1fr 1fr 1fr 1fr;"><div>Number</div><div>Name</div><div>Capacity</div><div>Status</div></div>
-        ${data.map(t => `
-          <div class="ledger-row" style="grid-template-columns: 1fr 1fr 1fr 1fr; cursor:pointer;" onclick="openEditTable('${escapeAttr(t.id)}')">
-            <div>${escapeHtml(t.table_number)}</div>
-            <div>${escapeHtml(t.name || '—')}</div>
-            <div>${t.capacity}</div>
-            <div><span class="cat-badge">${t.status}</span></div>
-          </div>
-        `).join('')}
-      </div>
-    `;
-  }
-
-  async function openTableModal() {
-    editingRecord = null;
-    document.getElementById('table-modal-title').textContent = 'Add Table';
-    document.getElementById('table-submit-btn').textContent = 'Save table';
-    document.getElementById('table-delete-btn').classList.add('hidden');
-    document.getElementById('t-number').value = '';
-    document.getElementById('t-name').value = '';
-    document.getElementById('t-capacity').value = '4';
-    openModal('table-modal');
-  }
-
-  async function openEditTable(id) {
-    const t = (await sb.from('restaurant_tables').select('*').eq('id', id).single()).data;
-    if (!t) return;
-    editingRecord = { table: 'restaurant_tables', id: t.id };
-    document.getElementById('table-modal-title').textContent = 'Edit Table';
-    document.getElementById('table-submit-btn').textContent = 'Save changes';
-    document.getElementById('table-delete-btn').classList.remove('hidden');
-    document.getElementById('t-number').value = t.table_number;
-    document.getElementById('t-name').value = t.name || '';
-    document.getElementById('t-capacity').value = t.capacity;
-    openModal('table-modal');
-  }
-
-  async function submitTable() {
-    clearError('table-error');
-    const number = document.getElementById('t-number').value.trim();
-    const name = document.getElementById('t-name').value.trim() || null;
-    const capacity = parseInt(document.getElementById('t-capacity').value) || 4;
-    if (!number) return setError('table-error', 'Table number required');
-    const payload = { table_number: number, name, capacity };
-    const { error } = editingRecord
-      ? await sb.from('restaurant_tables').update(payload).eq('id', editingRecord.id).eq('business_id', membership.business_id)
-      : await sb.from('restaurant_tables').insert({ business_id: membership.business_id, ...payload });
-    if (error) return setError('table-error', error.message);
-    closeModal('table-modal');
-    await loadTables();
   }
 
   // ========== WASTE LOG ==========
   async function loadWaste() {
     try {
-      const { data } = await sb.from('waste_log').select('id, product_id, raw_material_id, quantity, unit_cost, total_cost, reason, notes, created_at').eq('business_id', membership.business_id).order('created_at', { ascending: false }).limit(50);
+      const { data } = await sb.from('waste_log').select('id, product_id, raw_material_id, quantity, unit_cost, reason, notes, created_at').eq('business_id', membership.business_id).order('created_at', { ascending: false }).limit(50);
       const el = document.getElementById('waste-ledger');
       if (!el) return;
       if (!data || data.length === 0) { el.innerHTML = '<div class="empty-state">No waste recorded.</div>'; return; }
@@ -2189,11 +2152,13 @@
     const sel = type === 'product' ? document.getElementById('waste-product') : document.getElementById('waste-material');
     if (sel.options.length > 0) {
       const item = type === 'product' ? cache.products.find(p => p.id === sel.value) : cache.materials.find(m => m.id === sel.value);
-      if (item && item.unit_cost != null) document.getElementById('waste-cost').value = item.unit_cost;
+      const costVal = type === 'product' ? (item && item.cost) : (item && item.cost_per_unit);
+      if (costVal != null) document.getElementById('waste-cost').value = costVal;
     }
     sel.onchange = function() {
       const it = type === 'product' ? cache.products.find(p => p.id === sel.value) : cache.materials.find(m => m.id === sel.value);
-      if (it && it.unit_cost != null) document.getElementById('waste-cost').value = it.unit_cost;
+      const costVal2 = type === 'product' ? (it && it.cost) : (it && it.cost_per_unit);
+      if (costVal2 != null) document.getElementById('waste-cost').value = costVal2;
     };
   }
 
@@ -2211,26 +2176,19 @@
       business_id: membership.business_id,
       quantity: qty,
       unit_cost: cost,
-      total_cost: qty * cost,
       reason,
       notes
     };
     if (type === 'product') {
       const prodId = document.getElementById('waste-product').value;
       payload.product_id = prodId;
-      const fresh = await sb.from('products').select('stock_qty').eq('id', prodId).eq('business_id', membership.business_id).single();
-      if (fresh.data) {
-        const newQty = Math.max(0, Number(fresh.data.stock_qty) - qty);
-        await sb.from('products').update({ stock_qty: newQty }).eq('id', prodId).eq('stock_qty', Number(fresh.data.stock_qty)).eq('business_id', membership.business_id);
-      }
+      await adjustStock('products', prodId, -qty, membership.business_id);
+      await logStockMovement({ itemType: 'product', productId: prodId, qtyChange: -qty, reason: 'waste', refType: 'waste', refId: null });
     } else {
       const matId = document.getElementById('waste-material').value;
       payload.raw_material_id = matId;
-      const fresh = await sb.from('raw_materials').select('stock_qty').eq('id', matId).eq('business_id', membership.business_id).single();
-      if (fresh.data) {
-        const newQty = Math.max(0, Number(fresh.data.stock_qty) - qty);
-        await sb.from('raw_materials').update({ stock_qty: newQty }).eq('id', matId).eq('stock_qty', Number(fresh.data.stock_qty)).eq('business_id', membership.business_id);
-      }
+      await adjustStock('raw_materials', matId, -qty, membership.business_id);
+      await logStockMovement({ itemType: 'raw_material', materialId: matId, qtyChange: -qty, reason: 'waste', refType: 'waste', refId: null });
     }
 
     setBtnLoading(btn, true);
@@ -2293,7 +2251,7 @@
   async function renderEfficiency() {
     try {
       const revenue = cache.sales.reduce((s, o) => s + Number(o.total_amount), 0);
-      const materialCost = cache.materials.reduce((s, m) => s + (Number(m.stock_qty) * Number(m.unit_cost || 0)), 0);
+      const materialCost = cache.materials.reduce((s, m) => s + (Number(m.stock_qty) * Number(m.cost_per_unit || 0)), 0);
       const foodCostPct = revenue > 0 ? ((materialCost / revenue) * 100).toFixed(1) : '—';
       document.getElementById('eff-food-cost').textContent = foodCostPct === '—' ? '—' : foodCostPct + '%';
 
@@ -2310,8 +2268,8 @@
       const laborPct = revenue > 0 ? ((totalLaborCost / revenue) * 100).toFixed(1) : '—';
       document.getElementById('eff-labor-cost').textContent = laborPct === '—' ? '—' : laborPct + '%';
 
-      const { data: waste } = await sb.from('waste_log').select('total_cost').eq('business_id', membership.business_id);
-      const wasteCost = (waste || []).reduce((s, w) => s + Number(w.total_cost || 0), 0);
+      const { data: waste } = await sb.from('waste_log').select('quantity, unit_cost').eq('business_id', membership.business_id);
+      const wasteCost = (waste || []).reduce((s, w) => s + Number(w.quantity || 0) * Number(w.unit_cost || 0), 0);
       document.getElementById('eff-waste-cost').textContent = money(wasteCost);
 
       const { data: batches } = await sb.from('produce_batches').select('batch_qty, actual_yield').eq('business_id', membership.business_id).not('actual_yield', 'is', null);
@@ -2331,10 +2289,17 @@
     const taxRate = parseFloat(document.getElementById('setting-tax-rate').value) || 0;
     const currency = document.getElementById('setting-currency').value.trim() || '$';
     const receiptFooter = document.getElementById('setting-receipt-footer').value.trim();
+    const bizName = document.getElementById('setting-biz-name').value.trim();
+    const address = document.getElementById('setting-address').value.trim();
+    const phone = document.getElementById('setting-phone').value.trim();
+    const taxId = document.getElementById('setting-tax-id').value.trim();
 
     const settings = { tax_rate: taxRate, currency_symbol: currency, receipt_footer: receiptFooter };
     localStorage.setItem('thole:settings', JSON.stringify(settings));
     setBtnLoading(btn, true);
+    try {
+      await sb.from('businesses').update({ name: bizName || undefined, address: address || null, phone: phone || null, tax_id: taxId || null }).eq('id', membership.business_id);
+    } catch(e) { console.error('Failed to save business info:', e); }
     setTimeout(() => {
       setBtnLoading(btn, false);
       showToast('Settings saved');
@@ -2354,6 +2319,13 @@
       if (s.currency_symbol) document.getElementById('setting-currency').value = s.currency_symbol;
       if (s.receipt_footer) document.getElementById('setting-receipt-footer').value = s.receipt_footer;
     } catch(e) {}
+    if (membership?.businesses) {
+      const b = membership.businesses;
+      document.getElementById('setting-biz-name').value = b.name || '';
+      document.getElementById('setting-address').value = b.address || '';
+      document.getElementById('setting-phone').value = b.phone || '';
+      document.getElementById('setting-tax-id').value = b.tax_id || '';
+    }
   }
 
   function getSettings() {
@@ -2387,7 +2359,7 @@
     if (!editingRecord || editingRecord.table !== table) return;
     if (membership.role === "staff") { showToast("Staff cannot delete records.", "error"); return; }
     if (!confirm("Delete this record? It can be restored later by an admin.")) return;
-    const payload = table === "products" ? { is_active: false } : { deleted_at: new Date().toISOString() };
+    const payload = table === "products" ? { is_active: false } : { status: "voided" };
     const { error } = await sb.from(table).update(payload).eq("id", editingRecord.id).eq("business_id", membership.business_id);
     if (error) return setError(modalId.replace("-modal", "-error"), error.message);
     closeModal(modalId);
@@ -2618,6 +2590,8 @@
     document.querySelectorAll(".nav-item").forEach((el) => el.classList.toggle("active", el.dataset.tab === tab));
     updateTopbar(tab);
     if (tab === "efficiency") { renderEfficiency(); loadWaste(); loadShifts(); loadProduceBatches(); }
+    if (tab === "suppliers") loadSuppliers();
+    if (tab === "stock-movements") loadMovements();
     if (tab === "settings") loadSettings();
   }
 
@@ -2724,7 +2698,7 @@
   // ============================================================
   async function loadEverything() {
     try {
-      await Promise.all([loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses(), loadPurchases(), loadMaterials()]);
+      await Promise.all([loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses(), loadPurchases(), loadMaterials(), loadSuppliers()]);
       if (membership.role === "owner") await loadTeam();
       if (membership.role === "owner" || membership.role === "manager") await loadReports();
       await Promise.all([loadWaste(), loadShifts(), loadProduceBatches()]);
@@ -2774,12 +2748,12 @@
 
     let wasteCost = 0;
     try {
-      const { data: waste } = await sb.from('waste_log').select('total_cost').eq('business_id', membership.business_id);
-      wasteCost = (waste || []).reduce((s, w) => s + Number(w.total_cost || 0), 0);
+      const { data: waste } = await sb.from('waste_log').select('quantity, unit_cost').eq('business_id', membership.business_id);
+      wasteCost = (waste || []).reduce((s, w) => s + Number(w.quantity || 0) * Number(w.unit_cost || 0), 0);
     } catch(e) {}
 
     const totalCosts = expenseTotal + purchaseTotal + wasteCost;
-    const materialValue = cache.materials.reduce((s, m) => s + (Number(m.stock_qty) * Number(m.unit_cost || 0)), 0);
+    const materialValue = cache.materials.reduce((s, m) => s + (Number(m.stock_qty) * Number(m.cost_per_unit || 0)), 0);
 
     const lowStockProducts = cache.products.filter(
       (p) => p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold)
@@ -2991,12 +2965,8 @@
     if (itemErr) { setBtnLoading(btn, false); return setError("sale-error", itemErr.message); }
 
     if (product.stock_qty !== null) {
-      const { data: fresh, error: freshErr } = await sb.from("products").select("stock_qty").eq("id", productId).eq("business_id", membership.business_id).single();
-      if (freshErr || fresh === null) { await sb.from("orders").delete().eq("id", order.id); setBtnLoading(btn, false); return setError("sale-error", "Unable to verify stock level."); }
-      const currentStock = Number(fresh.stock_qty);
-      if (currentStock < qty) { await sb.from("orders").delete().eq("id", order.id); setBtnLoading(btn, false); return setError("sale-error", `Insufficient stock — only ${currentStock} available.`); }
-      const { error: stockErr } = await sb.from("products").update({ stock_qty: currentStock - qty }).eq("id", productId).eq("stock_qty", currentStock).eq("business_id", membership.business_id);
-      if (stockErr) { await sb.from("orders").delete().eq("id", order.id); setBtnLoading(btn, false); return setError("sale-error", "Stock changed during sale — please try again."); }
+      const result = await adjustStock('products', productId, -qty, membership.business_id);
+      if (result.error) { await sb.from("orders").delete().eq("id", order.id); setBtnLoading(btn, false); return setError("sale-error", "Stock changed during sale — please try again."); }
     }
 
     setBtnLoading(btn, false);
@@ -3039,13 +3009,10 @@
 
     const { data: items } = await sb.from("order_items").select("*").eq("order_id", orderId);
     for (const item of items ?? []) {
-      const { data: fresh, error: freshErr } = await sb.from("products").select("stock_qty").eq("id", item.product_id).eq("business_id", membership.business_id).single();
-      if (!freshErr && fresh && fresh.stock_qty !== null) {
-        const restoredQty = Number(fresh.stock_qty) + Number(item.quantity);
-        await sb.from("products").update({ stock_qty: restoredQty }).eq("id", item.product_id).eq("business_id", membership.business_id);
-      }
+      await adjustStock('products', item.product_id, Number(item.quantity), membership.business_id);
+      await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: Number(item.quantity), reason: 'sale void', refType: 'order', refId: orderId });
     }
-    await sb.from("orders").update({ status: "voided", deleted_at: new Date().toISOString() }).eq("id", orderId).eq("business_id", membership.business_id);
+    await sb.from("orders").update({ status: "voided" }).eq("id", orderId).eq("business_id", membership.business_id);
 
     await Promise.all([loadProducts(), loadSales()]);
     showToast("Sale voided and stock restored");
@@ -3139,22 +3106,22 @@
     const p = cache.payments.find((x) => x.id === paymentId);
     if (!p) return;
     editingRecord = { table: "payments", id: p.id };
-    document.getElementById("payment-modal-title").textContent = "Edit payment";
+    document.getElementById("payment-crud-modal-title").textContent = "Edit payment";
     document.getElementById("payment-submit-btn").textContent = "Save changes";
     document.getElementById("payment-delete-btn").classList.remove("hidden");
-    openModal("payment-modal"); 
+    openModal("payment-crud-modal"); 
     document.getElementById("pay-customer").value = p.customer_id;
     document.getElementById("pay-amount").value = p.amount;
-    document.getElementById("pay-method").value = p.method;
+    document.getElementById("pay-crud-method").value = p.method;
   }
 
   async function submitPayment() {
-    clearError("payment-error");
+    clearError("payment-crud-error");
     const btn = document.getElementById("payment-submit-btn");
     const customerId = document.getElementById("pay-customer").value;
     const amount = parseFloat(document.getElementById("pay-amount").value);
-    const method = document.getElementById("pay-method").value;
-    if (!customerId || isNaN(amount) || amount <= 0) return setError("payment-error", "Select a customer and a valid amount.");
+    const method = document.getElementById("pay-crud-method").value;
+    if (!customerId || isNaN(amount) || amount <= 0) return setError("payment-crud-error", "Select a customer and a valid amount.");
 
     const payload = { customer_id: customerId, amount, method };
     setBtnLoading(btn, true);
@@ -3163,14 +3130,14 @@
       : await sb.from("payments").insert({ business_id: membership.business_id, direction: "in", party_type: "customer", created_by: currentUser.id, ...payload });
     setBtnLoading(btn, false);
 
-    if (error) return setError("payment-error", error.message);
-    closeModal("payment-modal");
+    if (error) return setError("payment-crud-error", error.message);
+    closeModal("payment-crud-modal");
     showToast(editingRecord ? "Payment updated" : "Payment recorded");
     await loadPayments();
   }
   const origOpenModal = openModal;
   window.openModal = function (id) {
-    if (id === "payment-modal") {
+    if (id === "payment-crud-modal") {
       document.getElementById("pay-customer").innerHTML = cache.customers.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
     }
     origOpenModal(id);
@@ -3272,13 +3239,8 @@
     });
     if (itemErr) { setBtnLoading(btn, false); return setError("purchase-error", itemErr.message); }
 
-    const { data: freshProduct, error: freshErr } = await sb.from("products").select("stock_qty").eq("id", productId).eq("business_id", membership.business_id).single();
-    if (freshErr || !freshProduct) { setBtnLoading(btn, false); return setError("purchase-error", "Unable to refresh product stock."); }
-
-    const currentStock = freshProduct.stock_qty === null ? 0 : Number(freshProduct.stock_qty);
-    const newStock = currentStock + qty;
-    const { error: updateErr } = await sb.from("products").update({ stock_qty: newStock }).eq("id", productId).eq("stock_qty", currentStock).eq("business_id", membership.business_id);
-    if (updateErr) { setBtnLoading(btn, false); return setError("purchase-error", "Stock changed during purchase — please try again."); }
+    const stockResult = await adjustStock('products', productId, qty, membership.business_id);
+    if (stockResult.error) { setBtnLoading(btn, false); return setError("purchase-error", "Stock changed during purchase — please try again."); }
 
     setBtnLoading(btn, false);
     closeModal("purchase-modal");
@@ -3321,17 +3283,105 @@
 
     const { data: items } = await sb.from("purchase_order_items").select("*").eq("purchase_order_id", poId);
     for (const item of items ?? []) {
-      const { data: fresh, error: freshErr } = await sb.from("products").select("stock_qty").eq("id", item.product_id).eq("business_id", membership.business_id).single();
-      if (!freshErr && fresh && fresh.stock_qty !== null) {
-        const reducedQty = Number(fresh.stock_qty) - Number(item.quantity);
-        await sb.from("products").update({ stock_qty: Math.max(0, reducedQty) }).eq("id", item.product_id).eq("business_id", membership.business_id);
-      }
+      await adjustStock('products', item.product_id, -Number(item.quantity), membership.business_id);
+      await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: -Number(item.quantity), reason: 'purchase void', refType: 'purchase_order', refId: poId });
     }
-    await sb.from("purchase_orders").update({ status: "voided", deleted_at: new Date().toISOString() }).eq("id", poId).eq("business_id", membership.business_id);
+    await sb.from("purchase_orders").update({ status: "voided" }).eq("id", poId).eq("business_id", membership.business_id);
 
     await Promise.all([loadProducts(), loadPurchases()]);
     showToast("Purchase voided and stock restored");
     renderDashboard();
+  }
+
+  // ============================================================
+  // SUPPLIERS
+  // ============================================================
+  async function loadSuppliers(append = false) {
+    if (loading.suppliers && !append) return;
+    loading.suppliers = true;
+    const ver = ++reqVersion.suppliers;
+    const offset = append ? pagination.suppliers : 0;
+    const { data } = await sb.from("suppliers").select("*").eq("business_id", membership.business_id).order("name").range(offset, offset + PAGE_SIZE - 1);
+    loading.suppliers = false;
+    if (ver !== reqVersion.suppliers) return;
+    if (append) { cache.suppliers = [...cache.suppliers, ...(data ?? [])]; } else { cache.suppliers = data ?? []; }
+    pagination.suppliers = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
+    const el = document.getElementById("suppliers-ledger");
+    if (!el) return;
+    if (cache.suppliers.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">🚚</div>No suppliers yet.<br><span style="font-size:12px;">Add suppliers to track who you buy from.</span></div>`; return; }
+    const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Name</div><div>Phone</div></div>`;
+    const rows = cache.suppliers.map((s) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr; cursor:pointer;" onclick="openEditSupplier('${escapeAttr(s.id)}')">
+        <div>${escapeHtml(s.name)}</div><div style="color:var(--ink-faint)">${escapeHtml(s.phone ?? "—")}</div>
+      </div>`).join("");
+    appendPaginated(el, head + rows, "suppliers", append);
+  }
+
+  function openEditSupplier(supplierId) {
+    const s = cache.suppliers.find((x) => x.id === supplierId);
+    if (!s) return;
+    editingRecord = { table: "suppliers", id: s.id };
+    document.getElementById("supplier-modal-title").textContent = "Edit supplier";
+    document.getElementById("supplier-submit-btn").textContent = "Save changes";
+    document.getElementById("supplier-delete-btn").classList.remove("hidden");
+    document.getElementById("sup-name").value = s.name ?? "";
+    document.getElementById("sup-phone").value = s.phone ?? "";
+    openModal("supplier-modal");
+  }
+
+  async function submitSupplier() {
+    clearError("supplier-error");
+    const btn = document.getElementById("supplier-submit-btn");
+    const name = document.getElementById("sup-name").value.trim();
+    const phone = document.getElementById("sup-phone").value.trim() || null;
+    if (!name) return setError("supplier-error", "Name is required.");
+
+    const payload = { name, phone };
+    setBtnLoading(btn, true);
+    const { error } = editingRecord
+      ? await sb.from("suppliers").update(payload).eq("id", editingRecord.id)
+      : await sb.from("suppliers").insert({ business_id: membership.business_id, ...payload });
+    setBtnLoading(btn, false);
+
+    if (error) return setError("supplier-error", error.message);
+    closeModal("supplier-modal");
+    showToast(editingRecord ? "Supplier updated" : "Supplier added");
+    await loadSuppliers();
+  }
+
+  // ============================================================
+  // STOCK MOVEMENTS
+  // ============================================================
+  async function loadMovements(append = false) {
+    if (loading.movements && !append) return;
+    loading.movements = true;
+    const ver = ++reqVersion.movements;
+    const dateFilter = document.getElementById("movements-date-filter")?.value;
+    const mode = document.getElementById("movements-filter-mode")?.value || "date";
+    const offset = append ? pagination.movements : 0;
+    let query = sb.from("stock_movements").select("*, products(name), raw_materials(name)").eq("business_id", membership.business_id).order("created_at", { ascending: false }).range(offset, offset + PAGE_SIZE - 1);
+    query = applyTimeFilter(query, dateFilter, mode, "created_at");
+    const { data } = await query;
+    loading.movements = false;
+    if (ver !== reqVersion.movements) return;
+    if (append) { cache.movements = [...cache.movements, ...(data ?? [])]; } else { cache.movements = data ?? []; }
+    pagination.movements = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
+    const el = document.getElementById("movements-ledger");
+    if (!el) return;
+    if (cache.movements.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">📊</div>No stock movements recorded yet.<br><span style="font-size:12px;">Stock changes from sales, purchases, and waste will appear here.</span></div>`; return; }
+    const head = `<div class="ledger-head" style="grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr;"><div>Item</div><div>Type</div><div>Qty Change</div><div>Reason</div><div>Date</div></div>`;
+    const rows = cache.movements.map((m) => {
+      const name = m.products?.name || m.raw_materials?.name || '—';
+      const qty = Number(m.quantity_change);
+      const isNeg = qty < 0;
+      return `<div class="ledger-row" style="grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr;">
+        <div>${escapeHtml(name)}</div>
+        <div><span class="cat-badge">${escapeHtml(m.item_type)}</span></div>
+        <div class="num" style="color:${isNeg ? 'var(--danger)' : 'var(--accent)'};">${qty > 0 ? '+' : ''}${qty}</div>
+        <div style="color:var(--ink-faint); font-size:12px;">${escapeHtml(m.reason || '—')}</div>
+        <div style="color:var(--ink-faint); font-size:12px;">${new Date(m.created_at).toLocaleDateString()}</div>
+      </div>`;
+    }).join("");
+    appendPaginated(el, head + rows, "movements", append);
   }
 
   // ============================================================
@@ -3698,19 +3748,13 @@
       const needed = Number(ri.quantity_required) * batchQty;
       const mat = cache.materials.find(m => m.id === ri.raw_material_id);
       const matName = mat ? mat.name : 'material';
-      const { data: freshMat, error: freshMatErr } = await sb.from("raw_materials").select("stock_qty").eq("id", ri.raw_material_id).eq("business_id", membership.business_id).single();
-      if (freshMatErr || !freshMat) { setBtnLoading(btn, false); return setError("produce-error", `Unable to verify stock for ${matName}.`); }
-      if (Number(freshMat.stock_qty) < needed) { setBtnLoading(btn, false); return setError("produce-error", `Not enough ${matName} — need ${needed}, have ${Number(freshMat.stock_qty)}.`); }
-      const { error: matErr } = await sb.from("raw_materials").update({ stock_qty: Number(freshMat.stock_qty) - needed }).eq("id", ri.raw_material_id).eq("stock_qty", Number(freshMat.stock_qty)).eq("business_id", membership.business_id);
-      if (matErr) { setBtnLoading(btn, false); return setError("produce-error", `Stock changed for ${matName} — please try again.`); }
+      const result = await adjustStock('raw_materials', ri.raw_material_id, -needed, membership.business_id);
+      if (result.error) { setBtnLoading(btn, false); return setError("produce-error", `Stock changed for ${matName} — please try again.`); }
+      await logStockMovement({ itemType: 'raw_material', materialId: ri.raw_material_id, qtyChange: -needed, reason: 'production', refType: 'production', refId: productId });
     }
 
-    const { data: freshProd, error: freshProdErr } = await sb.from("products").select("stock_qty").eq("id", productId).eq("business_id", membership.business_id).single();
-    if (!freshProdErr && freshProd) {
-      const currentProdStock = Number(freshProd.stock_qty);
-      const { error: prodStockErr } = await sb.from("products").update({ stock_qty: currentProdStock + batchQty }).eq("id", productId).eq("stock_qty", currentProdStock).eq("business_id", membership.business_id);
-      if (prodStockErr) { setBtnLoading(btn, false); return setError("produce-error", "Product stock changed during production — please try again."); }
-    }
+    await adjustStock('products', productId, batchQty, membership.business_id);
+    await logStockMovement({ itemType: 'product', productId, qtyChange: batchQty, reason: 'production', refType: 'production', refId: productId });
 
     setBtnLoading(btn, false);
     closeModal("produce-modal");

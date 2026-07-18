@@ -558,6 +558,9 @@
   .pos-products-panel { overflow-y: auto; padding: 12px; }
   .pos-cart-panel { background: var(--card); border-left: 1px solid var(--line); display: flex; flex-direction: column; }
 
+  .costing-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; border-bottom: 1px solid var(--line); }
+  .costing-row:last-child { border-bottom: none; }
+
   /* KDS Styles */
   .kds-modal { max-width: 100vw; width: 100%; max-height: 100vh; padding: 0; border-radius: 0; }
   .kds-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: var(--accent); color: white; border-radius: 12px 12px 0 0; }
@@ -724,7 +727,7 @@
         <div class="metric-card"><div class="label">Revenue</div><div class="value num" id="m-revenue">0</div><div class="note">Total sales value.</div></div>
         <div class="metric-card"><div class="label">Total costs</div><div class="value num" id="m-total-costs">0</div><div class="note">Expenses + purchases + waste.</div></div>
         <div class="metric-card"><div class="label">Net profit</div><div class="value num" id="m-profit">0</div><div class="note">Revenue minus all costs.</div></div>
-        <div class="metric-card warn"><div class="label">Low stock</div><div class="value num" id="m-lowstock">0</div><div class="note">Products at or below reorder.</div></div>
+        <div class="metric-card warn"><div class="label">Low stock</div><div class="value num" id="m-lowstock">0</div><div class="note">Items at or below reorder.</div></div>
         <div class="metric-card"><div class="label">Orders</div><div class="value num" id="m-sales">0</div><div class="note">Total orders placed.</div></div>
         <div class="metric-card"><div class="label">Avg order</div><div class="value num" id="m-avg-order">0</div><div class="note">Revenue per order.</div></div>
       </div>
@@ -1018,6 +1021,14 @@
       <option value="">None</option>
     </select>
     <input type="text" id="p-category-new" class="hidden" placeholder="Type new category name" style="margin-top:4px;" />
+    <div id="p-type-row" class="field-row">
+      <div><label>Type</label>
+        <select id="p-type">
+          <option value="resale">Buy & Sell</option>
+          <option value="manufactured">Manufactured</option>
+        </select>
+      </div>
+    </div>
     <div class="field-row">
       <div><label>Selling price</label><input type="number" id="p-price" min="0" step="any" /></div>
     </div>
@@ -1111,8 +1122,16 @@
   <div class="modal">
     <div class="close" onclick="closeModal('purchase-modal')">Close</div>
     <h3>New purchase</h3>
-    <label>Product</label>
+    <div id="po-type-toggle" style="display:none; margin-bottom:10px;">
+      <label style="margin-bottom:6px;">What are you buying?</label>
+      <select id="po-type" onchange="togglePurchaseType()" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+        <option value="product">Resale Product</option>
+        <option value="material">Raw Material</option>
+      </select>
+    </div>
+    <label id="po-item-label">Product</label>
     <select id="po-product"></select>
+    <select id="po-material" class="hidden"></select>
     <div class="field-row">
       <div><label>Quantity received</label><input type="number" id="po-qty" value="1" min="1" /></div>
       <div><label>Unit cost</label><input type="number" id="po-cost" min="0" step="any" /></div>
@@ -2558,6 +2577,9 @@
     document.querySelectorAll('.nav-item[data-tab="materials"]').forEach((el) => {
       el.classList.toggle("hidden", !needsRawMaterials);
     });
+    document.querySelectorAll('.nav-item[data-tab="stock-movements"], .nav-item[data-tab="efficiency"]').forEach((el) => {
+      el.classList.toggle("hidden", !needsRawMaterials);
+    });
   }
 
   function businessUsesRawMaterials() {
@@ -2900,10 +2922,15 @@
     const lowStockProducts = cache.products.filter(
       (p) => p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold)
     );
-    const lowStockCount = lowStockProducts.length;
+    const lowStockMaterials = cache.materials.filter(
+      (m) => m.stock_qty !== null && m.low_stock_threshold !== null && Number(m.stock_qty) <= Number(m.low_stock_threshold)
+    );
+    const lowStockCount = lowStockProducts.length + lowStockMaterials.length;
     const salesCount = allSales ? allSales.filter(o => o.status !== 'voided').length : 0;
     const averageSale = salesCount ? revenue / salesCount : 0;
-    const worstStock = lowStockProducts.length > 0 ? lowStockProducts.sort((a, b) => Number(a.stock_qty) - Number(b.stock_qty))[0].name : "All products healthy";
+    const worstStockItems = [...lowStockProducts.map(p => ({ name: p.name, qty: Number(p.stock_qty) })), ...lowStockMaterials.map(m => ({ name: m.name + ' (material)', qty: Number(m.stock_qty) }))];
+    worstStockItems.sort((a, b) => a.qty - b.qty);
+    const worstStock = worstStockItems.length > 0 ? worstStockItems[0].name : "All items healthy";
 
     // Top product by stock count (simplest available metric)
     const topProduct = cache.products.length > 0
@@ -2926,6 +2953,7 @@
     // Action needed
     const alerts = [];
     if (lowStockCount > 0) alerts.push(`${lowStockCount} low-stock item${lowStockCount === 1 ? '' : 's'} need attention.`);
+    if (lowStockMaterials.length > 0 && businessUsesRawMaterials()) alerts.push(`${lowStockMaterials.length} raw material${lowStockMaterials.length === 1 ? '' : 's'} running low.`);
     if (wasteCost > 0) alerts.push(`${money(wasteCost)} in waste logged.`);
     if (revenue > 0 && totalCosts > revenue) alerts.push("Costs exceed revenue — review spending.");
     if (purchaseTotal === 0 && cache.materials.length > 0) alerts.push("No purchase orders recorded — costs may be incomplete.");
@@ -2980,12 +3008,13 @@
       `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Product</div><div>Stock</div><div style="text-align:right">Price</div></div>` +
       list.map((p) => {
         const isLow = p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold);
-        const showRecipeLink = businessUsesRawMaterials();
+        const isManufactured = businessUsesRawMaterials() && p.product_type === 'manufactured';
+        const isResale = !businessUsesRawMaterials() || !p.product_type || p.product_type === 'resale';
         return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr; cursor:pointer;" onclick="openEditProduct('${escapeAttr(p.id)}')">
           <div>
-            <div>${escapeHtml(p.name)}</div>
+            <div>${escapeHtml(p.name)} ${isManufactured ? '<span style="font-size:10px; padding:1px 5px; border-radius:4px; background:var(--accent-soft); color:var(--accent); font-weight:600;">MADE</span>' : ''}${isResale && businessUsesRawMaterials() ? '<span style="font-size:10px; padding:1px 5px; border-radius:4px; background:var(--sky-soft); color:var(--sky); font-weight:600;">BUY</span>' : ''}</div>
             ${p.category ? `<span class="cat-badge">${escapeHtml(p.category)}</span>` : ""}
-            ${showRecipeLink ? `<span style="color:var(--accent); font-size:11px; text-decoration:underline; margin-left:8px;" onclick="event.stopPropagation(); openRecipeModal('${escapeAttr(p.id)}')">Recipe</span>` : ""}
+            ${isManufactured ? `<span style="color:var(--accent); font-size:11px; text-decoration:underline; margin-left:8px;" onclick="event.stopPropagation(); openRecipeModal('${escapeAttr(p.id)}')">Recipe</span>` : ""}
           </div>
           <div class="${isLow ? "low-tag" : "num"}">${p.stock_qty !== null ? p.stock_qty + " " + escapeHtml(p.unit) : "—"}</div>
           <div class="num" style="text-align:right">${money(p.price)}</div>
@@ -3018,6 +3047,8 @@
     document.getElementById("p-unit").value = "";
     document.getElementById("p-stock").value = "";
     document.getElementById("p-threshold").value = "";
+    document.getElementById("p-type-row").style.display = businessUsesRawMaterials() ? "" : "none";
+    document.getElementById("p-type").value = "resale";
     openModal("product-modal");
   }
 
@@ -3035,6 +3066,8 @@
     document.getElementById("p-unit").value = p.unit;
     document.getElementById("p-stock").value = p.stock_qty ?? "";
     document.getElementById("p-threshold").value = p.low_stock_threshold ?? "";
+    document.getElementById("p-type-row").style.display = businessUsesRawMaterials() ? "" : "none";
+    document.getElementById("p-type").value = p.product_type || "resale";
     openModal("product-modal");
   }
 
@@ -3044,7 +3077,7 @@
     if (!p) return;
     const { error } = await sb.from("products").insert({
       business_id: membership.business_id, name: `${p.name} (copy)`, category: p.category,
-      price: p.price, unit: p.unit, stock_qty: 0, low_stock_threshold: p.low_stock_threshold,
+      price: p.price, unit: p.unit, stock_qty: 0, low_stock_threshold: p.low_stock_threshold, product_type: p.product_type || 'resale',
     });
     if (error) return setError("product-error", error.message);
     closeModal("product-modal");
@@ -3061,13 +3094,14 @@
     const unit = document.getElementById("p-unit").value.trim() || "item";
     const stock = document.getElementById("p-stock").value === "" ? 0 : parseFloat(document.getElementById("p-stock").value);
     const threshold = document.getElementById("p-threshold").value === "" ? null : parseFloat(document.getElementById("p-threshold").value);
+    const productType = businessUsesRawMaterials() ? (document.getElementById("p-type").value || 'resale') : 'resale';
 
     if (!name || isNaN(price)) return setError("product-error", "Name and price are required.");
     if (price < 0) return setError("product-error", "Price cannot be negative.");
     if (stock < 0) return setError("product-error", "Stock cannot be negative.");
     if (threshold !== null && threshold < 0) return setError("product-error", "Threshold cannot be negative.");
 
-    const payload = { name, category, price, unit, stock_qty: stock, low_stock_threshold: threshold };
+    const payload = { name, category, price, unit, stock_qty: stock, low_stock_threshold: threshold, product_type: productType };
     setBtnLoading(btn, true);
 
     if (editingRecord) {
@@ -3307,18 +3341,45 @@
   // ============================================================
   function openPurchaseModal() {
     document.getElementById("po-product").innerHTML = cache.products.map((p) => `<option value="${p.id}">${escapeHtml(p.name)} (stock: ${p.stock_qty ?? "—"})</option>`).join("");
+    if (businessUsesRawMaterials()) {
+      document.getElementById("po-type-toggle").style.display = "";
+      document.getElementById("po-material").innerHTML = cache.materials.map((m) => `<option value="${m.id}">${escapeHtml(m.name)} (${escapeHtml(m.unit)}, stock: ${m.stock_qty ?? "—"})</option>`).join("");
+      togglePurchaseType();
+    } else {
+      document.getElementById("po-type-toggle").style.display = "none";
+    }
     openModal("purchase-modal");
+  }
+
+  function togglePurchaseType() {
+    const type = document.getElementById("po-type").value;
+    const prodSel = document.getElementById("po-product");
+    const matSel = document.getElementById("po-material");
+    const label = document.getElementById("po-item-label");
+    if (type === "material") {
+      prodSel.classList.add("hidden");
+      matSel.classList.remove("hidden");
+      label.textContent = "Raw Material";
+    } else {
+      matSel.classList.add("hidden");
+      prodSel.classList.remove("hidden");
+      label.textContent = "Product";
+    }
   }
 
   async function submitPurchase() {
     clearError("purchase-error");
     const btn = document.getElementById("purchase-submit-btn");
-    const productId = document.getElementById("po-product").value;
     const qty = parseFloat(document.getElementById("po-qty").value);
     const cost = parseFloat(document.getElementById("po-cost").value);
-    const product = cache.products.find((p) => p.id === productId);
 
-    if (!product || isNaN(qty) || qty <= 0 || isNaN(cost)) return setError("purchase-error", "Check the product, quantity, and cost.");
+    const isMaterial = businessUsesRawMaterials() && document.getElementById("po-type").value === "material";
+    const itemId = isMaterial ? document.getElementById("po-material").value : document.getElementById("po-product").value;
+    const item = isMaterial
+      ? cache.materials.find((m) => m.id === itemId)
+      : cache.products.find((p) => p.id === itemId);
+
+    if (!item || isNaN(qty) || qty <= 0 || isNaN(cost)) return setError("purchase-error", `Check the ${isMaterial ? 'material' : 'product'}, quantity, and cost.`);
     if (cost < 0) return setError("purchase-error", "Cost cannot be negative.");
 
     const total = qty * cost;
@@ -3328,18 +3389,24 @@
     }).select().single();
     if (poErr) { setBtnLoading(btn, false); return setError("purchase-error", poErr.message); }
 
-    const { error: itemErr } = await sb.from("purchase_order_items").insert({
-      purchase_order_id: po.id, product_id: productId, quantity: qty, unit_cost: cost,
-    });
+    const payload = { purchase_order_id: po.id, quantity: qty, unit_cost: cost };
+    if (isMaterial) {
+      payload.raw_material_id = itemId;
+    } else {
+      payload.product_id = itemId;
+    }
+    const { error: itemErr } = await sb.from("purchase_order_items").insert(payload);
     if (itemErr) { setBtnLoading(btn, false); return setError("purchase-error", itemErr.message); }
 
-    const stockResult = await adjustStock('products', productId, qty, membership.business_id);
+    const table = isMaterial ? 'raw_materials' : 'products';
+    const stockResult = await adjustStock(table, itemId, qty, membership.business_id);
     if (stockResult.error) { setBtnLoading(btn, false); return setError("purchase-error", "Stock changed during purchase — please try again."); }
+    await logStockMovement({ itemType: isMaterial ? 'raw_material' : 'product', productId: isMaterial ? null : itemId, materialId: isMaterial ? itemId : null, qtyChange: qty, reason: 'purchase', refType: 'purchase_order', refId: po.id });
 
     setBtnLoading(btn, false);
     closeModal("purchase-modal");
     showToast("Purchase recorded");
-    await Promise.all([loadProducts(), loadPurchases()]);
+    await Promise.all([loadProducts(), loadMaterials(), loadPurchases()]);
     renderDashboard();
   }
 
@@ -3364,12 +3431,17 @@
 
     const { data: items } = await sb.from("purchase_order_items").select("*").eq("purchase_order_id", poId);
     for (const item of items ?? []) {
-      await adjustStock('products', item.product_id, -Number(item.quantity), membership.business_id);
-      await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: -Number(item.quantity), reason: 'purchase void', refType: 'purchase_order', refId: poId });
+      if (item.raw_material_id) {
+        await adjustStock('raw_materials', item.raw_material_id, -Number(item.quantity), membership.business_id);
+        await logStockMovement({ itemType: 'raw_material', materialId: item.raw_material_id, qtyChange: -Number(item.quantity), reason: 'purchase void', refType: 'purchase_order', refId: poId });
+      } else {
+        await adjustStock('products', item.product_id, -Number(item.quantity), membership.business_id);
+        await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: -Number(item.quantity), reason: 'purchase void', refType: 'purchase_order', refId: poId });
+      }
     }
     await sb.from("purchase_orders").update({ status: "voided" }).eq("id", poId).eq("business_id", membership.business_id);
 
-    await Promise.all([loadProducts(), loadPurchases()]);
+    await Promise.all([loadProducts(), loadMaterials(), loadPurchases()]);
     showToast("Purchase voided and stock restored");
     renderDashboard();
   }
@@ -3716,18 +3788,23 @@
     const { data } = await sb.from("recipe_items").select("id, product_id, raw_material_id, quantity_required").eq("product_id", recipeProductId);
     const el = document.getElementById("recipe-items-list");
     if (!data || data.length === 0) { el.innerHTML = `<div class="empty-state" style="padding:16px;">No recipe set yet.</div>`; return; }
+    let totalCost = 0;
     el.innerHTML = data.map((ri) => {
       const mat = cache.materials.find(m => m.id === ri.raw_material_id);
       const matName = mat ? escapeHtml(mat.name) : 'Unknown';
       const matUnit = mat ? escapeHtml(mat.unit) : '';
+      const matCost = mat ? Number(mat.cost_per_unit || 0) : 0;
+      const lineCost = Number(ri.quantity_required) * matCost;
+      totalCost += lineCost;
       return `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--line);">
         <div style="font-size:14px;">${matName}</div>
         <div style="display:flex; align-items:center; gap:10px;">
           <span class="num">${ri.quantity_required} ${matUnit}</span>
+          <span style="color:var(--ink-faint); font-size:12px;">${money(lineCost)}</span>
           <span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="removeRecipeItem('${escapeAttr(ri.id)}')">Remove</span>
         </div>
       </div>`;
-    }).join("");
+    }).join("") + `<div style="padding:8px 0; font-size:13px; font-weight:600; color:var(--ink-soft);">Total recipe cost per unit: ${money(totalCost)}</div>`;
   }
 
   async function addRecipeItem() {
@@ -3736,6 +3813,11 @@
     const materialId = document.getElementById("ri-material").value;
     const qty = parseFloat(document.getElementById("ri-qty").value);
     if (!materialId || isNaN(qty) || qty <= 0) return setError("recipe-error", "Pick a raw material and a valid quantity.");
+
+    // Check for duplicate
+    const existing = await sb.from("recipe_items").select("id").eq("product_id", recipeProductId).eq("raw_material_id", materialId).maybeSingle();
+    if (existing.data) return setError("recipe-error", "This material is already in the recipe. Remove it first if you want to change the quantity.");
+
     setBtnLoading(btn, true);
     const { error } = await sb.from("recipe_items").insert({ product_id: recipeProductId, raw_material_id: materialId, quantity_required: qty });
     setBtnLoading(btn, false);
@@ -3756,35 +3838,60 @@
   // ============================================================
   function openProduceModal() {
     if (!businessUsesRawMaterials()) return;
-    document.getElementById("prod-product").innerHTML = cache.products.map((p) => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("");
+    const manufactured = cache.products.filter(p => p.product_type === 'manufactured');
+    if (manufactured.length === 0) {
+      document.getElementById("prod-product").innerHTML = '<option value="">No manufactured products — add one in Products tab first</option>';
+    } else {
+      document.getElementById("prod-product").innerHTML = manufactured.map((p) => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("");
+    }
     openModal("produce-modal");
     onProduceProductChange();
   }
 
   async function onProduceProductChange() {
     const productId = document.getElementById("prod-product").value;
-    const batchQty = parseFloat(document.getElementById("prod-qty").value) || 1;
+    const batchQty = parseFloat(document.getElementById("prod-planned-qty").value) || 1;
     const { data: recipe } = await sb.from("recipe_items").select("id, product_id, raw_material_id, quantity_required").eq("product_id", productId);
     const el = document.getElementById("produce-requirements");
+    const costingEl = document.getElementById("produce-costing");
 
-    if (!recipe || recipe.length === 0) { el.innerHTML = `<em>No recipe set for this product — add one from the Products tab first.</em>`; return; }
+    if (!recipe || recipe.length === 0) { el.innerHTML = `<em>No recipe set for this product — <a href="javascript:void(0)" onclick="closeModal('produce-modal'); openRecipeModal('${escapeAttr(productId)}')" style="color:var(--accent)">add one now</a>.</em>`; costingEl.style.display = 'none'; return; }
 
+    let totalMaterialCost = 0;
     el.innerHTML = "<strong>This will use:</strong><br>" + recipe.map((ri) => {
       const mat = cache.materials.find(m => m.id === ri.raw_material_id);
       const matName = mat ? escapeHtml(mat.name) : 'Unknown material';
       const matUnit = mat ? escapeHtml(mat.unit) : '';
+      const matCost = mat ? Number(mat.cost_per_unit || 0) : 0;
       const available = mat ? Number(mat.stock_qty) : 0;
       const needed = Number(ri.quantity_required) * batchQty;
       const short = needed > available;
+      totalMaterialCost += needed * matCost;
       return `<span style="${short ? "color:var(--danger); font-weight:500;" : ""}">${matName}: ${needed} ${matUnit}${short ? ` (only ${available} available!)` : ""}</span>`;
     }).join("<br>");
+
+    const product = cache.products.find(p => p.id === productId);
+    const sellPrice = product ? Number(product.price) : 0;
+    const costPerUnit = batchQty > 0 ? totalMaterialCost / batchQty : 0;
+    const margin = sellPrice > 0 ? ((sellPrice - costPerUnit) / sellPrice * 100) : 0;
+
+    document.getElementById("prod-material-cost").textContent = money(totalMaterialCost);
+    document.getElementById("prod-unit-cost").textContent = money(costPerUnit);
+    document.getElementById("prod-sell-price").textContent = money(sellPrice);
+    document.getElementById("prod-margin").textContent = margin.toFixed(1) + '%';
+    document.getElementById("prod-margin").style.color = margin >= 0 ? 'var(--accent)' : 'var(--danger)';
+    const actualYield = parseFloat(document.getElementById("prod-actual-yield").value) || batchQty;
+    const yieldPct = batchQty > 0 ? (actualYield / batchQty * 100) : 0;
+    document.getElementById("prod-yield-pct").textContent = actualYield !== batchQty ? yieldPct.toFixed(1) + '%' : '—';
+    costingEl.style.display = 'block';
   }
 
   async function submitProduce() {
     clearError("produce-error");
     const btn = document.getElementById("produce-submit-btn");
     const productId = document.getElementById("prod-product").value;
-    const batchQty = parseFloat(document.getElementById("prod-qty").value);
+    const batchQty = parseFloat(document.getElementById("prod-planned-qty").value);
+    const actualYield = parseFloat(document.getElementById("prod-actual-yield").value) || batchQty;
     if (isNaN(batchQty) || batchQty <= 0) return setError("produce-error", "Enter a valid batch quantity.");
 
     const { data: recipe } = await sb.from("recipe_items").select("id, product_id, raw_material_id, quantity_required").eq("product_id", productId);
@@ -3801,22 +3908,39 @@
     }
 
     setBtnLoading(btn, true);
+
+    // Insert batch record
+    const { data: batch, error: batchErr } = await sb.from("produce_batches").insert({
+      business_id: membership.business_id,
+      product_id: productId,
+      batch_qty: batchQty,
+      actual_yield: actualYield,
+      status: 'completed',
+      started_by: currentUser.id,
+      completed_by: currentUser.id,
+      started_at: new Date().toISOString(),
+      completed_at: new Date().toISOString(),
+    }).select().single();
+    if (batchErr) { setBtnLoading(btn, false); return setError("produce-error", batchErr.message); }
+
+    // Deduct raw materials
     for (const ri of recipe) {
       const needed = Number(ri.quantity_required) * batchQty;
       const mat = cache.materials.find(m => m.id === ri.raw_material_id);
       const matName = mat ? mat.name : 'material';
       const result = await adjustStock('raw_materials', ri.raw_material_id, -needed, membership.business_id);
       if (result.error) { setBtnLoading(btn, false); return setError("produce-error", `Stock changed for ${matName} — please try again.`); }
-      await logStockMovement({ itemType: 'raw_material', materialId: ri.raw_material_id, qtyChange: -needed, reason: 'production', refType: 'production', refId: productId });
+      await logStockMovement({ itemType: 'raw_material', materialId: ri.raw_material_id, qtyChange: -needed, reason: 'production', refType: 'production', refId: batch.id });
     }
 
-    await adjustStock('products', productId, batchQty, membership.business_id);
-    await logStockMovement({ itemType: 'product', productId, qtyChange: batchQty, reason: 'production', refType: 'production', refId: productId });
+    // Add product stock (use actual yield)
+    await adjustStock('products', productId, actualYield, membership.business_id);
+    await logStockMovement({ itemType: 'product', productId, qtyChange: actualYield, reason: 'production', refType: 'production', refId: batch.id });
 
     setBtnLoading(btn, false);
     closeModal("produce-modal");
-    showToast(`${batchQty} unit${batchQty === 1 ? "" : "s"} produced`);
-    await Promise.all([loadProducts(), loadMaterials()]);
+    showToast(`${actualYield} unit${actualYield === 1 ? "" : "s"} produced`);
+    await Promise.all([loadProducts(), loadMaterials(), loadProduceBatches()]);
     renderDashboard();
   }
 

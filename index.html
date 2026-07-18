@@ -80,23 +80,40 @@
   .hidden { display: none !important; }
 
   /* ---------- AUTH ---------- */
-  #auth-screen { max-width: 420px; margin: 0 auto; padding: 60px 20px; }
-  #loading {
-    position: fixed;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    padding: 0;
-    margin: 0;
-    background: #000;
-    z-index: 60;
+  #auth-screen {
+    display: flex; flex-direction: column; justify-content: flex-end;
+    max-width: 100%; width: 100vw; height: 100vh; padding: 0;
+    background: #000; position: relative; overflow: hidden;
   }
-  #loading img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    object-position: center;
-    display: block;
+  #auth-banner {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; object-position: center; z-index: 1;
+  }
+  #auth-content {
+    position: relative; z-index: 2;
+    max-width: 420px; width: 100%; margin: 0 auto; padding: 32px 20px 40px;
+    background: var(--paper); border-radius: 16px 16px 0 0;
+    display: none;
+  }
+  #auth-content.ready { display: block; }
+  #auth-spinner {
+    position: absolute; inset: 0; z-index: 3;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent;
+  }
+  #auth-spinner.done { display: none; }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (min-width: 769px) {
+    #auth-screen { justify-content: center; align-items: center; }
+    #auth-content { border-radius: 16px; margin: 0 auto; max-width: 420px; }
+    #auth-banner { object-fit: contain; }
   }
   .brand-mark { width: 44px; height: 44px; border-radius: 10px; overflow: hidden; margin-bottom: 18px; }
   .brand-mark img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -589,12 +606,13 @@
 <body>
 <div id="toast-container"></div>
 
-<div id="loading"><img src="banner.png" alt="Thole Solutions" /></div>
-
-<div id="auth-screen" class="hidden">
-  <div class="brand-mark"><img src="logo.png" alt="Thole Solutions" /></div>
-  <h1 id="auth-title">Sign in</h1>
-  <p class="sub" id="auth-sub">Manage your business in one place.</p>
+<div id="auth-screen">
+  <img id="auth-banner" src="banner.png" alt="Thole Solutions" />
+  <div id="auth-spinner"><div class="spinner"></div></div>
+  <div id="auth-content">
+    <div class="brand-mark"><img src="logo.png" alt="Thole Solutions" /></div>
+    <h1 id="auth-title">Sign in</h1>
+    <p class="sub" id="auth-sub">Manage your business in one place.</p>
 
   <div id="login-form">
     <label>Email</label><input type="email" id="login-email" />
@@ -629,6 +647,7 @@
   </div>
 
   <div id="auth-error" class="error hidden"></div>
+  </div>
 </div>
 
 <div id="invite-reveal-screen" class="hidden" style="max-width: 420px; margin: 0 auto; padding: 60px 20px; text-align:center;">
@@ -2525,17 +2544,20 @@
   // ============================================================
   // BOOT
   // ============================================================
+  function revealAuth() {
+    document.getElementById("auth-spinner").classList.add("done");
+    document.getElementById("auth-content").classList.add("ready");
+  }
+
   async function boot() {
     try {
       const { data: { session } } = await sb.auth.getSession();
-      hide("loading");
-      if (!session) { show("auth-screen"); showLogin(); return; }
+      if (!session) { revealAuth(); showLogin(); return; }
       currentUser = session.user;
       await checkMembership();
     } catch(err) {
       console.error("boot error:", err);
-      hide("loading");
-      show("auth-screen");
+      revealAuth();
       showLogin();
     }
   }
@@ -2734,7 +2756,14 @@
   async function handleLogout() {
     await sb.auth.signOut();
     currentUser = null; membership = null;
-    hide("app-screen"); hide("onboarding-screen"); showLogin(); show("auth-screen");
+    hide("app-screen"); hide("onboarding-screen");
+    // Reset auth screen spinner for next login
+    document.getElementById("auth-spinner").classList.remove("done");
+    document.getElementById("auth-content").classList.remove("ready");
+    show("auth-screen");
+    // Briefly show spinner, then reveal form
+    setTimeout(() => revealAuth(), 400);
+    showLogin();
   }
 
   // ============================================================

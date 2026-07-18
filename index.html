@@ -1014,7 +1014,7 @@
     <h3 id="product-modal-title">Add product</h3>
     <label>Name</label><input type="text" id="p-name" />
     <label>Category</label>
-    <select id="p-category" onchange="document.getElementById('p-category-new').style.display=this.value==='__new__'?'':'none';">
+    <select id="p-category" onchange="const ni=document.getElementById('p-category-new'); if(this.value==='__new__'){ni.classList.remove('hidden');ni.focus();}else{ni.classList.add('hidden');}">
       <option value="">None</option>
     </select>
     <input type="text" id="p-category-new" class="hidden" placeholder="Type new category name" style="margin-top:4px;" />

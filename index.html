@@ -1527,6 +1527,71 @@
     await sb.from("stock_movements").insert(payload);
   }
 
+  // ============================================================
+  // GENERIC CRUD HELPERS
+  // ============================================================
+  async function pagedLoad(key, { table, select, orderBy, ascending = true, extraFilters, timeFilterKey, timeCol = 'created_at', append = false } = {}) {
+    if (loading[key] && !append) return null;
+    loading[key] = true;
+    const ver = ++reqVersion[key];
+    const offset = append ? pagination[key] : 0;
+    let query = sb.from(table).select(select || '*').eq('business_id', membership.business_id);
+    if (extraFilters) extraFilters.forEach(f => { query = query.eq(f[0], f[1]); });
+    if (orderBy) query = query.order(orderBy, { ascending });
+    query = query.range(offset, offset + PAGE_SIZE - 1);
+    if (timeFilterKey) {
+      const val = document.getElementById(`${timeFilterKey}-date-filter`)?.value;
+      const mode = document.getElementById(`${timeFilterKey}-filter-mode`)?.value || 'date';
+      query = applyTimeFilter(query, val, mode, timeCol);
+    }
+    const { data } = await query;
+    loading[key] = false;
+    if (ver !== reqVersion[key]) return null;
+    if (append) { cache[key] = [...cache[key], ...(data ?? [])]; } else { cache[key] = data ?? []; }
+    pagination[key] = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
+    return data;
+  }
+
+  function genericEdit({ cacheKey, table, titleId, btnId, deleteId, modalId, fields }) {
+    return function(recordId) {
+      const record = cache[cacheKey].find(x => x.id === recordId);
+      if (!record) return;
+      editingRecord = { table, id: record.id };
+      document.getElementById(titleId).textContent = `Edit ${cacheKey.replace(/s$/, '')}`;
+      document.getElementById(btnId).textContent = 'Save changes';
+      document.getElementById(deleteId).classList.remove('hidden');
+      fields.forEach(({ id, key }) => { document.getElementById(id).value = record[key] ?? ''; });
+      openModal(modalId);
+    };
+  }
+
+  async function genericSubmit({ table, errId, btnId, modalId, fields, validate, extraInsert, postSubmit }) {
+    clearError(errId);
+    const btn = document.getElementById(btnId);
+    const payload = {};
+    let firstEmpty = null;
+    fields.forEach(({ id, key, transform }) => {
+      const el = document.getElementById(id);
+      const val = transform ? transform(el) : (el.value.trim() || null);
+      payload[key] = val;
+      if (val === null && !firstEmpty) firstEmpty = el;
+    });
+    if (validate) {
+      const vErr = validate(payload);
+      if (vErr) return setError(errId, vErr);
+    }
+    setBtnLoading(btn, true);
+    const insertPayload = { business_id: membership.business_id, ...payload, ...(extraInsert ? extraInsert() : {}) };
+    const { error } = editingRecord
+      ? await sb.from(table).update(payload).eq('id', editingRecord.id)
+      : await sb.from(table).insert(insertPayload);
+    setBtnLoading(btn, false);
+    if (error) return setError(errId, error.message);
+    closeModal(modalId);
+    showToast(editingRecord ? 'Updated' : 'Added');
+    if (postSubmit) await postSubmit();
+  }
+
   // ========== OFFLINE DRAFT QUEUE ==========
   const OFFLINE_QUEUE_KEY = 'thole_pos_offline_queue';
   
@@ -2130,6 +2195,14 @@
   }
 
   // ========== WASTE MODAL HELPERS ==========
+  async function getAvgProductCost(productId) {
+    const { data } = await sb.from('purchase_order_items').select('unit_cost, quantity').eq('product_id', productId);
+    if (!data || data.length === 0) return null;
+    let totalCost = 0, totalQty = 0;
+    data.forEach(i => { totalCost += Number(i.unit_cost || 0) * Number(i.quantity || 0); totalQty += Number(i.quantity || 0); });
+    return totalQty > 0 ? totalCost / totalQty : null;
+  }
+
   function openWasteModal() {
     const type = document.getElementById('waste-type').value;
     const prodSel = document.getElementById('waste-product');
@@ -2151,14 +2224,20 @@
     document.getElementById('waste-cost').value = '';
     const sel = type === 'product' ? document.getElementById('waste-product') : document.getElementById('waste-material');
     if (sel.options.length > 0) {
-      const item = type === 'product' ? cache.products.find(p => p.id === sel.value) : cache.materials.find(m => m.id === sel.value);
-      const costVal = type === 'product' ? (item && item.cost) : (item && item.cost_per_unit);
-      if (costVal != null) document.getElementById('waste-cost').value = costVal;
+      if (type === 'product') {
+        getAvgProductCost(sel.value).then(c => { if (c != null) document.getElementById('waste-cost').value = c; });
+      } else {
+        const item = cache.materials.find(m => m.id === sel.value);
+        if (item && item.cost_per_unit != null) document.getElementById('waste-cost').value = item.cost_per_unit;
+      }
     }
     sel.onchange = function() {
-      const it = type === 'product' ? cache.products.find(p => p.id === sel.value) : cache.materials.find(m => m.id === sel.value);
-      const costVal2 = type === 'product' ? (it && it.cost) : (it && it.cost_per_unit);
-      if (costVal2 != null) document.getElementById('waste-cost').value = costVal2;
+      if (type === 'product') {
+        getAvgProductCost(sel.value).then(c => { if (c != null) document.getElementById('waste-cost').value = c; });
+      } else {
+        const it = cache.materials.find(m => m.id === sel.value);
+        if (it && it.cost_per_unit != null) document.getElementById('waste-cost').value = it.cost_per_unit;
+      }
     };
   }
 
@@ -2816,15 +2895,7 @@
   // PRODUCTS
   // ============================================================
   async function loadProducts(append = false) {
-    if (loading.products && !append) return;
-    loading.products = true;
-    const ver = ++reqVersion.products;
-    const offset = append ? pagination.products : 0;
-    const { data } = await sb.from("products").select("*").eq("business_id", membership.business_id).eq("is_active", true).order("category").order("name").range(offset, offset + PAGE_SIZE - 1);
-    loading.products = false;
-    if (ver !== reqVersion.products) return;
-    if (append) { cache.products = [...cache.products, ...(data ?? [])]; } else { cache.products = data ?? []; }
-    pagination.products = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
+    await pagedLoad('products', { table: 'products', orderBy: 'category', extraFilters: [['is_active', true]], append });
     const cats = [...new Set(cache.products.map((p) => p.category).filter(Boolean))];
     document.getElementById("cat-filter").innerHTML =
       `<option value="">All categories</option>` + cats.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
@@ -2977,21 +3048,9 @@
   }
 
   async function loadSales(append = false) {
-    if (loading.sales && !append) return;
-    loading.sales = true;
-    const ver = ++reqVersion.sales;
-    const dateFilter = document.getElementById("sales-date-filter")?.value;
-    const mode = document.getElementById("sales-filter-mode")?.value || "date";
-    const offset = append ? pagination.sales : 0;
-    let query = sb.from("orders").select("*, customers(name)").eq("business_id", membership.business_id).order("created_at", { ascending: false }).range(offset, offset + PAGE_SIZE - 1);
-    query = applyTimeFilter(query, dateFilter, mode, "created_at");
-    
-    const { data } = await query;
-    loading.sales = false;
-    if (ver !== reqVersion.sales) return;
-    if (append) { cache.sales = [...cache.sales, ...(data ?? [])]; } else { cache.sales = data ?? []; }
-    pagination.sales = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
+    await pagedLoad('sales', { table: 'orders', select: '*, customers(name)', orderBy: 'created_at', ascending: false, timeFilterKey: 'sales', append });
     const el = document.getElementById("sales-ledger");
+    if (!el) return;
     if (cache.sales.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💰</div>No sales recorded yet.<br><span style="font-size:12px;">Record your first sale to see it here.</span></div>`; return; }
     const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;"><div>Customer</div><div>Date</div><div style="text-align:right">Total</div><div></div></div>`;
     const rows = cache.sales.map((o) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;">
@@ -3023,21 +3082,14 @@
   // CUSTOMERS
   // ============================================================
   async function loadCustomers(append = false) {
-    if (loading.customers && !append) return;
-    loading.customers = true;
-    const ver = ++reqVersion.customers;
-    const offset = append ? pagination.customers : 0;
-    const { data } = await sb.from("customers").select("*").eq("business_id", membership.business_id).order("name").range(offset, offset + PAGE_SIZE - 1);
-    loading.customers = false;
-    if (ver !== reqVersion.customers) return;
-    if (append) { cache.customers = [...cache.customers, ...(data ?? [])]; } else { cache.customers = data ?? []; }
-    pagination.customers = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
+    await pagedLoad('customers', { table: 'customers', orderBy: 'name', append });
     const el = document.getElementById("customers-ledger");
+    if (!el) return;
     if (cache.customers.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">👥</div>No customers yet.<br><span style="font-size:12px;">Add customers to track who's buying from you.</span></div>`; return; }
+    const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Name</div><div>Phone</div></div>`;
     const rows = cache.customers.map((c) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr; cursor:pointer;" onclick="openEditCustomer('${escapeAttr(c.id)}')">
         <div>${escapeHtml(c.name)}</div><div style="color:var(--ink-faint)">${escapeHtml(c.phone ?? "—")}</div>
       </div>`).join("");
-    const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Name</div><div>Phone</div></div>`;
     appendPaginated(el, head + rows, "customers", append);
   }
 
@@ -3077,21 +3129,9 @@
   // PAYMENTS
   // ============================================================
   async function loadPayments(append = false) {
-    if (loading.payments && !append) return;
-    loading.payments = true;
-    const ver = ++reqVersion.payments;
-    const dateFilter = document.getElementById("payments-date-filter")?.value;
-    const mode = document.getElementById("payments-filter-mode")?.value || "date";
-    const offset = append ? pagination.payments : 0;
-    let query = sb.from("payments").select("*, customers(name)").eq("business_id", membership.business_id).eq("direction", "in").order("created_at", { ascending: false }).range(offset, offset + PAGE_SIZE - 1);
-    query = applyTimeFilter(query, dateFilter, mode, "created_at");
-
-    const { data } = await query;
-    loading.payments = false;
-    if (ver !== reqVersion.payments) return;
-    if (append) { cache.payments = [...cache.payments, ...(data ?? [])]; } else { cache.payments = data ?? []; }
-    pagination.payments = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
+    await pagedLoad('payments', { table: 'payments', select: '*, customers(name)', orderBy: 'created_at', ascending: false, extraFilters: [['direction', 'in']], timeFilterKey: 'payments', append });
     const el = document.getElementById("payments-ledger");
+    if (!el) return;
     if (cache.payments.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💳</div>No payments recorded yet.<br><span style="font-size:12px;">Payments from customers will appear here.</span></div>`; return; }
     const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Customer</div><div>Method</div><div style="text-align:right">Amount</div></div>`;
     const rows = cache.payments.map((p) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr; cursor:pointer;" onclick="openEditPayment('${escapeAttr(p.id)}')">
@@ -3147,21 +3187,9 @@
   // EXPENSES
   // ============================================================
   async function loadExpenses(append = false) {
-    if (loading.expenses && !append) return;
-    loading.expenses = true;
-    const ver = ++reqVersion.expenses;
-    const dateFilter = document.getElementById("expenses-date-filter")?.value;
-    const mode = document.getElementById("expenses-filter-mode")?.value || "date";
-    const offset = append ? pagination.expenses : 0;
-    let query = sb.from("expenses").select("*").eq("business_id", membership.business_id).order("expense_date", { ascending: false }).range(offset, offset + PAGE_SIZE - 1);
-    query = applyTimeFilter(query, dateFilter, mode, "expense_date");
-
-    const { data } = await query;
-    loading.expenses = false;
-    if (ver !== reqVersion.expenses) return;
-    if (append) { cache.expenses = [...cache.expenses, ...(data ?? [])]; } else { cache.expenses = data ?? []; }
-    pagination.expenses = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
+    await pagedLoad('expenses', { table: 'expenses', orderBy: 'expense_date', ascending: false, timeFilterKey: 'expenses', timeCol: 'expense_date', append });
     const el = document.getElementById("expenses-ledger");
+    if (!el) return;
     if (cache.expenses.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💸</div>No expenses recorded yet.<br><span style="font-size:12px;">Track rent, wages, utilities, and more.</span></div>`; return; }
     const head = `<div class="ledger-head" style="grid-template-columns: 1fr 2fr 1fr;"><div>Category</div><div>Description</div><div style="text-align:right">Amount</div></div>`;
     const rows = cache.expenses.map((e) => `<div class="ledger-row" style="grid-template-columns: 1fr 2fr 1fr; cursor:pointer;" onclick="openEditExpense('${escapeAttr(e.id)}')">
@@ -3250,23 +3278,10 @@
   }
 
   async function loadPurchases(append = false) {
-    if (loading.purchases && !append) return;
-    loading.purchases = true;
-    const ver = ++reqVersion.purchases;
-    const dateFilter = document.getElementById("purchases-date-filter")?.value;
-    const mode = document.getElementById("purchases-filter-mode")?.value || "date";
-    const offset = append ? pagination.purchases : 0;
-    let query = sb.from("purchase_orders").select("*").eq("business_id", membership.business_id).order("created_at", { ascending: false }).range(offset, offset + PAGE_SIZE - 1);
-    query = applyTimeFilter(query, dateFilter, mode, "created_at");
-
-    const { data } = await query;
-    loading.purchases = false;
-    if (ver !== reqVersion.purchases) return;
-    if (append) { cache.purchases = [...cache.purchases, ...(data ?? [])]; } else { cache.purchases = data ?? []; }
+    await pagedLoad('purchases', { table: 'purchase_orders', orderBy: 'created_at', ascending: false, timeFilterKey: 'purchases', append });
     const el = document.getElementById("purchases-ledger");
     if (!el) return;
     if (cache.purchases.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">🛒</div>No purchases recorded yet.<br><span style="font-size:12px;">Restock your products by logging purchases.</span></div>`; return; }
-    pagination.purchases = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
     const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;"><div>Date</div><div>Status</div><div style="text-align:right">Total</div><div></div></div>`;
     const rows = cache.purchases.map((po) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;">
         <div style="color:var(--ink-faint); font-size:12px;">${new Date(po.created_at).toLocaleDateString()}</div>
@@ -3297,15 +3312,7 @@
   // SUPPLIERS
   // ============================================================
   async function loadSuppliers(append = false) {
-    if (loading.suppliers && !append) return;
-    loading.suppliers = true;
-    const ver = ++reqVersion.suppliers;
-    const offset = append ? pagination.suppliers : 0;
-    const { data } = await sb.from("suppliers").select("*").eq("business_id", membership.business_id).order("name").range(offset, offset + PAGE_SIZE - 1);
-    loading.suppliers = false;
-    if (ver !== reqVersion.suppliers) return;
-    if (append) { cache.suppliers = [...cache.suppliers, ...(data ?? [])]; } else { cache.suppliers = data ?? []; }
-    pagination.suppliers = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
+    await pagedLoad('suppliers', { table: 'suppliers', orderBy: 'name', append });
     const el = document.getElementById("suppliers-ledger");
     if (!el) return;
     if (cache.suppliers.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">🚚</div>No suppliers yet.<br><span style="font-size:12px;">Add suppliers to track who you buy from.</span></div>`; return; }
@@ -3352,19 +3359,7 @@
   // STOCK MOVEMENTS
   // ============================================================
   async function loadMovements(append = false) {
-    if (loading.movements && !append) return;
-    loading.movements = true;
-    const ver = ++reqVersion.movements;
-    const dateFilter = document.getElementById("movements-date-filter")?.value;
-    const mode = document.getElementById("movements-filter-mode")?.value || "date";
-    const offset = append ? pagination.movements : 0;
-    let query = sb.from("stock_movements").select("*, products(name), raw_materials(name)").eq("business_id", membership.business_id).order("created_at", { ascending: false }).range(offset, offset + PAGE_SIZE - 1);
-    query = applyTimeFilter(query, dateFilter, mode, "created_at");
-    const { data } = await query;
-    loading.movements = false;
-    if (ver !== reqVersion.movements) return;
-    if (append) { cache.movements = [...cache.movements, ...(data ?? [])]; } else { cache.movements = data ?? []; }
-    pagination.movements = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
+    await pagedLoad('movements', { table: 'stock_movements', select: '*, products(name), raw_materials(name)', orderBy: 'created_at', ascending: false, timeFilterKey: 'movements', append });
     const el = document.getElementById("movements-ledger");
     if (!el) return;
     if (cache.movements.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">📊</div>No stock movements recorded yet.<br><span style="font-size:12px;">Stock changes from sales, purchases, and waste will appear here.</span></div>`; return; }
@@ -3576,15 +3571,7 @@
   // RAW MATERIALS
   // ============================================================
   async function loadMaterials(append = false) {
-    if (loading.materials && !append) return;
-    loading.materials = true;
-    const ver = ++reqVersion.materials;
-    const offset = append ? pagination.materials : 0;
-    const { data } = await sb.from("raw_materials").select("*").eq("business_id", membership.business_id).order("name").range(offset, offset + PAGE_SIZE - 1);
-    loading.materials = false;
-    if (ver !== reqVersion.materials) return;
-    if (append) { cache.materials = [...cache.materials, ...(data ?? [])]; } else { cache.materials = data ?? []; }
-    pagination.materials = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
+    await pagedLoad('materials', { table: 'raw_materials', orderBy: 'name', append });
     const el = document.getElementById("materials-ledger");
     if (!el) return;
     if (cache.materials.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">🧱</div>No raw materials yet.<br><span style="font-size:12px;">Add ingredients or components for your recipes.</span></div>`; return; }

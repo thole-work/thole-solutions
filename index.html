@@ -2332,7 +2332,8 @@
   // ========== EFFICIENCY METRICS ==========
   async function renderEfficiency() {
     try {
-      const revenue = cache.sales.reduce((s, o) => s + Number(o.total_amount), 0);
+      const { data: allSales } = await sb.from('orders').select('total_amount, status').eq('business_id', membership.business_id);
+      const revenue = (allSales || []).filter(o => o.status !== 'voided').reduce((s, o) => s + Number(o.total_amount || 0), 0);
       const materialCost = cache.materials.reduce((s, m) => s + (Number(m.stock_qty) * Number(m.cost_per_unit || 0)), 0);
       const foodCostPct = revenue > 0 ? ((materialCost / revenue) * 100).toFixed(1) : '—';
       document.getElementById('eff-food-cost').textContent = foodCostPct === '—' ? '—' : foodCostPct + '%';
@@ -2835,13 +2836,19 @@
   }
 
   async function renderDashboard() {
-    const revenue = cache.sales.reduce((s, o) => s + Number(o.total_amount), 0);
-    const expenseTotal = cache.expenses.reduce((s, e) => s + Number(e.amount), 0);
-    const purchaseTotal = cache.purchases.filter(p => p.status !== 'voided').reduce((s, p) => s + Number(p.total_amount || 0), 0);
+    const bid = membership.business_id;
+    const [{ data: allSales }, { data: allExpenses }, { data: allPurchases }] = await Promise.all([
+      sb.from('orders').select('total_amount, status').eq('business_id', bid),
+      sb.from('expenses').select('amount').eq('business_id', bid),
+      sb.from('purchase_orders').select('total_amount, status').eq('business_id', bid),
+    ]);
+    const revenue = (allSales || []).filter(o => o.status !== 'voided').reduce((s, o) => s + Number(o.total_amount || 0), 0);
+    const expenseTotal = (allExpenses || []).reduce((s, e) => s + Number(e.amount || 0), 0);
+    const purchaseTotal = (allPurchases || []).filter(p => p.status !== 'voided').reduce((s, p) => s + Number(p.total_amount || 0), 0);
 
     let wasteCost = 0;
     try {
-      const { data: waste } = await sb.from('waste_log').select('quantity, unit_cost').eq('business_id', membership.business_id);
+      const { data: waste } = await sb.from('waste_log').select('quantity, unit_cost').eq('business_id', bid);
       wasteCost = (waste || []).reduce((s, w) => s + Number(w.quantity || 0) * Number(w.unit_cost || 0), 0);
     } catch(e) {}
 
@@ -2852,7 +2859,8 @@
       (p) => p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold)
     );
     const lowStockCount = lowStockProducts.length;
-    const averageSale = cache.sales.length ? revenue / cache.sales.length : 0;
+    const salesCount = allSales ? allSales.filter(o => o.status !== 'voided').length : 0;
+    const averageSale = salesCount ? revenue / salesCount : 0;
     const worstStock = lowStockProducts.length > 0 ? lowStockProducts.sort((a, b) => Number(a.stock_qty) - Number(b.stock_qty))[0].name : "All products healthy";
 
     // Top product by stock count (simplest available metric)
@@ -2867,7 +2875,7 @@
 
     // Metrics
     document.getElementById("m-lowstock").textContent = lowStockCount;
-    document.getElementById("m-sales").textContent = cache.sales.length;
+    document.getElementById("m-sales").textContent = salesCount;
     animateValue(document.getElementById("m-revenue"), revenue);
     document.getElementById("m-total-costs").textContent = money(totalCosts);
     animateValue(document.getElementById("m-profit"), revenue - totalCosts);
@@ -2890,7 +2898,7 @@
 
     // Efficiency
     const grossMargin = revenue > 0 ? (((revenue - purchaseTotal) / revenue) * 100).toFixed(1) + '%' : '—';
-    const costPerOrder = cache.sales.length > 0 ? money(totalCosts / cache.sales.length) : '—';
+    const costPerOrder = salesCount > 0 ? money(totalCosts / salesCount) : '—';
     const profitMargin = revenue > 0 ? (((revenue - totalCosts) / revenue) * 100).toFixed(1) + '%' : '—';
     const wasteRate = revenue > 0 ? ((wasteCost / revenue) * 100).toFixed(1) + '%' : '—';
     document.getElementById("d-margin").textContent = grossMargin;
@@ -3479,15 +3487,19 @@
   }
 
   async function getOrderItems() {
-    const orderIds = cache.sales.map((o) => o.id);
-    if (orderIds.length === 0) return [];
-    const { data } = await sb.from("order_items").select("product_id, quantity, line_total").in("order_id", orderIds);
+    const { data: allOrders } = await sb.from('orders').select('id, total_amount, status').eq('business_id', membership.business_id);
+    const validOrderIds = (allOrders || []).filter(o => o.status !== 'voided').map(o => o.id);
+    window._reportSales = allOrders || [];
+    if (validOrderIds.length === 0) return [];
+    const { data } = await sb.from("order_items").select("product_id, quantity, line_total").in("order_id", validOrderIds);
     return data ?? [];
   }
 
   function renderReportSummary(orderItems) {
-    const totalRevenue = cache.sales.reduce((sum, o) => sum + Number(o.total_amount), 0);
-    const avgSale = cache.sales.length ? totalRevenue / cache.sales.length : 0;
+    const sales = window._reportSales || [];
+    const totalRevenue = sales.filter(o => o.status !== 'voided').reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
+    const salesCount = sales.filter(o => o.status !== 'voided').length;
+    const avgSale = salesCount ? totalRevenue / salesCount : 0;
     const lowStockCount = cache.products.filter((p) => p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold)).length;
 
     const productRevenue = {};

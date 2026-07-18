@@ -493,6 +493,23 @@
   .pos-total-row.grand { border-top: 2px solid var(--line); margin-top: 8px; padding-top: 12px; font-size: 16px; font-weight: 700; color: var(--accent); }
   .pos-cart-actions { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); background: var(--paper); }
   .pos-cart-actions button { flex: 1; }
+  .pos-cart-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .pos-cart-name { font-weight: 500; font-size: 13px; }
+  .pos-cart-qty { display: flex; align-items: center; gap: 6px; }
+  .pos-cart-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .pos-cart-line-total { font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+  .pos-remove { font-size: 10px; padding: 4px 8px; border: none; background: var(--danger-soft); color: var(--danger); border-radius: 4px; cursor: pointer; }
+  .pos-empty { text-align: center; padding: 40px 20px; color: var(--ink-faint); font-size: 14px; }
+  @media (max-width: 720px) {
+    .pos-modal { max-width: 100vw; width: 100vw; max-height: 100vh; height: 100vh; border-radius: 0; }
+    .pos-body { grid-template-columns: 1fr; grid-template-rows: 1fr; height: calc(100vh - 50px); }
+    .pos-right { border-left: none; border-top: 1px solid var(--line); max-height: 45vh; }
+    .pos-products { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+    .pos-product-btn { padding: 10px; }
+    .pos-prod-name { font-size: 12px; }
+    .pos-prod-price { font-size: 13px; }
+    .pos-cart-item { grid-template-columns: 1fr auto; }
+  }
 
   /* Payment Modal */
   .payment-modal { max-width: 420px; }
@@ -641,7 +658,8 @@
     </div>
     <nav>
       <div class="nav-item nav-primary active" data-tab="dashboard" onclick="switchTab('dashboard')"><span class="nav-icon">🏠</span> Dashboard</div>
-      <div class="nav-item nav-primary" data-tab="products" onclick="switchTab('products')"><span class="nav-icon">📦</span> Products & Stock</div>
+      <div class="nav-item nav-primary" data-tab="products" onclick="switchTab('products')"><span class="nav-icon">📦</span> Stock</div>
+      <div class="nav-item nav-primary" onclick="posOpenTableMap()" style="cursor:pointer;"><span class="nav-icon">🛒</span> POS</div>
       <div class="nav-item nav-primary" data-tab="sales" onclick="switchTab('sales')"><span class="nav-icon">💰</span> Sales</div>
       <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers')"><span class="nav-icon">👥</span> Customers</div>
       <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments')"><span class="nav-icon">💳</span> Payments</div>
@@ -759,7 +777,7 @@
     </section>
 
     <section id="tab-sales" class="tab-panel hidden">
-      <div class="page-header"><h2>Sales</h2><p>Record a sale — stock updates automatically.</p></div>
+      <div class="page-header"><h2>Sales</h2><p>All orders and transactions.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
           <select id="sales-filter-mode" onchange="const f=document.getElementById('sales-date-filter'); f.type=this.value; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.sales=0; loadSales();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
@@ -767,7 +785,8 @@
           </select>
           <input type="date" id="sales-date-filter" onchange="pagination.sales=0; loadSales()" />
         </div>
-        <button class="btn-small" onclick="openSaleModal()">+ Record sale</button>
+        <button class="btn-small" onclick="exportSalesCSV()">📥 CSV</button>
+        <button class="btn-small" onclick="posOpenTableMap()">🛒 New Sale</button>
         <button class="btn-small" style="background:var(--sky); color:var(--ink);" onclick="openKDS()">🍳 KDS</button>
       </div>
       <div class="ledger" id="sales-ledger"></div>
@@ -1016,24 +1035,6 @@
   </div>
 </div>
 
-<div id="sale-modal" class="modal-backdrop hidden">
-  <div class="modal">
-    <div class="close" onclick="closeModal('sale-modal')">Close</div>
-    <h3>Record a sale</h3>
-    <label>Product</label>
-    <select id="s-product" onchange="onSaleProductChange()"></select>
-    <div class="field-row">
-      <div><label>Quantity</label><input type="number" id="s-qty" value="1" min="1" /></div>
-      <div><label>Unit price</label><input type="number" id="s-price" min="0" step="any" /></div>
-    </div>
-    <label>Customer (optional)</label>
-    <select id="s-customer"><option value="">Walk-in / no customer</option></select>
-    <button class="btn-primary" id="sale-submit-btn" onclick="submitSale()">Save sale</button>
-    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('sale-modal')">Cancel</button>
-    <div id="sale-error" class="error hidden"></div>
-  </div>
-</div>
-
 <div id="customer-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('customer-modal')">Close</div>
@@ -1263,8 +1264,9 @@
     <div class="close" onclick="closeModal('receipt-modal')">Close</div>
     <div id="receipt-content" class="receipt-content"></div>
     <div class="receipt-actions">
-      <button class="btn-ghost" onclick="window.print()">Print</button>
-      <button class="btn-primary" onclick="closeModal('receipt-modal'); posReset();">Done</button>
+      <button class="btn-ghost" onclick="printReceipt()">🖨️ Print</button>
+      <button class="btn-ghost" onclick="downloadReceiptCSV()">📥 CSV</button>
+      <button class="btn-primary" onclick="closeModal('receipt-modal')">Done</button>
     </div>
   </div>
 </div>
@@ -1817,14 +1819,16 @@
     const subEl = document.getElementById('pos-subtotal');
     const discEl = document.getElementById('pos-discount');
     const taxEl = document.getElementById('pos-tax');
-    const totalEl = document.getElementById('pos-total');
+    const totalEl = document.getElementById('pos-grand-total');
     if (subEl) subEl.textContent = money(subtotal);
     if (discEl) discEl.textContent = discount > 0 ? `-${money(discount)}` : money(0);
     if (taxEl) taxEl.textContent = money(tax);
     if (totalEl) totalEl.textContent = money(total);
   }
 
-  function posAddProduct(product) {
+  function posAddProduct(productId) {
+    const product = cache.products.find(p => p.id === productId);
+    if (!product) return;
     const existing = posState.cart.find(i => i.product_id === product.id);
     if (existing) {
       existing.qty += 1;
@@ -1920,7 +1924,7 @@
     const firstCat = cats[0];
     const products = firstCat ? cache.products.filter(p => p.category === firstCat) : cache.products;
     html += products.map(p => `
-      <button class="pos-product-btn" onclick="posAddProduct(${JSON.stringify(p).replace(/"/g, '"')})">
+      <button class="pos-product-btn" onclick="posAddProduct('${escapeAttr(p.id)}')">
         <span class="pos-prod-name">${escapeHtml(p.name)}</span>
         <span class="pos-prod-price">${money(p.price)}</span>
       </button>
@@ -1933,7 +1937,7 @@
     document.querySelectorAll('.pos-cat-btn').forEach(b => b.classList.toggle('active', b.textContent === cat));
     const products = cache.products.filter(p => p.category === cat);
     document.getElementById('pos-products-list').innerHTML = products.map(p => `
-      <button class="pos-product-btn" onclick="posAddProduct(${JSON.stringify(p).replace(/"/g, '"')})">
+      <button class="pos-product-btn" onclick="posAddProduct('${escapeAttr(p.id)}')">
         <span class="pos-prod-name">${escapeHtml(p.name)}</span>
         <span class="pos-prod-price">${money(p.price)}</span>
       </button>
@@ -2113,6 +2117,48 @@
       <div class="receipt-footer">${escapeHtml(receiptFooter)}</div>
     `;
     openModal('receipt-modal');
+  }
+
+  function printReceipt() {
+    const content = document.getElementById('receipt-content');
+    if (!content) return;
+    const win = window.open('', '_blank', 'width=320,height=600');
+    win.document.write(`<html><head><title>Receipt</title><style>
+      body{font-family:'Courier New',monospace;font-size:13px;padding:16px;max-width:300px;margin:0 auto;}
+      .receipt-header{text-align:center;margin-bottom:12px;}
+      .receipt-header h3{margin:0 0 4px;font-size:16px;}
+      .receipt-header p{margin:2px 0;font-size:12px;}
+      .receipt-items{border-top:1px dashed #333;padding-top:8px;margin-bottom:8px;}
+      .receipt-line{display:flex;justify-content:space-between;padding:3px 0;font-size:12px;}
+      .receipt-totals{border-top:1px dashed #333;padding-top:8px;}
+      .receipt-totals div{display:flex;justify-content:space-between;padding:2px 0;font-size:12px;}
+      .receipt-total{font-weight:bold;font-size:14px;border-top:1px solid #333;padding-top:4px;margin-top:4px;}
+      .receipt-footer{text-align:center;margin-top:12px;font-size:11px;color:#666;}
+    </style></head><body>${content.innerHTML}</body></html>`);
+    win.document.close();
+    win.print();
+    setTimeout(() => win.close(), 1000);
+  }
+
+  function downloadReceiptCSV() {
+    const content = document.getElementById('receipt-content');
+    if (!content) return;
+    const rows = content.querySelectorAll('.receipt-line');
+    let csv = 'Item,Qty,Total\n';
+    rows.forEach(r => {
+      const spans = r.querySelectorAll('span');
+      if (spans.length >= 2) {
+        const parts = spans[0].textContent.match(/^(.+)\s+x(\d+)$/);
+        if (parts) csv += `"${parts[1].replace(/"/g,'""')}",${parts[2]},${spans[1].textContent}\n`;
+      }
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `receipt_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   // ========== WASTE LOG ==========
@@ -3048,68 +3094,38 @@
   // ============================================================
   // SALES
   // ============================================================
-  async function openSaleModal() {
-    const productSelect = document.getElementById("s-product");
-    productSelect.innerHTML = cache.products.map((p) => `<option value="${p.id}">${escapeHtml(p.name)} (stock: ${p.stock_qty ?? "—"})</option>`).join("");
-    onSaleProductChange();
-    const customerSelect = document.getElementById("s-customer");
-    customerSelect.innerHTML = `<option value="">Walk-in / no customer</option>` + cache.customers.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
-    openModal("sale-modal");
-  }
-  function onSaleProductChange() {
-    const productId = document.getElementById("s-product").value;
-    const product = cache.products.find((p) => p.id === productId);
-    if (product) document.getElementById("s-price").value = product.price;
-  }
-  async function submitSale() {
-    clearError("sale-error");
-    const btn = document.getElementById("sale-submit-btn");
-    const productId = document.getElementById("s-product").value;
-    const qty = parseFloat(document.getElementById("s-qty").value);
-    const price = parseFloat(document.getElementById("s-price").value);
-    const customerId = document.getElementById("s-customer").value || null;
-    const product = cache.products.find((p) => p.id === productId);
-
-    if (!product || isNaN(qty) || qty <= 0 || isNaN(price)) return setError("sale-error", "Check the product, quantity, and price.");
-    if (price < 0) return setError("sale-error", "Price cannot be negative.");
-
-    const total = qty * price;
-    setBtnLoading(btn, true);
-    const { data: order, error: orderErr } = await sb.from("orders").insert({
-      business_id: membership.business_id, customer_id: customerId, created_by: currentUser.id, status: "completed", total_amount: total,
-    }).select().single();
-    if (orderErr) { setBtnLoading(btn, false); return setError("sale-error", orderErr.message); }
-
-    const { error: itemErr } = await sb.from("order_items").insert({
-      order_id: order.id, product_id: productId, quantity: qty, unit_price: price,
-    });
-    if (itemErr) { setBtnLoading(btn, false); return setError("sale-error", itemErr.message); }
-
-    if (product.stock_qty !== null) {
-      const result = await adjustStock('products', productId, -qty, membership.business_id);
-      if (result.error) { await sb.from("orders").delete().eq("id", order.id); setBtnLoading(btn, false); return setError("sale-error", "Stock changed during sale — please try again."); }
-    }
-
-    setBtnLoading(btn, false);
-    closeModal("sale-modal");
-    showToast("Sale recorded");
-    await Promise.all([loadProducts(), loadSales()]);
-    renderDashboard();
-  }
-
   async function loadSales(append = false) {
     await pagedLoad('sales', { table: 'orders', select: '*, customers(name)', orderBy: 'created_at', ascending: false, timeFilterKey: 'sales', append });
     const el = document.getElementById("sales-ledger");
     if (!el) return;
-    if (cache.sales.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💰</div>No sales recorded yet.<br><span style="font-size:12px;">Record your first sale to see it here.</span></div>`; return; }
-    const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;"><div>Customer</div><div>Date</div><div style="text-align:right">Total</div><div></div></div>`;
-    const rows = cache.sales.map((o) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;">
+    if (cache.sales.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💰</div>No sales recorded yet.<br><span style="font-size:12px;">Tap "New Sale" to open the POS.</span></div>`; return; }
+    const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;"><div>Customer</div><div>Date</div><div style="text-align:right">Total</div><div></div><div></div></div>`;
+    const rows = cache.sales.map((o) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;">
         <div>${o.customers ? escapeHtml(o.customers.name) : "Walk-in"}</div>
         <div style="color:var(--ink-faint); font-size:12px;">${new Date(o.created_at).toLocaleDateString()}</div>
         <div class="num" style="text-align:right">${money(o.total_amount)}</div>
+        <div style="text-align:right;"><span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="posShowReceipt('${escapeAttr(o.id)}')">Receipt</span></div>
         <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidSale('${escapeAttr(o.id)}')">Void</span></div>
       </div>`).join("");
     appendPaginated(el, head + rows, "sales", append);
+  }
+
+  function exportSalesCSV() {
+    if (cache.sales.length === 0) return showToast('No sales to export', 'error');
+    const header = 'Date,Customer,Total,Status,Payment\n';
+    const rows = cache.sales.map(o => {
+      const date = new Date(o.created_at).toLocaleDateString();
+      const customer = o.customers ? o.customers.name : 'Walk-in';
+      return `"${date}","${customer.replace(/"/g,'""')}",${o.total_amount || 0},${o.status || 'completed'},${o.payment_method || ''}`;
+    }).join('\n');
+    const blob = new Blob([header + rows], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sales_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('CSV downloaded');
   }
 
   async function voidSale(orderId) {

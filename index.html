@@ -659,7 +659,6 @@
     <nav>
       <div class="nav-item nav-primary active" data-tab="dashboard" onclick="switchTab('dashboard')"><span class="nav-icon">🏠</span> Dashboard</div>
       <div class="nav-item nav-primary" data-tab="products" onclick="switchTab('products')"><span class="nav-icon">📦</span> Stock</div>
-      <div class="nav-item nav-primary" onclick="posOpenTableMap()" style="cursor:pointer;"><span class="nav-icon">🛒</span> POS</div>
       <div class="nav-item nav-primary" data-tab="sales" onclick="switchTab('sales')"><span class="nav-icon">💰</span> Sales</div>
       <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers')"><span class="nav-icon">👥</span> Customers</div>
       <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments')"><span class="nav-icon">💳</span> Payments</div>
@@ -1646,7 +1645,6 @@
           product_id: item.product_id,
           quantity: item.qty,
           unit_price: item.price,
-          line_total: item.line_total,
         }));
         await sb.from('order_items').insert(items);
         
@@ -2033,7 +2031,6 @@
       product_id: item.product_id,
       quantity: item.qty,
       unit_price: item.price,
-      line_total: item.line_total,
     }));
     const { error: itemsErr } = await sb.from('order_items').insert(items);
     if (itemsErr) { setBtnLoading(btn, false); return setError('payment-error', itemsErr.message); }
@@ -2101,7 +2098,7 @@
         ${(order.order_items || []).map(item => `
           <div class="receipt-line">
             <span>${escapeHtml(item.products?.name || 'Item')} x${item.quantity}</span>
-            <span>${money(item.line_total)}</span>
+            <span>${money(item.line_total || (item.quantity * item.unit_price))}</span>
           </div>
         `).join('')}
       </div>
@@ -3507,7 +3504,7 @@
     const validOrderIds = (allOrders || []).filter(o => o.status !== 'voided').map(o => o.id);
     window._reportSales = allOrders || [];
     if (validOrderIds.length === 0) return [];
-    const { data } = await sb.from("order_items").select("product_id, quantity, line_total").in("order_id", validOrderIds);
+    const { data } = await sb.from("order_items").select("product_id, quantity, unit_price").in("order_id", validOrderIds);
     return data ?? [];
   }
 
@@ -3520,7 +3517,7 @@
 
     const productRevenue = {};
     for (const item of orderItems) {
-      productRevenue[item.product_id] = (productRevenue[item.product_id] || 0) + Number(item.line_total);
+      productRevenue[item.product_id] = (productRevenue[item.product_id] || 0) + Number(item.quantity) * Number(item.unit_price);
     }
     const topProduct = Object.entries(productRevenue)
       .map(([pid, revenue]) => ({ pid, revenue }))
@@ -3541,7 +3538,7 @@
     for (const item of orderItems) {
       const product = cache.products.find((p) => p.id === item.product_id);
       const category = product?.category || "Uncategorized";
-      categoryTotals[category] = (categoryTotals[category] || 0) + Number(item.line_total);
+      categoryTotals[category] = (categoryTotals[category] || 0) + Number(item.quantity) * Number(item.unit_price);
     }
     const topCategory = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "None yet";
     document.getElementById("report-top-category").textContent = escapeHtml(topCategory);
@@ -3555,7 +3552,7 @@
     for (const item of orderItems) {
       const product = cache.products.find((p) => p.id === item.product_id);
       const category = product?.category || "Uncategorized";
-      categoryTotals[category] = (categoryTotals[category] || 0) + Number(item.line_total);
+      categoryTotals[category] = (categoryTotals[category] || 0) + Number(item.quantity) * Number(item.unit_price);
     }
 
     const entries = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]).slice(0, 6);
@@ -3594,7 +3591,7 @@
     for (const it of orderItems) {
       if (!agg[it.product_id]) agg[it.product_id] = { qty: 0, revenue: 0 };
       agg[it.product_id].qty += Number(it.quantity);
-      agg[it.product_id].revenue += Number(it.line_total);
+      agg[it.product_id].revenue += Number(it.quantity) * Number(it.unit_price);
     }
     const top = Object.entries(agg)
       .map(([pid, v]) => {

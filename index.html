@@ -762,10 +762,10 @@
       <div class="page-header"><h2>Sales</h2><p>Record a sale — stock updates automatically.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="sales-filter-mode" onchange="const f=document.getElementById('sales-date-filter'); f.type=this.value; f.value=''; pagination.sales=0; loadSales();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
+          <select id="sales-filter-mode" onchange="const f=document.getElementById('sales-date-filter'); f.type=this.value; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.sales=0; loadSales();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+            <option value="date">Today</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
-          <input type="date" id="sales-date-filter" onchange="pagination.sales=0; loadSales()" placeholder="YYYY" />
+          <input type="date" id="sales-date-filter" onchange="pagination.sales=0; loadSales()" />
         </div>
         <button class="btn-small" onclick="openSaleModal()">+ Record sale</button>
         <button class="btn-small" style="background:var(--sky); color:var(--ink);" onclick="openKDS()">🍳 KDS</button>
@@ -783,10 +783,10 @@
       <div class="page-header"><h2>Payments</h2><p>Money received from customers.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="payments-filter-mode" onchange="const f=document.getElementById('payments-date-filter'); f.type=this.value; f.value=''; pagination.payments=0; loadPayments();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
+          <select id="payments-filter-mode" onchange="const f=document.getElementById('payments-date-filter'); f.type=this.value; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.payments=0; loadPayments();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+            <option value="date">Today</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
-          <input type="date" id="payments-date-filter" onchange="pagination.payments=0; loadPayments()" placeholder="YYYY" />
+          <input type="date" id="payments-date-filter" onchange="pagination.payments=0; loadPayments()" />
         </div>
         <button class="btn-small" onclick="openModal('payment-crud-modal')">+ Record payment</button>
       </div>
@@ -797,10 +797,10 @@
       <div class="page-header"><h2>Expenses</h2><p>Overhead costs — rent, wages, utilities, supplies.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="expenses-filter-mode" onchange="const f=document.getElementById('expenses-date-filter'); f.type=this.value; f.value=''; pagination.expenses=0; loadExpenses();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
+          <select id="expenses-filter-mode" onchange="const f=document.getElementById('expenses-date-filter'); f.type=this.value; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.expenses=0; loadExpenses();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+            <option value="date">Today</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
-          <input type="date" id="expenses-date-filter" onchange="pagination.expenses=0; loadExpenses()" placeholder="YYYY" />
+          <input type="date" id="expenses-date-filter" onchange="pagination.expenses=0; loadExpenses()" />
         </div>
         <button class="btn-small" onclick="openModal('expense-modal')">+ Add expense</button>
       </div>
@@ -817,10 +817,10 @@
       <div class="page-header"><h2>Purchase Orders</h2><p>Restocking — this updates product stock automatically.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="purchases-filter-mode" onchange="const f=document.getElementById('purchases-date-filter'); f.type=this.value; f.value=''; pagination.purchases=0; loadPurchases();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
+          <select id="purchases-filter-mode" onchange="const f=document.getElementById('purchases-date-filter'); f.type=this.value; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.purchases=0; loadPurchases();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+            <option value="date">Today</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
-          <input type="date" id="purchases-date-filter" onchange="pagination.purchases=0; loadPurchases()" placeholder="YYYY" />
+          <input type="date" id="purchases-date-filter" onchange="pagination.purchases=0; loadPurchases()" />
         </div>
         <button class="btn-small" onclick="openPurchaseModal()">+ New purchase</button>
       </div>
@@ -905,8 +905,8 @@
       <div class="page-header"><h2>Stock Movements</h2><p>Full audit trail of all stock changes.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="movements-filter-mode" onchange="const f=document.getElementById('movements-date-filter'); f.type=this.value; f.value=''; pagination.movements=0; loadMovements();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
+          <select id="movements-filter-mode" onchange="const f=document.getElementById('movements-date-filter'); f.type=this.value; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.movements=0; loadMovements();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+            <option value="date">Today</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
           <input type="date" id="movements-date-filter" onchange="pagination.movements=0; loadMovements()" />
         </div>
@@ -2446,6 +2446,16 @@
     await loadEverything();
   }
 
+  function setDefaultDateFilters() {
+    const today = new Date().toISOString().slice(0, 10);
+    ['sales', 'payments', 'expenses', 'purchases', 'movements'].forEach(prefix => {
+      const input = document.getElementById(`${prefix}-date-filter`);
+      const mode = document.getElementById(`${prefix}-filter-mode`);
+      if (input && !input.value) input.value = today;
+      if (mode && !mode.value) mode.value = 'date';
+    });
+  }
+
   // ============================================================
   // BOOT
   // ============================================================
@@ -2487,6 +2497,7 @@
       applyRolePermissions(data.role);
       applyBusinessTypeVisibility(data.businesses.business_types?.type_key);
       hide("auth-screen"); hide("onboarding-screen"); show("app-screen");
+      setDefaultDateFilters();
       await loadEverything();
       updateTopbar(document.querySelector('.nav-item.active')?.dataset.tab || 'dashboard');
     } catch(err) {

@@ -753,7 +753,7 @@
           <input type="text" id="product-search" placeholder="Search products…" oninput="renderProducts()" style="max-width:220px;" />
           <select id="cat-filter" onchange="renderProducts()"><option value="">All categories</option></select>
         </div>
-        <button class="btn-small" onclick="openModal('product-modal')">+ Add product</button>
+        <button class="btn-small" onclick="openAddProduct()">+ Add product</button>
       </div>
       <div class="ledger" id="products-ledger"></div>
     </section>
@@ -995,8 +995,11 @@
     <div class="close" onclick="closeModal('product-modal')">Close</div>
     <h3 id="product-modal-title">Add product</h3>
     <label>Name</label><input type="text" id="p-name" />
-    <label>Category</label><input type="text" id="p-category" list="cat-suggestions" placeholder="e.g. Mains, Drinks, Sides" />
-    <datalist id="cat-suggestions"></datalist>
+    <label>Category</label>
+    <select id="p-category" onchange="document.getElementById('p-category-new').style.display=this.value==='__new__'?'':'none';">
+      <option value="">None</option>
+    </select>
+    <input type="text" id="p-category-new" class="hidden" placeholder="Type new category name" style="margin-top:4px;" />
     <div class="field-row">
       <div><label>Selling price</label><input type="number" id="p-price" min="0" step="any" /></div>
     </div>
@@ -2910,7 +2913,6 @@
     const cats = [...new Set(cache.products.map((p) => p.category).filter(Boolean))];
     document.getElementById("cat-filter").innerHTML =
       `<option value="">All categories</option>` + cats.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
-    document.getElementById("cat-suggestions").innerHTML = cats.map((c) => `<option value="${escapeHtml(c)}">`).join("");
     renderProducts();
   }
 
@@ -2941,6 +2943,34 @@
       }).join("");
   }
 
+  function populateCategorySelect(selectId, currentVal) {
+    const sel = document.getElementById(selectId);
+    const cats = [...new Set(cache.products.map(p => p.category).filter(Boolean))].sort();
+    const newInput = document.getElementById(selectId + '-new');
+    if (newInput) newInput.classList.add('hidden');
+    sel.innerHTML = `<option value="">None</option>` +
+      cats.map(c => `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`).join('') +
+      `<option value="__new__">+ New category</option>`;
+    if (currentVal && cats.includes(currentVal)) sel.value = currentVal;
+    else if (currentVal) { sel.value = '__new__'; if (newInput) { newInput.classList.remove('hidden'); newInput.value = currentVal; } }
+    else sel.value = '';
+  }
+
+  function openAddProduct() {
+    editingRecord = null;
+    document.getElementById("product-modal-title").textContent = "Add product";
+    document.getElementById("product-submit-btn").textContent = "Add product";
+    document.getElementById("product-delete-btn").classList.add("hidden");
+    document.getElementById("product-duplicate-btn").classList.add("hidden");
+    document.getElementById("p-name").value = "";
+    populateCategorySelect('p-category', '');
+    document.getElementById("p-price").value = "";
+    document.getElementById("p-unit").value = "";
+    document.getElementById("p-stock").value = "";
+    document.getElementById("p-threshold").value = "";
+    openModal("product-modal");
+  }
+
   function openEditProduct(productId) {
     const p = cache.products.find((x) => x.id === productId);
     if (!p) return;
@@ -2950,7 +2980,7 @@
     document.getElementById("product-delete-btn").classList.remove("hidden");
     document.getElementById("product-duplicate-btn").classList.remove("hidden");
     document.getElementById("p-name").value = p.name;
-    document.getElementById("p-category").value = p.category ?? "";
+    populateCategorySelect('p-category', p.category);
     document.getElementById("p-price").value = p.price;
     document.getElementById("p-unit").value = p.unit;
     document.getElementById("p-stock").value = p.stock_qty ?? "";
@@ -2975,7 +3005,8 @@
     clearError("product-error");
     const btn = document.getElementById("product-submit-btn");
     const name = document.getElementById("p-name").value.trim();
-    const category = document.getElementById("p-category").value.trim() || null;
+    const catVal = document.getElementById("p-category").value;
+    const category = catVal === '__new__' ? (document.getElementById("p-category-new").value.trim() || null) : (catVal || null);
     const price = parseFloat(document.getElementById("p-price").value);
     const unit = document.getElementById("p-unit").value.trim() || "item";
     const stock = document.getElementById("p-stock").value === "" ? 0 : parseFloat(document.getElementById("p-stock").value);

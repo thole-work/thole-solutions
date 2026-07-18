@@ -1629,7 +1629,7 @@
           table_id: posState.tableId || null,
           customer_id: posState.customerId || null,
           order_type: posState.tableId ? 'dine_in' : (posState.orderType || 'takeout'),
-          status: 'completed',
+          status: 'pending',
           subtotal,
           discount,
           discount_type: posState.discountType || 'amount',
@@ -1648,19 +1648,13 @@
         }));
         await sb.from('order_items').insert(items);
         
-        // Update stock & movements
-        for (const item of posState.cart) {
-          await adjustStock('products', item.product_id, -item.qty, membership.business_id);
-          await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: -item.qty, reason: 'sale', refType: 'order', refId: order.id });
-        }
-        
         // Payment record
         await sb.from('payments').insert({
           business_id: membership.business_id,
           order_id: order.id,
           customer_id: posState.customerId,
           amount: total,
-          method: 'cash', // default for offline
+          method: 'cash',
           direction: 'in',
           created_by: currentUser.id,
         });
@@ -1722,6 +1716,11 @@
   
   function handleKDSOrderChange(payload) {
     if (payload.eventType === 'DELETE') return;
+    // If change is on order_items, we don't have the full order row — just reload KDS
+    if (payload.table === 'order_items') {
+      loadKDSOrders();
+      return;
+    }
     const order = payload.new;
     if (!order || order.business_id !== membership.business_id) return;
     if (['pending', 'preparing', 'ready'].includes(order.status)) {
@@ -1765,7 +1764,28 @@
   }
   
   async function kdsUpdateStatus(orderId, newStatus) {
-    await sb.from('orders').update({ status: newStatus }).eq('id', orderId).eq('business_id', membership.business_id);
+    if (newStatus === 'served') {
+      // Fetch order with items to complete it
+      const { data: order } = await sb.from('orders')
+        .select('*, order_items(*)')
+        .eq('id', orderId).eq('business_id', membership.business_id).single();
+      if (order) {
+        // Deduct stock
+        for (const item of (order.order_items || [])) {
+          await adjustStock('products', item.product_id, -item.quantity, membership.business_id);
+          await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: -item.quantity, reason: 'sale', refType: 'order', refId: order.id });
+        }
+        // Free table
+        if (order.table_id) {
+          await sb.from('restaurant_tables').update({ status: 'available', current_order_id: null }).eq('id', order.table_id).eq('business_id', membership.business_id);
+        }
+      }
+      // Mark as completed (removes from KDS via realtime handler)
+      await sb.from('orders').update({ status: 'completed' }).eq('id', orderId).eq('business_id', membership.business_id);
+      await loadProducts();
+    } else {
+      await sb.from('orders').update({ status: newStatus }).eq('id', orderId).eq('business_id', membership.business_id);
+    }
     // Realtime will trigger render
   }
 
@@ -2012,7 +2032,7 @@
       table_id: posState.tableId || null,
       customer_id: posState.customerId || null,
       order_type: posState.tableId ? 'dine_in' : (posState.orderType || 'takeout'),
-      status: 'completed',
+      status: 'pending',
       subtotal,
       discount,
       discount_type: posState.discountType || 'amount',
@@ -2035,13 +2055,7 @@
     const { error: itemsErr } = await sb.from('order_items').insert(items);
     if (itemsErr) { setBtnLoading(btn, false); return setError('payment-error', itemsErr.message); }
 
-    // 3. Update stock
-    for (const item of posState.cart) {
-      await adjustStock('products', item.product_id, -item.qty, membership.business_id);
-      await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: -item.qty, reason: 'sale', refType: 'order', refId: order.id });
-    }
-
-    // 4. Payment record
+    // 3. Payment record
     await sb.from('payments').insert({
       business_id: membership.business_id,
       order_id: order.id,
@@ -2052,18 +2066,12 @@
       created_by: currentUser.id,
     });
 
-    // 5. Update table status
-    if (posState.tableId) {
-      await sb.from('restaurant_tables').update({ status: 'available', current_order_id: null }).eq('id', posState.tableId).eq('business_id', membership.business_id);
-    }
-
     setBtnLoading(btn, false);
     closeModal('payment-modal');
     
     // Show receipt
     await posShowReceipt(order.id);
     posReset();
-    await loadProducts();
     await loadSales();
     renderDashboard();
   }
@@ -2469,15 +2477,6 @@
       posBtn.textContent = '🛒 Open POS';
       posBtn.onclick = posOpenTableMap;
       productsToolbar.appendChild(posBtn);
-    }
-    const salesToolbar = document.querySelector('#tab-sales .toolbar');
-    if (salesToolbar) {
-      const kdsBtn = document.createElement('button');
-      kdsBtn.className = 'btn-small';
-      kdsBtn.style.background = 'var(--sky)';
-      kdsBtn.textContent = '🍳 Kitchen Display';
-      kdsBtn.onclick = openKDS;
-      salesToolbar.appendChild(kdsBtn);
     }
   });
 
@@ -3098,7 +3097,7 @@
     if (cache.sales.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💰</div>No sales recorded yet.<br><span style="font-size:12px;">Tap "New Sale" to open the POS.</span></div>`; return; }
     const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;"><div>Customer</div><div>Date</div><div style="text-align:right">Total</div><div></div><div></div></div>`;
     const rows = cache.sales.map((o) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;">
-        <div>${o.customers ? escapeHtml(o.customers.name) : "Walk-in"}</div>
+        <div>${o.customers ? escapeHtml(o.customers.name) : "Walk-in"}${o.status !== 'completed' ? ` <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:${o.status === 'voided' ? 'var(--danger-soft)' : 'var(--amber-soft)'}; color:${o.status === 'voided' ? 'var(--danger)' : 'var(--amber)'}; font-weight:600;">${o.status.toUpperCase()}</span>` : ''}</div>
         <div style="color:var(--ink-faint); font-size:12px;">${new Date(o.created_at).toLocaleDateString()}</div>
         <div class="num" style="text-align:right">${money(o.total_amount)}</div>
         <div style="text-align:right;"><span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="posShowReceipt('${escapeAttr(o.id)}')">Receipt</span></div>
@@ -3126,18 +3125,22 @@
   }
 
   async function voidSale(orderId) {
-    if (!confirm("Void this sale? Stock will be restored. This can't be undone.")) return;
+    if (!confirm("Void this sale? This can't be undone.")) return;
     if (membership.role === "staff") { showToast("Staff cannot void sales.", "error"); return; }
 
-    const { data: items } = await sb.from("order_items").select("*").eq("order_id", orderId);
-    for (const item of items ?? []) {
-      await adjustStock('products', item.product_id, Number(item.quantity), membership.business_id);
-      await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: Number(item.quantity), reason: 'sale void', refType: 'order', refId: orderId });
+    // Only restore stock if the order was served (stock was already deducted)
+    const { data: order } = await sb.from("orders").select("status").eq("id", orderId).single();
+    if (order && order.status === "completed") {
+      const { data: items } = await sb.from("order_items").select("*").eq("order_id", orderId);
+      for (const item of items ?? []) {
+        await adjustStock('products', item.product_id, Number(item.quantity), membership.business_id);
+        await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: Number(item.quantity), reason: 'sale void', refType: 'order', refId: orderId });
+      }
     }
     await sb.from("orders").update({ status: "voided" }).eq("id", orderId).eq("business_id", membership.business_id);
 
     await Promise.all([loadProducts(), loadSales()]);
-    showToast("Sale voided and stock restored");
+    showToast("Sale voided");
     renderDashboard();
   }
 

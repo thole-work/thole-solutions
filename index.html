@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>Thole Solutions</title>
 <link rel="icon" type="image/png" href="logo.png" />
@@ -83,11 +86,15 @@
   #auth-screen {
     display: flex; flex-direction: column; justify-content: flex-end;
     max-width: 100%; width: 100vw; height: 100vh; padding: 0;
-    background: #000; position: relative; overflow: hidden;
+    background: var(--accent-dark); position: relative; overflow: hidden;
   }
   #auth-banner {
     position: absolute; inset: 0; width: 100%; height: 100%;
-    object-fit: cover; object-position: center; z-index: 1;
+    object-fit: contain; object-position: center; z-index: 1;
+    background: var(--accent-dark);
+  }
+  @media (max-width: 768px) {
+    #auth-banner { object-fit: cover; }
   }
   #auth-content {
     position: relative; z-index: 2;
@@ -113,9 +120,8 @@
   @media (min-width: 769px) {
     #auth-screen { justify-content: center; align-items: center; }
     #auth-content { border-radius: 16px; margin: 0 auto; max-width: 420px; }
-    #auth-banner { object-fit: contain; }
   }
-  .brand-mark { width: 44px; height: 44px; border-radius: 10px; overflow: hidden; margin-bottom: 18px; }
+  .brand-mark { width: 32px; height: 32px; border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
   .brand-mark img { width: 100%; height: 100%; object-fit: cover; display: block; }
   #auth-screen h1 { font-size: 26px; margin-bottom: 4px; }
   #auth-screen p.sub { color: var(--ink-soft); font-size: 14px; margin: 6px 0 26px; }

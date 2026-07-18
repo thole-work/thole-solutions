@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>Thole Solutions</title>
 <link rel="icon" type="image/png" href="logo.png" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -27,8 +27,9 @@
     --danger: #A6432C;
     --danger-soft: #F4E6E1;
   }
-  * { box-sizing: border-box; scrollbar-width: none; -ms-overflow-style: none; }
+  * { box-sizing: border-box; scrollbar-width: none; -ms-overflow-style: none; touch-action: manipulation; -webkit-text-size-adjust: 100%; }
   *::-webkit-scrollbar { display: none; width: 0; height: 0; }
+  html { -webkit-touch-callout: none; -webkit-user-select: none; }
   body {
     margin: 0; background: var(--paper); color: var(--ink);
     font-family: 'Inter', 'Roboto', 'Open Sans', sans-serif; height: 100vh; overflow: hidden;
@@ -3970,7 +3971,15 @@
 
   // --- 1. Escape key closes modals ---
   // --- 5. Enter key submits active modal ---
+  document.addEventListener("wheel", (e) => {
+    if (e.ctrlKey) e.preventDefault();
+  }, { passive: false });
+
   document.addEventListener("keydown", (e) => {
+    // Prevent browser zoom (Ctrl/Cmd + +/-/0)
+    if ((e.ctrlKey || e.metaKey) && ['+', '-', '=', '0'].includes(e.key)) {
+      e.preventDefault();
+    }
     if (e.key === "Escape") {
       const openModals = document.querySelectorAll(".modal-backdrop:not(.hidden)");
       if (openModals.length > 0) {

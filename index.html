@@ -201,6 +201,8 @@
   .metric-card .value { font-size: 24px; font-weight: 600; }
   .metric-card .note { margin-top: 10px; color: var(--ink-soft); font-size: 12px; line-height: 1.5; }
   .metric-card.warn .value { color: var(--danger); }
+  .skeleton { background: linear-gradient(90deg, var(--line) 25%, var(--card) 50%, var(--line) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; color: transparent !important; user-select: none; pointer-events: none; }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
   .report-card.compact-card { padding: 18px; }
   .dashboard-summary-grid { display: grid; gap: 10px; margin-top: 8px; }
@@ -750,12 +752,12 @@
     <section id="tab-dashboard" class="tab-panel">
       <div class="page-header"><h2>Dashboard</h2><p>Key business health metrics in one place.</p></div>
       <div class="metrics">
-        <div class="metric-card"><div class="label">Revenue</div><div class="value num" id="m-revenue">0</div><div class="note">Total sales value.</div></div>
-        <div class="metric-card"><div class="label">Total costs</div><div class="value num" id="m-total-costs">0</div><div class="note">Expenses + purchases + waste.</div></div>
-        <div class="metric-card"><div class="label">Net profit</div><div class="value num" id="m-profit">0</div><div class="note">Revenue minus all costs.</div></div>
-        <div class="metric-card warn"><div class="label">Low stock</div><div class="value num" id="m-lowstock">0</div><div class="note">Items at or below reorder.</div></div>
-        <div class="metric-card"><div class="label">Orders</div><div class="value num" id="m-sales">0</div><div class="note">Total orders placed.</div></div>
-        <div class="metric-card"><div class="label">Avg order</div><div class="value num" id="m-avg-order">0</div><div class="note">Revenue per order.</div></div>
+        <div class="metric-card"><div class="label">Revenue</div><div class="value num skeleton" id="m-revenue">&nbsp;</div><div class="note">Total sales value.</div></div>
+        <div class="metric-card"><div class="label">Total costs</div><div class="value num skeleton" id="m-total-costs">&nbsp;</div><div class="note">Expenses + purchases + waste.</div></div>
+        <div class="metric-card"><div class="label">Net profit</div><div class="value num skeleton" id="m-profit">&nbsp;</div><div class="note">Revenue minus all costs.</div></div>
+        <div class="metric-card warn"><div class="label">Low stock</div><div class="value num skeleton" id="m-lowstock">&nbsp;</div><div class="note">Items at or below reorder.</div></div>
+        <div class="metric-card"><div class="label">Orders</div><div class="value num skeleton" id="m-sales">&nbsp;</div><div class="note">Total orders placed.</div></div>
+        <div class="metric-card"><div class="label">Avg order</div><div class="value num skeleton" id="m-avg-order">&nbsp;</div><div class="note">Revenue per order.</div></div>
       </div>
       <div class="report-card compact-card">
         <h3>Action needed</h3>
@@ -822,7 +824,7 @@
 
     <section id="tab-customers" class="tab-panel hidden">
       <div class="page-header"><h2>Customers</h2><p>People who buy from you.</p></div>
-      <div class="toolbar"><div></div><button class="btn-small" onclick="openModal('customer-modal')">+ Add customer</button></div>
+      <div class="toolbar"><button class="btn-small" onclick="exportCustomersCSV()">📥 CSV</button><button class="btn-small" onclick="openModal('customer-modal')">+ Add customer</button></div>
       <div class="ledger" id="customers-ledger"></div>
     </section>
 
@@ -849,6 +851,7 @@
           </select>
           <input type="date" id="expenses-date-filter" onchange="pagination.expenses=0; loadExpenses()" />
         </div>
+        <button class="btn-small" onclick="exportExpensesCSV()">📥 CSV</button>
         <button class="btn-small" onclick="openModal('expense-modal')">+ Add expense</button>
       </div>
       <div class="ledger" id="expenses-ledger"></div>
@@ -869,6 +872,7 @@
           </select>
           <input type="date" id="purchases-date-filter" onchange="pagination.purchases=0; loadPurchases()" />
         </div>
+        <button class="btn-small" onclick="exportPurchasesCSV()">📥 CSV</button>
         <button class="btn-small" onclick="openPurchaseModal()">+ New purchase</button>
       </div>
       <div class="ledger" id="purchases-ledger"></div>
@@ -889,6 +893,21 @@
 
     <section id="tab-reports" class="tab-panel hidden">
       <div class="page-header"><h2>Reports</h2><p>Revenue trends, best sellers, and stock to watch.</p></div>
+      <div class="toolbar" style="margin-bottom:18px;">
+        <div></div>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <select id="reports-filter-mode" onchange="const f=document.getElementById('reports-start-date'); const f2=document.getElementById('reports-end-date'); if(this.value==='custom'){f.type='date';f2.type='date';f.style.display='';f2.style.display='';} else if(this.value==='all'){f.style.display='none';f2.style.display='none';} else {f.type='date';f2.style.display='none';f.style.display='';} loadReports();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+            <option value="year">This Year</option>
+            <option value="custom">Custom Range</option>
+            <option value="all">All Time</option>
+          </select>
+          <input type="date" id="reports-start-date" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);" onchange="loadReports()" />
+          <input type="date" id="reports-end-date" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink); display:none;" onchange="loadReports()" />
+        </div>
+      </div>
       <div class="reports-metrics">
         <div class="report-summary-card report-card">
           <div class="label">Total revenue</div>
@@ -941,6 +960,7 @@
     <section id="tab-materials" class="tab-panel hidden">
       <div class="page-header"><h2>Raw Materials</h2><p>Ingredients or components used to make your products.</p></div>
       <div class="toolbar">
+        <button class="btn-small" onclick="exportMaterialsCSV()">📥 CSV</button>
         <button class="btn-small" onclick="openProduceModal()">Produce</button>
         <button class="btn-small" onclick="openModal('material-modal')">+ Add raw material</button>
       </div>
@@ -1263,7 +1283,7 @@
         </div>
         <div class="pos-cart-actions">
           <button class="btn-ghost" onclick="posClearCart()">Clear</button>
-          <button class="btn-primary" onclick="posOpenPayment()">Pay</button>
+          <button class="btn-primary" id="pos-pay-btn" onclick="posOpenPayment()">Pay</button>
         </div>
       </div>
     </div>
@@ -1508,6 +1528,7 @@
 
   // --- 8. Number counter animation ---
   function animateValue(el, end, duration = 500) {
+    el.classList.remove("skeleton");
     const start = 0;
     const startTime = performance.now();
     const step = (now) => {
@@ -1727,6 +1748,23 @@
   window.addEventListener('online', posSyncOfflineQueue);
   
   // ========== KDS (KITCHEN DISPLAY) ==========
+  function playKDSSound(type) {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      if (type === 'ready') { osc.frequency.value = 880; gain.gain.value = 0.3; }
+      else if (type === 'new') { osc.frequency.value = 440; gain.gain.value = 0.2; }
+      else { osc.frequency.value = 660; gain.gain.value = 0.2; }
+      osc.type = 'sine';
+      osc.start();
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      osc.stop(ctx.currentTime + 0.3);
+    } catch(e) {}
+  }
+
   let kdsChannel = null;
   let kdsOrders = new Map(); // orderId -> order data
   
@@ -1761,15 +1799,13 @@
   
   function handleKDSOrderChange(payload) {
     if (payload.eventType === 'DELETE') return;
-    // If change is on order_items, we don't have the full order row — just reload KDS
-    if (payload.table === 'order_items') {
-      loadKDSOrders();
-      return;
-    }
+    if (payload.table === 'order_items') { loadKDSOrders(); return; }
     const order = payload.new;
     if (!order || order.business_id !== membership.business_id) return;
     if (['pending', 'preparing', 'ready'].includes(order.status)) {
       kdsOrders.set(order.id, order);
+      if (order.status === 'ready') playKDSSound('ready');
+      else if (order.status === 'pending') playKDSSound('new');
     } else {
       kdsOrders.delete(order.id);
     }
@@ -2979,12 +3015,12 @@
     const topCat = Object.entries(catCounts).sort((a, b) => b[1] - a[1])[0];
 
     // Metrics
-    document.getElementById("m-lowstock").textContent = lowStockCount;
-    document.getElementById("m-sales").textContent = salesCount;
+    const mLowstock = document.getElementById("m-lowstock"); mLowstock.textContent = lowStockCount; mLowstock.classList.remove("skeleton");
+    const mSales = document.getElementById("m-sales"); mSales.textContent = salesCount; mSales.classList.remove("skeleton");
     animateValue(document.getElementById("m-revenue"), revenue);
-    document.getElementById("m-total-costs").textContent = money(totalCosts);
+    const mTotalCosts = document.getElementById("m-total-costs"); mTotalCosts.textContent = money(totalCosts); mTotalCosts.classList.remove("skeleton");
     animateValue(document.getElementById("m-profit"), revenue - totalCosts);
-    document.getElementById("m-avg-order").textContent = money(averageSale);
+    const mAvgOrder = document.getElementById("m-avg-order"); mAvgOrder.textContent = money(averageSale); mAvgOrder.classList.remove("skeleton");
 
     // Action needed
     const alerts = [];
@@ -3176,6 +3212,16 @@
     appendPaginated(el, head + rows, "sales", append);
   }
 
+  function downloadCSV(filename, header, rows) {
+    const csv = header + rows.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    a.click(); URL.revokeObjectURL(url);
+    showToast('CSV downloaded');
+  }
+
   function exportSalesCSV() {
     if (cache.sales.length === 0) return showToast('No sales to export', 'error');
     const header = 'Date,Customer,Total,Status,Payment\n';
@@ -3183,15 +3229,38 @@
       const date = new Date(o.created_at).toLocaleDateString();
       const customer = o.customers ? o.customers.name : 'Walk-in';
       return `"${date}","${customer.replace(/"/g,'""')}",${o.total_amount || 0},${o.status || 'completed'},${o.payment_method || ''}`;
-    }).join('\n');
-    const blob = new Blob([header + rows], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `sales_${new Date().toISOString().slice(0,10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast('CSV downloaded');
+    });
+    downloadCSV(`sales_${new Date().toISOString().slice(0,10)}.csv`, header, rows);
+  }
+
+  function exportCustomersCSV() {
+    if (cache.customers.length === 0) return showToast('No customers to export', 'error');
+    const header = 'Name,Phone,Email,Total Spent,Visits\n';
+    const rows = cache.customers.map(c => `"${(c.name||'').replace(/"/g,'""')}","${c.phone||''}","${c.email||''}",${c.total_spent||0},${c.visit_count||0}`);
+    downloadCSV(`customers_${new Date().toISOString().slice(0,10)}.csv`, header, rows);
+  }
+
+  function exportExpensesCSV() {
+    if (cache.expenses.length === 0) return showToast('No expenses to export', 'error');
+    const header = 'Date,Category,Description,Amount\n';
+    const rows = cache.expenses.map(e => {
+      return `"${new Date(e.created_at).toLocaleDateString()}","${(e.category||'').replace(/"/g,'""')}","${(e.description||'').replace(/"/g,'""')}",${e.amount||0}`;
+    });
+    downloadCSV(`expenses_${new Date().toISOString().slice(0,10)}.csv`, header, rows);
+  }
+
+  function exportPurchasesCSV() {
+    if (cache.purchases.length === 0) return showToast('No purchases to export', 'error');
+    const header = 'Date,Status,Total\n';
+    const rows = cache.purchases.map(p => `"${new Date(p.created_at).toLocaleDateString()}","${p.status||''}",${p.total_amount||0}`);
+    downloadCSV(`purchases_${new Date().toISOString().slice(0,10)}.csv`, header, rows);
+  }
+
+  function exportMaterialsCSV() {
+    if (cache.materials.length === 0) return showToast('No materials to export', 'error');
+    const header = 'Name,Unit,Cost/Unit,Stock,Low Threshold\n';
+    const rows = cache.materials.map(m => `"${(m.name||'').replace(/"/g,'""')}","${m.unit||''}",${m.cost_per_unit||0},${m.stock_qty||0},${m.low_stock_threshold||''}`);
+    downloadCSV(`materials_${new Date().toISOString().slice(0,10)}.csv`, header, rows);
   }
 
   async function voidSale(orderId) {
@@ -3611,7 +3680,25 @@
   }
 
   async function getOrderItems() {
-    const { data: allOrders } = await sb.from('orders').select('id, total_amount, status').eq('business_id', membership.business_id);
+    let query = sb.from('orders').select('id, total_amount, status, created_at').eq('business_id', membership.business_id);
+    const mode = document.getElementById("reports-filter-mode")?.value || "all";
+    if (mode !== 'all') {
+      const now = new Date();
+      let start, end;
+      if (mode === 'today') { start = new Date(now.getFullYear(), now.getMonth(), now.getDate()); end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1); }
+      else if (mode === 'week') { start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay()); end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1); }
+      else if (mode === 'month') { start = new Date(now.getFullYear(), now.getMonth(), 1); end = new Date(now.getFullYear(), now.getMonth() + 1, 1); }
+      else if (mode === 'year') { start = new Date(now.getFullYear(), 0, 1); end = new Date(now.getFullYear() + 1, 0, 1); }
+      else if (mode === 'custom') {
+        const sv = document.getElementById("reports-start-date")?.value;
+        const ev = document.getElementById("reports-end-date")?.value;
+        if (sv) start = new Date(sv);
+        if (ev) { end = new Date(ev); end.setDate(end.getDate() + 1); }
+      }
+      if (start) query = query.gte('created_at', start.toISOString());
+      if (end) query = query.lt('created_at', end.toISOString());
+    }
+    const { data: allOrders } = await query;
     const validOrderIds = (allOrders || []).filter(o => o.status !== 'voided').map(o => o.id);
     window._reportSales = allOrders || [];
     if (validOrderIds.length === 0) return [];
@@ -4014,6 +4101,28 @@
     // Prevent browser zoom (Ctrl/Cmd + +/-/0)
     if ((e.ctrlKey || e.metaKey) && ['+', '-', '=', '0'].includes(e.key)) {
       e.preventDefault();
+    }
+    // POS keyboard shortcuts
+    if (!document.getElementById("pos-modal")?.classList.contains("hidden")) {
+      if (e.key === "Enter" && !e.target.matches("input, select, textarea")) {
+        e.preventDefault();
+        const payBtn = document.getElementById("pos-pay-btn");
+        if (payBtn) payBtn.click();
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeModal("pos-modal");
+        return;
+      }
+    }
+    // Payment modal Enter to confirm
+    if (!document.getElementById("payment-modal")?.classList.contains("hidden")) {
+      if (e.key === "Enter" && !e.target.matches("textarea")) {
+        e.preventDefault();
+        completePayment();
+        return;
+      }
     }
     if (e.key === "Escape") {
       const openModals = document.querySelectorAll(".modal-backdrop:not(.hidden)");

@@ -810,8 +810,8 @@
       <div class="page-header"><h2>Sales</h2><p>All orders and transactions.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="sales-filter-mode" onchange="const f=document.getElementById('sales-date-filter'); f.type=this.value; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.sales=0; loadSales();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="date">Today</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
+          <select id="sales-filter-mode" onchange="const f=document.getElementById('sales-date-filter'); f.style.display=this.value==='all'?'none':''; f.type='date'; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.sales=0; loadSales();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+            <option value="all" selected>All Time</option><option value="date">Today</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
           <input type="date" id="sales-date-filter" onchange="pagination.sales=0; loadSales()" />
         </div>
@@ -832,8 +832,8 @@
       <div class="page-header"><h2>Payments</h2><p>Money received from customers.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="payments-filter-mode" onchange="const f=document.getElementById('payments-date-filter'); f.type=this.value; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.payments=0; loadPayments();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="date">Today</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
+          <select id="payments-filter-mode" onchange="const f=document.getElementById('payments-date-filter'); f.style.display=this.value==='all'?'none':''; f.type='date'; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.payments=0; loadPayments();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+            <option value="all" selected>All Time</option><option value="date">Today</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
           <input type="date" id="payments-date-filter" onchange="pagination.payments=0; loadPayments()" />
         </div>
@@ -846,8 +846,8 @@
       <div class="page-header"><h2>Expenses</h2><p>Overhead costs — rent, wages, utilities, supplies.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="expenses-filter-mode" onchange="const f=document.getElementById('expenses-date-filter'); f.type=this.value; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.expenses=0; loadExpenses();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="date">Today</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
+          <select id="expenses-filter-mode" onchange="const f=document.getElementById('expenses-date-filter'); f.style.display=this.value==='all'?'none':''; f.type='date'; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.expenses=0; loadExpenses();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+            <option value="all" selected>All Time</option><option value="date">Today</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
           <input type="date" id="expenses-date-filter" onchange="pagination.expenses=0; loadExpenses()" />
         </div>
@@ -867,8 +867,8 @@
       <div class="page-header"><h2>Purchase Orders</h2><p>Restocking — this updates product stock automatically.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="purchases-filter-mode" onchange="const f=document.getElementById('purchases-date-filter'); f.type=this.value; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.purchases=0; loadPurchases();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="date">Today</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
+          <select id="purchases-filter-mode" onchange="const f=document.getElementById('purchases-date-filter'); f.style.display=this.value==='all'?'none':''; f.type='date'; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.purchases=0; loadPurchases();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+            <option value="all" selected>All Time</option><option value="date">Today</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
           <input type="date" id="purchases-date-filter" onchange="pagination.purchases=0; loadPurchases()" />
         </div>
@@ -897,12 +897,12 @@
         <div></div>
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <select id="reports-filter-mode" onchange="const f=document.getElementById('reports-start-date'); const f2=document.getElementById('reports-end-date'); if(this.value==='custom'){f.type='date';f2.type='date';f.style.display='';f2.style.display='';} else if(this.value==='all'){f.style.display='none';f2.style.display='none';} else {f.type='date';f2.style.display='none';f.style.display='';} loadReports();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+            <option value="all" selected>All Time</option>
             <option value="today">Today</option>
             <option value="week">This Week</option>
             <option value="month">This Month</option>
             <option value="year">This Year</option>
             <option value="custom">Custom Range</option>
-            <option value="all">All Time</option>
           </select>
           <input type="date" id="reports-start-date" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);" onchange="loadReports()" />
           <input type="date" id="reports-end-date" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink); display:none;" onchange="loadReports()" />
@@ -972,8 +972,8 @@
       <div class="page-header"><h2>Stock Movements</h2><p>Full audit trail of all stock changes.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="movements-filter-mode" onchange="const f=document.getElementById('movements-date-filter'); f.type=this.value; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.movements=0; loadMovements();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="date">Today</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
+          <select id="movements-filter-mode" onchange="const f=document.getElementById('movements-date-filter'); f.style.display=this.value==='all'?'none':''; f.type='date'; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.movements=0; loadMovements();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+            <option value="all" selected>All Time</option><option value="date">Today</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
           <input type="date" id="movements-date-filter" onchange="pagination.movements=0; loadMovements()" />
         </div>
@@ -1446,7 +1446,7 @@
 
   // HELPER: Translates Day/Week/Month/Year inputs into Supabase time ranges
   function applyTimeFilter(query, val, mode, col = "created_at") {
-    if (!val) return query;
+    if (mode === "all" || !val) return query;
     try {
       if (mode === "date") {
         if (col === "expense_date") return query.eq(col, val); 
@@ -1495,7 +1495,6 @@
     }
   }
   async function loadMore(key) {
-    pagination[key] += PAGE_SIZE;
     await { products: loadProducts, customers: loadCustomers, sales: loadSales, payments: loadPayments, expenses: loadExpenses, purchases: loadPurchases, materials: loadMaterials, suppliers: loadSuppliers, movements: loadMovements }[key](true);
   }
   function money(n) { return Number(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
@@ -2574,12 +2573,11 @@
   }
 
   function setDefaultDateFilters() {
-    const today = new Date().toISOString().slice(0, 10);
     ['sales', 'payments', 'expenses', 'purchases', 'movements'].forEach(prefix => {
       const input = document.getElementById(`${prefix}-date-filter`);
       const mode = document.getElementById(`${prefix}-filter-mode`);
-      if (input && !input.value) input.value = today;
-      if (mode && !mode.value) mode.value = 'date';
+      if (input) { input.value = ''; input.style.display = 'none'; }
+      if (mode && !mode.value) mode.value = 'all';
     });
   }
 

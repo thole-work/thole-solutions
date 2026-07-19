@@ -201,6 +201,8 @@
   .metric-card .value { font-size: 24px; font-weight: 600; }
   .metric-card .note { margin-top: 10px; color: var(--ink-soft); font-size: 12px; line-height: 1.5; }
   .metric-card.warn .value { color: var(--danger); }
+  .metric-card.accent { border-color: var(--accent); background: linear-gradient(135deg, var(--accent-soft), transparent); }
+  .metric-card.accent .value { color: var(--accent); }
   .skeleton { background: linear-gradient(90deg, var(--line) 25%, var(--card) 50%, var(--line) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; color: transparent !important; user-select: none; pointer-events: none; }
   @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
@@ -753,6 +755,7 @@
       <div class="page-header"><h2>Dashboard</h2><p>Key business health metrics in one place.</p></div>
       <div class="metrics">
         <div class="metric-card"><div class="label">Revenue</div><div class="value num skeleton" id="m-revenue">&nbsp;</div><div class="note">Total sales value.</div></div>
+        <div class="metric-card accent"><div class="label">Today's sales</div><div class="value num skeleton" id="m-today-sales">&nbsp;</div><div class="note" id="m-today-note">Revenue earned today.</div></div>
         <div class="metric-card"><div class="label">Total costs</div><div class="value num skeleton" id="m-total-costs">&nbsp;</div><div class="note">Expenses + purchases + waste.</div></div>
         <div class="metric-card"><div class="label">Net profit</div><div class="value num skeleton" id="m-profit">&nbsp;</div><div class="note">Revenue minus all costs.</div></div>
         <div class="metric-card warn"><div class="label">Low stock</div><div class="value num skeleton" id="m-lowstock">&nbsp;</div><div class="note">Items at or below reorder.</div></div>
@@ -816,6 +819,7 @@
           <input type="date" id="sales-date-filter" onchange="pagination.sales=0; loadSales()" />
         </div>
         <button class="btn-small" onclick="exportSalesCSV()">📥 CSV</button>
+        <button class="btn-small" id="sales-group-toggle" onclick="toggleSalesGroup()" style="background:var(--accent-soft); color:var(--accent);">📅 By Day</button>
         <button class="btn-small" onclick="posOpenTableMap()">🛒 New Sale</button>
         <button class="btn-small" style="background:var(--sky); color:var(--ink);" onclick="openKDS()">🍳 KDS</button>
       </div>
@@ -837,6 +841,7 @@
           </select>
           <input type="date" id="payments-date-filter" onchange="pagination.payments=0; loadPayments()" />
         </div>
+        <button class="btn-small" id="payments-group-toggle" onclick="togglePaymentsGroup()" style="background:var(--accent-soft); color:var(--accent);">📅 By Day</button>
         <button class="btn-small" onclick="openModal('payment-crud-modal')">+ Record payment</button>
       </div>
       <div class="ledger" id="payments-ledger"></div>
@@ -852,6 +857,7 @@
           <input type="date" id="expenses-date-filter" onchange="pagination.expenses=0; loadExpenses()" />
         </div>
         <button class="btn-small" onclick="exportExpensesCSV()">📥 CSV</button>
+        <button class="btn-small" id="expenses-group-toggle" onclick="toggleExpensesGroup()" style="background:var(--accent-soft); color:var(--accent);">📅 By Day</button>
         <button class="btn-small" onclick="openModal('expense-modal')">+ Add expense</button>
       </div>
       <div class="ledger" id="expenses-ledger"></div>
@@ -873,6 +879,7 @@
           <input type="date" id="purchases-date-filter" onchange="pagination.purchases=0; loadPurchases()" />
         </div>
         <button class="btn-small" onclick="exportPurchasesCSV()">📥 CSV</button>
+        <button class="btn-small" id="purchases-group-toggle" onclick="togglePurchasesGroup()" style="background:var(--accent-soft); color:var(--accent);">📅 By Day</button>
         <button class="btn-small" onclick="openPurchaseModal()">+ New purchase</button>
       </div>
       <div class="ledger" id="purchases-ledger"></div>
@@ -2464,7 +2471,10 @@
   async function renderEfficiency() {
     try {
       const { data: allSales } = await sb.from('orders').select('total_amount, status').eq('business_id', membership.business_id);
-      const revenue = (allSales || []).filter(o => o.status !== 'voided').reduce((s, o) => s + Number(o.total_amount || 0), 0);
+    const revenue = (allSales || []).filter(o => o.status !== 'voided').reduce((s, o) => s + Number(o.total_amount || 0), 0);
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const todaySales = (allSales || []).filter(o => o.status !== 'voided' && o.created_at && o.created_at.slice(0, 10) === todayStr).reduce((s, o) => s + Number(o.total_amount || 0), 0);
+    const todayOrders = (allSales || []).filter(o => o.status !== 'voided' && o.created_at && o.created_at.slice(0, 10) === todayStr).length;
       const materialCost = cache.materials.reduce((s, m) => s + (Number(m.stock_qty) * Number(m.cost_per_unit || 0)), 0);
       const foodCostPct = revenue > 0 ? ((materialCost / revenue) * 100).toFixed(1) : '—';
       document.getElementById('eff-food-cost').textContent = foodCostPct === '—' ? '—' : foodCostPct + '%';
@@ -3016,6 +3026,8 @@
     const mLowstock = document.getElementById("m-lowstock"); mLowstock.textContent = lowStockCount; mLowstock.classList.remove("skeleton");
     const mSales = document.getElementById("m-sales"); mSales.textContent = salesCount; mSales.classList.remove("skeleton");
     animateValue(document.getElementById("m-revenue"), revenue);
+    const mTodaySales = document.getElementById("m-today-sales"); mTodaySales.textContent = money(todaySales); mTodaySales.classList.remove("skeleton");
+    document.getElementById("m-today-note").textContent = todayOrders ? `${todayOrders} order${todayOrders === 1 ? '' : 's'} today` : 'No orders yet today';
     const mTotalCosts = document.getElementById("m-total-costs"); mTotalCosts.textContent = money(totalCosts); mTotalCosts.classList.remove("skeleton");
     animateValue(document.getElementById("m-profit"), revenue - totalCosts);
     const mAvgOrder = document.getElementById("m-avg-order"); mAvgOrder.textContent = money(averageSale); mAvgOrder.classList.remove("skeleton");
@@ -3194,7 +3206,43 @@
   // ============================================================
   // SALES
   // ============================================================
+  let salesGroupByDay = false;
+  function toggleSalesGroup() {
+    salesGroupByDay = !salesGroupByDay;
+    const btn = document.getElementById('sales-group-toggle');
+    if (btn) btn.textContent = salesGroupByDay ? '📋 List' : '📅 By Day';
+    loadSales();
+  }
   async function loadSales(append = false) {
+    if (salesGroupByDay && !append) {
+      await pagedLoad('sales', { table: 'orders', select: '*, customers(name)', orderBy: 'created_at', ascending: false, timeFilterKey: 'sales', append: false });
+      const el = document.getElementById("sales-ledger");
+      if (!el) return;
+      if (cache.sales.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💰</div>No sales recorded yet.<br><span style="font-size:12px;">Tap "New Sale" to open the POS.</span></div>`; return; }
+      const groups = {};
+      cache.sales.filter(o => o.status !== 'voided').forEach(o => {
+        const day = (o.created_at || '').slice(0, 10);
+        if (!groups[day]) groups[day] = { orders: [], total: 0, count: 0 };
+        groups[day].orders.push(o);
+        groups[day].total += Number(o.total_amount || 0);
+        groups[day].count++;
+      });
+      const sorted = Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
+      const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;"><div>Date</div><div>Orders</div><div style="text-align:right">Day Total</div><div></div><div></div></div>`;
+      const rows = sorted.map(([day, g]) => {
+        const label = new Date(day + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+        const isToday = day === new Date().toISOString().slice(0, 10);
+        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr; cursor:pointer; ${isToday ? 'background:var(--accent-soft);' : ''}" onclick="salesExpandDay('${day}')">
+          <div style="font-weight:600;">${label}${isToday ? ' <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:var(--accent); color:#fff;">TODAY</span>' : ''}</div>
+          <div>${g.count} order${g.count === 1 ? '' : 's'}</div>
+          <div class="num" style="text-align:right; font-weight:600;">${money(g.total)}</div>
+          <div style="text-align:right; color:var(--accent); font-size:12px;">Expand ▸</div>
+          <div></div>
+        </div>`;
+      }).join("");
+      el.innerHTML = head + rows;
+      return;
+    }
     await pagedLoad('sales', { table: 'orders', select: '*, customers(name)', orderBy: 'created_at', ascending: false, timeFilterKey: 'sales', append });
     const el = document.getElementById("sales-ledger");
     if (!el) return;
@@ -3208,6 +3256,18 @@
         <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidSale('${escapeAttr(o.id)}')">Void</span></div>
       </div>`).join("");
     appendPaginated(el, head + rows, "sales", append);
+  }
+  function salesExpandDay(day) {
+    salesGroupByDay = false;
+    document.getElementById('sales-group-toggle').textContent = '📅 By Day';
+    const modeEl = document.getElementById('sales-filter-mode');
+    const input = document.getElementById('sales-date-filter');
+    modeEl.value = 'date';
+    input.type = 'date';
+    input.value = day;
+    input.style.display = '';
+    pagination.sales = 0;
+    loadSales();
   }
 
   function downloadCSV(filename, header, rows) {
@@ -3331,7 +3391,43 @@
   // ============================================================
   // PAYMENTS
   // ============================================================
+  let paymentsGroupByDay = false;
+  function togglePaymentsGroup() {
+    paymentsGroupByDay = !paymentsGroupByDay;
+    const btn = document.getElementById('payments-group-toggle');
+    if (btn) btn.textContent = paymentsGroupByDay ? '📋 List' : '📅 By Day';
+    loadPayments();
+  }
   async function loadPayments(append = false) {
+    if (paymentsGroupByDay && !append) {
+      await pagedLoad('payments', { table: 'payments', select: '*, customers(name)', orderBy: 'created_at', ascending: false, extraFilters: [['direction', 'in']], timeFilterKey: 'payments', append: false });
+      const el = document.getElementById("payments-ledger");
+      if (!el) return;
+      if (cache.payments.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💳</div>No payments recorded yet.<br><span style="font-size:12px;">Payments from customers will appear here.</span></div>`; return; }
+      const groups = {};
+      cache.payments.forEach(p => {
+        const day = (p.created_at || '').slice(0, 10);
+        if (!groups[day]) groups[day] = { items: [], total: 0, count: 0 };
+        groups[day].items.push(p);
+        groups[day].total += Number(p.amount || 0);
+        groups[day].count++;
+      });
+      const sorted = Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
+      const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;"><div>Date</div><div>Payments</div><div style="text-align:right">Day Total</div><div></div><div></div></div>`;
+      const rows = sorted.map(([day, g]) => {
+        const label = new Date(day + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+        const isToday = day === new Date().toISOString().slice(0, 10);
+        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr; cursor:pointer; ${isToday ? 'background:var(--accent-soft);' : ''}" onclick="paymentsExpandDay('${day}')">
+          <div style="font-weight:600;">${label}${isToday ? ' <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:var(--accent); color:#fff;">TODAY</span>' : ''}</div>
+          <div>${g.count} payment${g.count === 1 ? '' : 's'}</div>
+          <div class="num" style="text-align:right; font-weight:600;">${money(g.total)}</div>
+          <div style="text-align:right; color:var(--accent); font-size:12px;">Expand ▸</div>
+          <div></div>
+        </div>`;
+      }).join("");
+      el.innerHTML = head + rows;
+      return;
+    }
     await pagedLoad('payments', { table: 'payments', select: '*, customers(name)', orderBy: 'created_at', ascending: false, extraFilters: [['direction', 'in']], timeFilterKey: 'payments', append });
     const el = document.getElementById("payments-ledger");
     if (!el) return;
@@ -3343,6 +3439,18 @@
         <div class="num" style="text-align:right">${money(p.amount)}</div>
       </div>`).join("");
     appendPaginated(el, head + rows, "payments", append);
+  }
+  function paymentsExpandDay(day) {
+    paymentsGroupByDay = false;
+    document.getElementById('payments-group-toggle').textContent = '📅 By Day';
+    const modeEl = document.getElementById('payments-filter-mode');
+    const input = document.getElementById('payments-date-filter');
+    modeEl.value = 'date';
+    input.type = 'date';
+    input.value = day;
+    input.style.display = '';
+    pagination.payments = 0;
+    loadPayments();
   }
 
   function openEditPayment(paymentId) {
@@ -3389,7 +3497,43 @@
   // ============================================================
   // EXPENSES
   // ============================================================
+  let expensesGroupByDay = false;
+  function toggleExpensesGroup() {
+    expensesGroupByDay = !expensesGroupByDay;
+    const btn = document.getElementById('expenses-group-toggle');
+    if (btn) btn.textContent = expensesGroupByDay ? '📋 List' : '📅 By Day';
+    loadExpenses();
+  }
   async function loadExpenses(append = false) {
+    if (expensesGroupByDay && !append) {
+      await pagedLoad('expenses', { table: 'expenses', orderBy: 'expense_date', ascending: false, timeFilterKey: 'expenses', timeCol: 'expense_date', append: false });
+      const el = document.getElementById("expenses-ledger");
+      if (!el) return;
+      if (cache.expenses.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💸</div>No expenses recorded yet.<br><span style="font-size:12px;">Track rent, wages, utilities, and more.</span></div>`; return; }
+      const groups = {};
+      cache.expenses.forEach(e => {
+        const day = (e.expense_date || e.created_at || '').slice(0, 10);
+        if (!groups[day]) groups[day] = { items: [], total: 0, count: 0 };
+        groups[day].items.push(e);
+        groups[day].total += Number(e.amount || 0);
+        groups[day].count++;
+      });
+      const sorted = Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
+      const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;"><div>Date</div><div>Expenses</div><div style="text-align:right">Day Total</div><div></div><div></div></div>`;
+      const rows = sorted.map(([day, g]) => {
+        const label = new Date(day + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+        const isToday = day === new Date().toISOString().slice(0, 10);
+        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr; cursor:pointer; ${isToday ? 'background:var(--accent-soft);' : ''}" onclick="expensesExpandDay('${day}')">
+          <div style="font-weight:600;">${label}${isToday ? ' <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:var(--accent); color:#fff;">TODAY</span>' : ''}</div>
+          <div>${g.count} expense${g.count === 1 ? '' : 's'}</div>
+          <div class="num" style="text-align:right; font-weight:600;">${money(g.total)}</div>
+          <div style="text-align:right; color:var(--accent); font-size:12px;">Expand ▸</div>
+          <div></div>
+        </div>`;
+      }).join("");
+      el.innerHTML = head + rows;
+      return;
+    }
     await pagedLoad('expenses', { table: 'expenses', orderBy: 'expense_date', ascending: false, timeFilterKey: 'expenses', timeCol: 'expense_date', append });
     const el = document.getElementById("expenses-ledger");
     if (!el) return;
@@ -3401,6 +3545,18 @@
         <div class="num" style="text-align:right">${money(e.amount)}</div>
       </div>`).join("");
     appendPaginated(el, head + rows, "expenses", append);
+  }
+  function expensesExpandDay(day) {
+    expensesGroupByDay = false;
+    document.getElementById('expenses-group-toggle').textContent = '📅 By Day';
+    const modeEl = document.getElementById('expenses-filter-mode');
+    const input = document.getElementById('expenses-date-filter');
+    modeEl.value = 'date';
+    input.type = 'date';
+    input.value = day;
+    input.style.display = '';
+    pagination.expenses = 0;
+    loadExpenses();
   }
 
   function openEditExpense(expenseId) {
@@ -3513,7 +3669,43 @@
     renderDashboard();
   }
 
+  let purchasesGroupByDay = false;
+  function togglePurchasesGroup() {
+    purchasesGroupByDay = !purchasesGroupByDay;
+    const btn = document.getElementById('purchases-group-toggle');
+    if (btn) btn.textContent = purchasesGroupByDay ? '📋 List' : '📅 By Day';
+    loadPurchases();
+  }
   async function loadPurchases(append = false) {
+    if (purchasesGroupByDay && !append) {
+      await pagedLoad('purchases', { table: 'purchase_orders', orderBy: 'created_at', ascending: false, timeFilterKey: 'purchases', append: false });
+      const el = document.getElementById("purchases-ledger");
+      if (!el) return;
+      if (cache.purchases.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">🛒</div>No purchases recorded yet.<br><span style="font-size:12px;">Restock your products by logging purchases.</span></div>`; return; }
+      const groups = {};
+      cache.purchases.forEach(p => {
+        const day = (p.created_at || '').slice(0, 10);
+        if (!groups[day]) groups[day] = { items: [], total: 0, count: 0 };
+        groups[day].items.push(p);
+        groups[day].total += Number(p.total_amount || 0);
+        groups[day].count++;
+      });
+      const sorted = Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
+      const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;"><div>Date</div><div>Purchases</div><div style="text-align:right">Day Total</div><div></div><div></div></div>`;
+      const rows = sorted.map(([day, g]) => {
+        const label = new Date(day + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+        const isToday = day === new Date().toISOString().slice(0, 10);
+        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr; cursor:pointer; ${isToday ? 'background:var(--accent-soft);' : ''}" onclick="purchasesExpandDay('${day}')">
+          <div style="font-weight:600;">${label}${isToday ? ' <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:var(--accent); color:#fff;">TODAY</span>' : ''}</div>
+          <div>${g.count} purchase${g.count === 1 ? '' : 's'}</div>
+          <div class="num" style="text-align:right; font-weight:600;">${money(g.total)}</div>
+          <div style="text-align:right; color:var(--accent); font-size:12px;">Expand ▸</div>
+          <div></div>
+        </div>`;
+      }).join("");
+      el.innerHTML = head + rows;
+      return;
+    }
     await pagedLoad('purchases', { table: 'purchase_orders', orderBy: 'created_at', ascending: false, timeFilterKey: 'purchases', append });
     const el = document.getElementById("purchases-ledger");
     if (!el) return;
@@ -3526,6 +3718,18 @@
         <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidPurchase('${escapeAttr(po.id)}')">Void</span></div>
       </div>`).join("");
     appendPaginated(el, head + rows, "purchases", append);
+  }
+  function purchasesExpandDay(day) {
+    purchasesGroupByDay = false;
+    document.getElementById('purchases-group-toggle').textContent = '📅 By Day';
+    const modeEl = document.getElementById('purchases-filter-mode');
+    const input = document.getElementById('purchases-date-filter');
+    modeEl.value = 'date';
+    input.type = 'date';
+    input.value = day;
+    input.style.display = '';
+    pagination.purchases = 0;
+    loadPurchases();
   }
 
   async function voidPurchase(poId) {

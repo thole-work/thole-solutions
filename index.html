@@ -2519,11 +2519,17 @@
     const taxId = document.getElementById('setting-tax-id').value.trim();
 
     const settings = { tax_rate: taxRate, currency_symbol: currency, receipt_footer: receiptFooter };
-    localStorage.setItem('thole:settings', JSON.stringify(settings));
     setBtnLoading(btn, true);
     try {
-      await sb.from('businesses').update({ name: bizName || undefined, address: address || null, phone: phone || null, tax_id: taxId || null }).eq('id', membership.business_id);
-    } catch(e) { console.error('Failed to save business info:', e); }
+      await sb.from('businesses').update({
+        name: bizName || undefined,
+        address: address || null,
+        phone: phone || null,
+        tax_id: taxId || null,
+        settings
+      }).eq('id', membership.business_id);
+      if (membership.businesses) membership.businesses.settings = settings;
+    } catch(e) { console.error('Failed to save settings:', e); }
     setTimeout(() => {
       setBtnLoading(btn, false);
       showToast('Settings saved');
@@ -2536,9 +2542,7 @@
 
   function loadSettings() {
     try {
-      const raw = localStorage.getItem('thole:settings');
-      if (!raw) return;
-      const s = JSON.parse(raw);
+      const s = getSettings();
       if (s.tax_rate != null) document.getElementById('setting-tax-rate').value = s.tax_rate;
       if (s.currency_symbol) document.getElementById('setting-currency').value = s.currency_symbol;
       if (s.receipt_footer) document.getElementById('setting-receipt-footer').value = s.receipt_footer;
@@ -2553,7 +2557,11 @@
   }
 
   function getSettings() {
-    try { return JSON.parse(localStorage.getItem('thole:settings')) || {}; } catch(e) { return {}; }
+    try {
+      const dbSettings = membership?.businesses?.settings || {};
+      const localSettings = JSON.parse(localStorage.getItem('thole:settings')) || {};
+      return { ...localSettings, ...dbSettings };
+    } catch(e) { return {}; }
   }
 
   // ========== POS BUTTON IN TOOLBAR ==========
@@ -2616,7 +2624,7 @@
     try {
       const { data, error } = await sb
         .from("app_users")
-        .select("business_id, role, full_name, businesses(name, invite_code, business_types(display_name, type_key))")
+        .select("business_id, role, full_name, businesses(name, invite_code, settings, business_types(display_name, type_key))")
         .eq("user_id", currentUser.id)
         .maybeSingle();
 
@@ -2664,7 +2672,7 @@
   // ============================================================
   function applyRolePermissions(role) {
     const isStaff = role === "staff";
-    document.querySelectorAll('.nav-item[data-tab="payments"], .nav-item[data-tab="expenses"], .nav-item[data-tab="purchases"], .nav-item[data-tab="reports"]').forEach((el) => {
+    document.querySelectorAll('.nav-item[data-tab="payments"], .nav-item[data-tab="expenses"], .nav-item[data-tab="purchases"], .nav-item[data-tab="reports"], .nav-item[data-tab="settings"]').forEach((el) => {
       el.classList.toggle("hidden", isStaff);
     });
     document.querySelectorAll('.nav-item[data-tab="team"]').forEach((el) => {
@@ -2672,7 +2680,7 @@
     });
     if (isStaff) {
       const activeTab = document.querySelector(".nav-item.active")?.dataset.tab;
-      if (["payments","expenses","purchases","team","reports"].includes(activeTab)) switchTab("dashboard");
+      if (["payments","expenses","purchases","team","reports","settings"].includes(activeTab)) switchTab("dashboard");
     }
     const addProductBtn = document.querySelector('button[onclick="openModal(\'product-modal\')"]');
     if (addProductBtn) addProductBtn.classList.toggle("hidden", isStaff);

@@ -2942,7 +2942,7 @@
   }
   function updateThemeIcon() {
     const icon = document.getElementById("theme-icon");
-    if (icon) icon.textContent = isDark ? "☀️" : "🌙";
+    if (icon) icon.textContent = document.documentElement.classList.contains('theme-dark') ? '☀️' : '🌙';
   }
   function confirmSignOut() {
     if (!confirm("Are you sure you want to sign out?")) return;

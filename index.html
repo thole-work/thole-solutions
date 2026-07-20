@@ -813,7 +813,7 @@
       <div class="page-header"><h2>Sales</h2><p>All orders and transactions.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="sales-filter-mode" onchange="const f=document.getElementById('sales-date-filter'); f.style.display=this.value==='all'?'none':''; f.type='date'; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.sales=0; loadSales();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+          <select id="sales-filter-mode" onchange="const f=document.getElementById('sales-date-filter'); f.style.display=this.value==='all'?'none':''; f.type='date'; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.sales=0; salesExpandedDay=null; loadSales();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
             <option value="all" selected>All Time</option><option value="date">Today</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
           <input type="date" id="sales-date-filter" onchange="pagination.sales=0; loadSales()" />
@@ -836,7 +836,7 @@
       <div class="page-header"><h2>Payments</h2><p>Money received from customers.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="payments-filter-mode" onchange="const f=document.getElementById('payments-date-filter'); f.style.display=this.value==='all'?'none':''; f.type='date'; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.payments=0; loadPayments();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+          <select id="payments-filter-mode" onchange="const f=document.getElementById('payments-date-filter'); f.style.display=this.value==='all'?'none':''; f.type='date'; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.payments=0; paymentsExpandedDay=null; loadPayments();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
             <option value="all" selected>All Time</option><option value="date">Today</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
           <input type="date" id="payments-date-filter" onchange="pagination.payments=0; loadPayments()" />
@@ -851,7 +851,7 @@
       <div class="page-header"><h2>Expenses</h2><p>Overhead costs — rent, wages, utilities, supplies.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="expenses-filter-mode" onchange="const f=document.getElementById('expenses-date-filter'); f.style.display=this.value==='all'?'none':''; f.type='date'; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.expenses=0; loadExpenses();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+          <select id="expenses-filter-mode" onchange="const f=document.getElementById('expenses-date-filter'); f.style.display=this.value==='all'?'none':''; f.type='date'; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.expenses=0; expensesExpandedDay=null; loadExpenses();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
             <option value="all" selected>All Time</option><option value="date">Today</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
           <input type="date" id="expenses-date-filter" onchange="pagination.expenses=0; loadExpenses()" />
@@ -873,7 +873,7 @@
       <div class="page-header"><h2>Purchase Orders</h2><p>Restocking — this updates product stock automatically.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="purchases-filter-mode" onchange="const f=document.getElementById('purchases-date-filter'); f.style.display=this.value==='all'?'none':''; f.type='date'; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.purchases=0; loadPurchases();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+          <select id="purchases-filter-mode" onchange="const f=document.getElementById('purchases-date-filter'); f.style.display=this.value==='all'?'none':''; f.type='date'; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.purchases=0; purchasesExpandedDay=null; loadPurchases();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
             <option value="all" selected>All Time</option><option value="date">Today</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
           <input type="date" id="purchases-date-filter" onchange="pagination.purchases=0; loadPurchases()" />
@@ -2981,12 +2981,16 @@
 
   async function renderDashboard() {
     const bid = membership.business_id;
+    try {
     const [{ data: allSales }, { data: allExpenses }, { data: allPurchases }] = await Promise.all([
-      sb.from('orders').select('total_amount, status').eq('business_id', bid),
+      sb.from('orders').select('total_amount, status, created_at').eq('business_id', bid),
       sb.from('expenses').select('amount').eq('business_id', bid),
       sb.from('purchase_orders').select('total_amount, status').eq('business_id', bid),
     ]);
     const revenue = (allSales || []).filter(o => o.status !== 'voided').reduce((s, o) => s + Number(o.total_amount || 0), 0);
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const todaySales = (allSales || []).filter(o => o.status !== 'voided' && o.created_at && o.created_at.slice(0, 10) === todayStr).reduce((s, o) => s + Number(o.total_amount || 0), 0);
+    const todayOrders = (allSales || []).filter(o => o.status !== 'voided' && o.created_at && o.created_at.slice(0, 10) === todayStr).length;
     const expenseTotal = (allExpenses || []).reduce((s, e) => s + Number(e.amount || 0), 0);
     const purchaseTotal = (allPurchases || []).filter(p => p.status !== 'voided').reduce((s, p) => s + Number(p.total_amount || 0), 0);
 
@@ -3023,16 +3027,19 @@
     const topCat = Object.entries(catCounts).sort((a, b) => b[1] - a[1])[0];
 
     // Metrics
-    const mLowstock = document.getElementById("m-lowstock"); mLowstock.textContent = lowStockCount; mLowstock.classList.remove("skeleton");
-    const mSales = document.getElementById("m-sales"); mSales.textContent = salesCount; mSales.classList.remove("skeleton");
+    try {
+    const mLowstock = document.getElementById("m-lowstock"); if(mLowstock){mLowstock.textContent = lowStockCount; mLowstock.classList.remove("skeleton");}
+    const mSales = document.getElementById("m-sales"); if(mSales){mSales.textContent = salesCount; mSales.classList.remove("skeleton");}
     animateValue(document.getElementById("m-revenue"), revenue);
-    const mTodaySales = document.getElementById("m-today-sales"); mTodaySales.textContent = money(todaySales); mTodaySales.classList.remove("skeleton");
-    document.getElementById("m-today-note").textContent = todayOrders ? `${todayOrders} order${todayOrders === 1 ? '' : 's'} today` : 'No orders yet today';
-    const mTotalCosts = document.getElementById("m-total-costs"); mTotalCosts.textContent = money(totalCosts); mTotalCosts.classList.remove("skeleton");
+    const mTodaySales = document.getElementById("m-today-sales"); if(mTodaySales){mTodaySales.textContent = money(todaySales); mTodaySales.classList.remove("skeleton");}
+    const mTodayNote = document.getElementById("m-today-note"); if(mTodayNote) mTodayNote.textContent = todayOrders ? `${todayOrders} order${todayOrders === 1 ? '' : 's'} today` : 'No orders yet today';
+    const mTotalCosts = document.getElementById("m-total-costs"); if(mTotalCosts){mTotalCosts.textContent = money(totalCosts); mTotalCosts.classList.remove("skeleton");}
     animateValue(document.getElementById("m-profit"), revenue - totalCosts);
-    const mAvgOrder = document.getElementById("m-avg-order"); mAvgOrder.textContent = money(averageSale); mAvgOrder.classList.remove("skeleton");
+    const mAvgOrder = document.getElementById("m-avg-order"); if(mAvgOrder){mAvgOrder.textContent = money(averageSale); mAvgOrder.classList.remove("skeleton");}
+    } catch(e) { console.error('Dashboard metric error', e); }
 
     // Action needed
+    try {
     const alerts = [];
     if (lowStockCount > 0) alerts.push(`${lowStockCount} low-stock item${lowStockCount === 1 ? '' : 's'} need attention.`);
     if (lowStockMaterials.length > 0 && businessUsesRawMaterials()) alerts.push(`${lowStockMaterials.length} raw material${lowStockMaterials.length === 1 ? '' : 's'} running low.`);
@@ -3041,14 +3048,18 @@
     if (purchaseTotal === 0 && cache.materials.length > 0) alerts.push("No purchase orders recorded — costs may be incomplete.");
     if (alerts.length === 0) alerts.push("All systems healthy. Keep up the good work!");
     document.getElementById("dashboard-top-priority").textContent = alerts.join(' ');
+    } catch(e) { console.error('Dashboard alerts error', e); }
 
     // Cost breakdown
+    try {
     document.getElementById("d-expenses").textContent = money(expenseTotal);
     document.getElementById("d-purchases").textContent = money(purchaseTotal);
     document.getElementById("d-waste").textContent = money(wasteCost);
     document.getElementById("d-material-value").textContent = money(materialValue);
+    } catch(e) { console.error('Dashboard cost breakdown error', e); }
 
     // Efficiency
+    try {
     const grossMargin = revenue > 0 ? (((revenue - purchaseTotal) / revenue) * 100).toFixed(1) + '%' : '—';
     const costPerOrder = salesCount > 0 ? money(totalCosts / salesCount) : '—';
     const profitMargin = revenue > 0 ? (((revenue - totalCosts) / revenue) * 100).toFixed(1) + '%' : '—';
@@ -3057,12 +3068,16 @@
     document.getElementById("d-cost-per-order").textContent = costPerOrder;
     document.getElementById("d-profit-margin").textContent = profitMargin;
     document.getElementById("d-waste-rate").textContent = wasteRate;
+    } catch(e) { console.error('Dashboard efficiency error', e); }
 
     // Snapshot
+    try {
     document.getElementById("dashboard-average-sale").textContent = money(averageSale);
     document.getElementById("dashboard-low-stock-item").textContent = escapeHtml(worstStock);
     document.getElementById("d-top-product").textContent = topProduct ? escapeHtml(topProduct.name) : '—';
     document.getElementById("d-top-category").textContent = topCat ? escapeHtml(topCat[0]) + ' (' + topCat[1] + ')' : '—';
+    } catch(e) { console.error('Dashboard snapshot error', e); }
+    } catch(e) { console.error('Dashboard top-level error', e); }
   }
 
   // ============================================================
@@ -3207,13 +3222,45 @@
   // SALES
   // ============================================================
   let salesGroupByDay = false;
+  let salesExpandedDay = null;
   function toggleSalesGroup() {
     salesGroupByDay = !salesGroupByDay;
+    salesExpandedDay = null;
     const btn = document.getElementById('sales-group-toggle');
     if (btn) btn.textContent = salesGroupByDay ? '📋 List' : '📅 By Day';
     loadSales();
   }
+  function salesGoBack() {
+    salesExpandedDay = null;
+    loadSales();
+  }
+  function updateSalesGroupBtn() {
+    const mode = document.getElementById('sales-filter-mode')?.value;
+    const btn = document.getElementById('sales-group-toggle');
+    if (btn) btn.style.display = mode === 'all' ? '' : 'none';
+    if (mode !== 'all') { salesGroupByDay = false; salesExpandedDay = null; }
+  }
   async function loadSales(append = false) {
+    updateSalesGroupBtn();
+    if (salesExpandedDay && !append) {
+      const { data } = await sb.from('orders').select('*, customers(name)').eq('business_id', membership.business_id).eq('status', 'completed').gte('created_at', salesExpandedDay + 'T00:00:00').lte('created_at', salesExpandedDay + 'T23:59:59').order('created_at', { ascending: false });
+      const el = document.getElementById("sales-ledger");
+      if (!el) return;
+      const label = new Date(salesExpandedDay + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      const dayTotal = (data || []).reduce((s, o) => s + Number(o.total_amount || 0), 0);
+      const backBtn = `<div style="padding:8px 0 12px;"><button class="btn-ghost" onclick="salesGoBack()" style="font-size:13px;">← Back to summary</button> <span style="color:var(--ink-faint); font-size:13px; margin-left:8px;">${escapeHtml(label)} — ${money(dayTotal)}</span></div>`;
+      if (!data || data.length === 0) { el.innerHTML = backBtn + `<div class="empty-state">No completed sales for this day.</div>`; return; }
+      const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;"><div>Customer</div><div>Time</div><div style="text-align:right">Total</div><div></div><div></div></div>`;
+      const rows = data.map(o => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;">
+        <div>${o.customers ? escapeHtml(o.customers.name) : "Walk-in"}</div>
+        <div style="color:var(--ink-faint); font-size:12px;">${new Date(o.created_at).toLocaleTimeString()}</div>
+        <div class="num" style="text-align:right">${money(o.total_amount)}</div>
+        <div style="text-align:right;"><span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="posShowReceipt('${escapeAttr(o.id)}')">Receipt</span></div>
+        <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidSale('${escapeAttr(o.id)}')">Void</span></div>
+      </div>`).join("");
+      el.innerHTML = backBtn + head + rows;
+      return;
+    }
     if (salesGroupByDay && !append) {
       await pagedLoad('sales', { table: 'orders', select: '*, customers(name)', orderBy: 'created_at', ascending: false, timeFilterKey: 'sales', append: false });
       const el = document.getElementById("sales-ledger");
@@ -3222,12 +3269,12 @@
       const groups = {};
       cache.sales.filter(o => o.status !== 'voided').forEach(o => {
         const day = (o.created_at || '').slice(0, 10);
-        if (!groups[day]) groups[day] = { orders: [], total: 0, count: 0 };
-        groups[day].orders.push(o);
+        if (!groups[day]) groups[day] = { total: 0, count: 0 };
         groups[day].total += Number(o.total_amount || 0);
         groups[day].count++;
       });
       const sorted = Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
+      const grandTotal = sorted.reduce((s, [, g]) => s + g.total, 0);
       const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;"><div>Date</div><div>Orders</div><div style="text-align:right">Day Total</div><div></div><div></div></div>`;
       const rows = sorted.map(([day, g]) => {
         const label = new Date(day + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
@@ -3240,7 +3287,8 @@
           <div></div>
         </div>`;
       }).join("");
-      el.innerHTML = head + rows;
+      const totalBar = `<div style="padding:10px 0; text-align:right; font-size:13px; color:var(--ink-faint); border-top:1px solid var(--line); margin-top:4px;"><strong style="color:var(--ink);">${sorted.length} day${sorted.length === 1 ? '' : 's'}</strong> — Total: <strong style="color:var(--accent);">${money(grandTotal)}</strong></div>`;
+      el.innerHTML = head + rows + totalBar;
       return;
     }
     await pagedLoad('sales', { table: 'orders', select: '*, customers(name)', orderBy: 'created_at', ascending: false, timeFilterKey: 'sales', append });
@@ -3258,15 +3306,7 @@
     appendPaginated(el, head + rows, "sales", append);
   }
   function salesExpandDay(day) {
-    salesGroupByDay = false;
-    document.getElementById('sales-group-toggle').textContent = '📅 By Day';
-    const modeEl = document.getElementById('sales-filter-mode');
-    const input = document.getElementById('sales-date-filter');
-    modeEl.value = 'date';
-    input.type = 'date';
-    input.value = day;
-    input.style.display = '';
-    pagination.sales = 0;
+    salesExpandedDay = day;
     loadSales();
   }
 
@@ -3392,13 +3432,40 @@
   // PAYMENTS
   // ============================================================
   let paymentsGroupByDay = false;
+  let paymentsExpandedDay = null;
   function togglePaymentsGroup() {
     paymentsGroupByDay = !paymentsGroupByDay;
+    paymentsExpandedDay = null;
     const btn = document.getElementById('payments-group-toggle');
     if (btn) btn.textContent = paymentsGroupByDay ? '📋 List' : '📅 By Day';
     loadPayments();
   }
+  function paymentsGoBack() { paymentsExpandedDay = null; loadPayments(); }
+  function updatePaymentsGroupBtn() {
+    const mode = document.getElementById('payments-filter-mode')?.value;
+    const btn = document.getElementById('payments-group-toggle');
+    if (btn) btn.style.display = mode === 'all' ? '' : 'none';
+    if (mode !== 'all') { paymentsGroupByDay = false; paymentsExpandedDay = null; }
+  }
   async function loadPayments(append = false) {
+    updatePaymentsGroupBtn();
+    if (paymentsExpandedDay && !append) {
+      const { data } = await sb.from('payments').select('*, customers(name)').eq('business_id', membership.business_id).eq('direction', 'in').gte('created_at', paymentsExpandedDay + 'T00:00:00').lte('created_at', paymentsExpandedDay + 'T23:59:59').order('created_at', { ascending: false });
+      const el = document.getElementById("payments-ledger");
+      if (!el) return;
+      const label = new Date(paymentsExpandedDay + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      const dayTotal = (data || []).reduce((s, p) => s + Number(p.amount || 0), 0);
+      const backBtn = `<div style="padding:8px 0 12px;"><button class="btn-ghost" onclick="paymentsGoBack()" style="font-size:13px;">← Back to summary</button> <span style="color:var(--ink-faint); font-size:13px; margin-left:8px;">${escapeHtml(label)} — ${money(dayTotal)}</span></div>`;
+      if (!data || data.length === 0) { el.innerHTML = backBtn + `<div class="empty-state">No payments for this day.</div>`; return; }
+      const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Customer</div><div>Method</div><div style="text-align:right">Amount</div></div>`;
+      const rows = data.map(p => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr; cursor:pointer;" onclick="openEditPayment('${escapeAttr(p.id)}')">
+        <div>${p.customers ? escapeHtml(p.customers.name) : "—"}</div>
+        <div style="color:var(--ink-faint); font-size:12px; text-transform:capitalize;">${escapeHtml(p.method.replace("_"," "))}</div>
+        <div class="num" style="text-align:right">${money(p.amount)}</div>
+      </div>`).join("");
+      el.innerHTML = backBtn + head + rows;
+      return;
+    }
     if (paymentsGroupByDay && !append) {
       await pagedLoad('payments', { table: 'payments', select: '*, customers(name)', orderBy: 'created_at', ascending: false, extraFilters: [['direction', 'in']], timeFilterKey: 'payments', append: false });
       const el = document.getElementById("payments-ledger");
@@ -3407,12 +3474,12 @@
       const groups = {};
       cache.payments.forEach(p => {
         const day = (p.created_at || '').slice(0, 10);
-        if (!groups[day]) groups[day] = { items: [], total: 0, count: 0 };
-        groups[day].items.push(p);
+        if (!groups[day]) groups[day] = { total: 0, count: 0 };
         groups[day].total += Number(p.amount || 0);
         groups[day].count++;
       });
       const sorted = Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
+      const grandTotal = sorted.reduce((s, [, g]) => s + g.total, 0);
       const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;"><div>Date</div><div>Payments</div><div style="text-align:right">Day Total</div><div></div><div></div></div>`;
       const rows = sorted.map(([day, g]) => {
         const label = new Date(day + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
@@ -3425,7 +3492,8 @@
           <div></div>
         </div>`;
       }).join("");
-      el.innerHTML = head + rows;
+      const totalBar = `<div style="padding:10px 0; text-align:right; font-size:13px; color:var(--ink-faint); border-top:1px solid var(--line); margin-top:4px;"><strong style="color:var(--ink);">${sorted.length} day${sorted.length === 1 ? '' : 's'}</strong> — Total: <strong style="color:var(--accent);">${money(grandTotal)}</strong></div>`;
+      el.innerHTML = head + rows + totalBar;
       return;
     }
     await pagedLoad('payments', { table: 'payments', select: '*, customers(name)', orderBy: 'created_at', ascending: false, extraFilters: [['direction', 'in']], timeFilterKey: 'payments', append });
@@ -3440,18 +3508,7 @@
       </div>`).join("");
     appendPaginated(el, head + rows, "payments", append);
   }
-  function paymentsExpandDay(day) {
-    paymentsGroupByDay = false;
-    document.getElementById('payments-group-toggle').textContent = '📅 By Day';
-    const modeEl = document.getElementById('payments-filter-mode');
-    const input = document.getElementById('payments-date-filter');
-    modeEl.value = 'date';
-    input.type = 'date';
-    input.value = day;
-    input.style.display = '';
-    pagination.payments = 0;
-    loadPayments();
-  }
+  function paymentsExpandDay(day) { paymentsExpandedDay = day; loadPayments(); }
 
   function openEditPayment(paymentId) {
     const p = cache.payments.find((x) => x.id === paymentId);
@@ -3498,13 +3555,40 @@
   // EXPENSES
   // ============================================================
   let expensesGroupByDay = false;
+  let expensesExpandedDay = null;
   function toggleExpensesGroup() {
     expensesGroupByDay = !expensesGroupByDay;
+    expensesExpandedDay = null;
     const btn = document.getElementById('expenses-group-toggle');
     if (btn) btn.textContent = expensesGroupByDay ? '📋 List' : '📅 By Day';
     loadExpenses();
   }
+  function expensesGoBack() { expensesExpandedDay = null; loadExpenses(); }
+  function updateExpensesGroupBtn() {
+    const mode = document.getElementById('expenses-filter-mode')?.value;
+    const btn = document.getElementById('expenses-group-toggle');
+    if (btn) btn.style.display = mode === 'all' ? '' : 'none';
+    if (mode !== 'all') { expensesGroupByDay = false; expensesExpandedDay = null; }
+  }
   async function loadExpenses(append = false) {
+    updateExpensesGroupBtn();
+    if (expensesExpandedDay && !append) {
+      const { data } = await sb.from('expenses').select('*').eq('business_id', membership.business_id).eq('expense_date', expensesExpandedDay).order('created_at', { ascending: false });
+      const el = document.getElementById("expenses-ledger");
+      if (!el) return;
+      const label = new Date(expensesExpandedDay + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      const dayTotal = (data || []).reduce((s, e) => s + Number(e.amount || 0), 0);
+      const backBtn = `<div style="padding:8px 0 12px;"><button class="btn-ghost" onclick="expensesGoBack()" style="font-size:13px;">← Back to summary</button> <span style="color:var(--ink-faint); font-size:13px; margin-left:8px;">${escapeHtml(label)} — ${money(dayTotal)}</span></div>`;
+      if (!data || data.length === 0) { el.innerHTML = backBtn + `<div class="empty-state">No expenses for this day.</div>`; return; }
+      const head = `<div class="ledger-head" style="grid-template-columns: 1fr 2fr 1fr;"><div>Category</div><div>Description</div><div style="text-align:right">Amount</div></div>`;
+      const rows = data.map(e => `<div class="ledger-row" style="grid-template-columns: 1fr 2fr 1fr; cursor:pointer;" onclick="openEditExpense('${escapeAttr(e.id)}')">
+        <div><span class="cat-badge" style="background:var(--amber-soft); color:var(--amber);">${escapeHtml(e.category)}</span></div>
+        <div style="color:var(--ink-soft); font-size:13px;">${escapeHtml(e.description ?? "—")}</div>
+        <div class="num" style="text-align:right">${money(e.amount)}</div>
+      </div>`).join("");
+      el.innerHTML = backBtn + head + rows;
+      return;
+    }
     if (expensesGroupByDay && !append) {
       await pagedLoad('expenses', { table: 'expenses', orderBy: 'expense_date', ascending: false, timeFilterKey: 'expenses', timeCol: 'expense_date', append: false });
       const el = document.getElementById("expenses-ledger");
@@ -3513,12 +3597,12 @@
       const groups = {};
       cache.expenses.forEach(e => {
         const day = (e.expense_date || e.created_at || '').slice(0, 10);
-        if (!groups[day]) groups[day] = { items: [], total: 0, count: 0 };
-        groups[day].items.push(e);
+        if (!groups[day]) groups[day] = { total: 0, count: 0 };
         groups[day].total += Number(e.amount || 0);
         groups[day].count++;
       });
       const sorted = Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
+      const grandTotal = sorted.reduce((s, [, g]) => s + g.total, 0);
       const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;"><div>Date</div><div>Expenses</div><div style="text-align:right">Day Total</div><div></div><div></div></div>`;
       const rows = sorted.map(([day, g]) => {
         const label = new Date(day + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
@@ -3531,7 +3615,8 @@
           <div></div>
         </div>`;
       }).join("");
-      el.innerHTML = head + rows;
+      const totalBar = `<div style="padding:10px 0; text-align:right; font-size:13px; color:var(--ink-faint); border-top:1px solid var(--line); margin-top:4px;"><strong style="color:var(--ink);">${sorted.length} day${sorted.length === 1 ? '' : 's'}</strong> — Total: <strong style="color:var(--accent);">${money(grandTotal)}</strong></div>`;
+      el.innerHTML = head + rows + totalBar;
       return;
     }
     await pagedLoad('expenses', { table: 'expenses', orderBy: 'expense_date', ascending: false, timeFilterKey: 'expenses', timeCol: 'expense_date', append });
@@ -3546,18 +3631,7 @@
       </div>`).join("");
     appendPaginated(el, head + rows, "expenses", append);
   }
-  function expensesExpandDay(day) {
-    expensesGroupByDay = false;
-    document.getElementById('expenses-group-toggle').textContent = '📅 By Day';
-    const modeEl = document.getElementById('expenses-filter-mode');
-    const input = document.getElementById('expenses-date-filter');
-    modeEl.value = 'date';
-    input.type = 'date';
-    input.value = day;
-    input.style.display = '';
-    pagination.expenses = 0;
-    loadExpenses();
-  }
+  function expensesExpandDay(day) { expensesExpandedDay = day; loadExpenses(); }
 
   function openEditExpense(expenseId) {
     const e = cache.expenses.find((x) => x.id === expenseId);
@@ -3670,13 +3744,41 @@
   }
 
   let purchasesGroupByDay = false;
+  let purchasesExpandedDay = null;
   function togglePurchasesGroup() {
     purchasesGroupByDay = !purchasesGroupByDay;
+    purchasesExpandedDay = null;
     const btn = document.getElementById('purchases-group-toggle');
     if (btn) btn.textContent = purchasesGroupByDay ? '📋 List' : '📅 By Day';
     loadPurchases();
   }
+  function purchasesGoBack() { purchasesExpandedDay = null; loadPurchases(); }
+  function updatePurchasesGroupBtn() {
+    const mode = document.getElementById('purchases-filter-mode')?.value;
+    const btn = document.getElementById('purchases-group-toggle');
+    if (btn) btn.style.display = mode === 'all' ? '' : 'none';
+    if (mode !== 'all') { purchasesGroupByDay = false; purchasesExpandedDay = null; }
+  }
   async function loadPurchases(append = false) {
+    updatePurchasesGroupBtn();
+    if (purchasesExpandedDay && !append) {
+      const { data } = await sb.from('purchase_orders').select('*').eq('business_id', membership.business_id).gte('created_at', purchasesExpandedDay + 'T00:00:00').lte('created_at', purchasesExpandedDay + 'T23:59:59').order('created_at', { ascending: false });
+      const el = document.getElementById("purchases-ledger");
+      if (!el) return;
+      const label = new Date(purchasesExpandedDay + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      const dayTotal = (data || []).reduce((s, p) => s + Number(p.total_amount || 0), 0);
+      const backBtn = `<div style="padding:8px 0 12px;"><button class="btn-ghost" onclick="purchasesGoBack()" style="font-size:13px;">← Back to summary</button> <span style="color:var(--ink-faint); font-size:13px; margin-left:8px;">${escapeHtml(label)} — ${money(dayTotal)}</span></div>`;
+      if (!data || data.length === 0) { el.innerHTML = backBtn + `<div class="empty-state">No purchases for this day.</div>`; return; }
+      const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;"><div>Date</div><div>Status</div><div style="text-align:right">Total</div><div></div></div>`;
+      const rows = data.map(po => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;">
+        <div style="color:var(--ink-faint); font-size:12px;">${new Date(po.created_at).toLocaleTimeString()}</div>
+        <div><span class="cat-badge">${escapeHtml(po.status)}</span></div>
+        <div class="num" style="text-align:right">${money(po.total_amount)}</div>
+        <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidPurchase('${escapeAttr(po.id)}')">Void</span></div>
+      </div>`).join("");
+      el.innerHTML = backBtn + head + rows;
+      return;
+    }
     if (purchasesGroupByDay && !append) {
       await pagedLoad('purchases', { table: 'purchase_orders', orderBy: 'created_at', ascending: false, timeFilterKey: 'purchases', append: false });
       const el = document.getElementById("purchases-ledger");
@@ -3685,12 +3787,12 @@
       const groups = {};
       cache.purchases.forEach(p => {
         const day = (p.created_at || '').slice(0, 10);
-        if (!groups[day]) groups[day] = { items: [], total: 0, count: 0 };
-        groups[day].items.push(p);
+        if (!groups[day]) groups[day] = { total: 0, count: 0 };
         groups[day].total += Number(p.total_amount || 0);
         groups[day].count++;
       });
       const sorted = Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
+      const grandTotal = sorted.reduce((s, [, g]) => s + g.total, 0);
       const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;"><div>Date</div><div>Purchases</div><div style="text-align:right">Day Total</div><div></div><div></div></div>`;
       const rows = sorted.map(([day, g]) => {
         const label = new Date(day + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
@@ -3703,7 +3805,8 @@
           <div></div>
         </div>`;
       }).join("");
-      el.innerHTML = head + rows;
+      const totalBar = `<div style="padding:10px 0; text-align:right; font-size:13px; color:var(--ink-faint); border-top:1px solid var(--line); margin-top:4px;"><strong style="color:var(--ink);">${sorted.length} day${sorted.length === 1 ? '' : 's'}</strong> — Total: <strong style="color:var(--accent);">${money(grandTotal)}</strong></div>`;
+      el.innerHTML = head + rows + totalBar;
       return;
     }
     await pagedLoad('purchases', { table: 'purchase_orders', orderBy: 'created_at', ascending: false, timeFilterKey: 'purchases', append });
@@ -3719,18 +3822,7 @@
       </div>`).join("");
     appendPaginated(el, head + rows, "purchases", append);
   }
-  function purchasesExpandDay(day) {
-    purchasesGroupByDay = false;
-    document.getElementById('purchases-group-toggle').textContent = '📅 By Day';
-    const modeEl = document.getElementById('purchases-filter-mode');
-    const input = document.getElementById('purchases-date-filter');
-    modeEl.value = 'date';
-    input.type = 'date';
-    input.value = day;
-    input.style.display = '';
-    pagination.purchases = 0;
-    loadPurchases();
-  }
+  function purchasesExpandDay(day) { purchasesExpandedDay = day; loadPurchases(); }
 
   async function voidPurchase(poId) {
     if (!confirm("Void this purchase? Stock added will be removed. This can't be undone.")) return;

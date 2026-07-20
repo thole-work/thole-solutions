@@ -38,7 +38,7 @@
     font-family: 'Inter', 'Roboto', 'Open Sans', sans-serif; height: 100vh; overflow: hidden;
     transition: background-color 0.25s ease, color 0.25s ease;
   }
-  .nav-item, .btn-small, .btn-ghost, .signout-btn, #theme-toggle, .metric-card, .report-card, .checklist li, .ledger-row, .modal, input, select, textarea, button, .toolbar select, .toolbar input[type="date"] {
+  .nav-item, .btn-small, .btn-ghost, .profile-dropdown-item, .metric-card, .report-card, .checklist li, .ledger-row, .modal, input, select, textarea, button, .toolbar select, .toolbar input[type="date"] {
     transition: transform 0.22s cubic-bezier(.2,.8,.2,1), box-shadow 0.22s ease, background-color 0.22s ease, color 0.22s ease, border-color 0.22s ease, opacity 0.22s ease;
   }
   .nav-item:hover, .nav-item:focus-visible {
@@ -51,7 +51,7 @@
     transform: translateY(-1px);
     box-shadow: inset 0 0 0 1px rgba(29,31,145,0.08);
   }
-  .btn-small:hover, .btn-ghost:hover, .signout-btn:hover, #theme-toggle:hover {
+  .btn-small:hover, .btn-ghost:hover, .profile-dropdown-item:hover {
     transform: translateY(-2px);
     box-shadow: 0 10px 24px rgba(15,23,42,0.08);
   }
@@ -178,14 +178,22 @@
   #app-topbar .title-group { min-width: 0; }
   #app-topbar h2 { margin: 0; font-size: 18px; color: white; }
   #app-topbar p { margin: 4px 0 0; color: rgba(255,255,255,0.85); font-size: 12px; }
-  #app-topbar .user-panel { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; min-width: 160px; }
-  #app-topbar .user-panel .user-name { font-weight: 600; color: #FFF; }
-  #app-topbar .user-panel .user-role { font-size: 11px; color: rgba(255,255,255,0.78); text-transform: uppercase; letter-spacing: 0.04em; }
-  #app-topbar .user-panel .signout-btn { border: none; border-radius: 999px; padding: 6px 10px; font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.18); color: white; cursor: pointer; width: auto; min-width: 0; }
-  #app-topbar .user-panel .signout-btn:hover { background: rgba(255,255,255,0.26); }
-  /* theme toggle button */
-  #theme-toggle { border: none; background: transparent; width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 16px; }
-  #theme-toggle:hover { background: rgba(255,255,255,0.06); transform: translateY(-1px); }
+  #app-topbar .profile-wrapper { position: relative; }
+  #app-topbar .profile-avatar { width: 38px; height: 38px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.18); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s, border-color 0.2s; letter-spacing: 0; }
+  #app-topbar .profile-avatar:hover { background: rgba(255,255,255,0.28); border-color: rgba(255,255,255,0.5); }
+  .profile-dropdown { display: none; position: absolute; top: calc(100% + 8px); right: 0; background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,0.18); min-width: 200px; z-index: 100; padding: 6px 0; animation: dropdownSlideIn 0.15s ease; }
+  .profile-dropdown.open { display: block; }
+  @keyframes dropdownSlideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+  .profile-dropdown-header { padding: 10px 14px 6px; }
+  .profile-dropdown-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+  .profile-dropdown-role { font-size: 11px; color: var(--ink-soft); text-transform: capitalize; margin-top: 2px; }
+  .profile-dropdown-divider { height: 1px; background: var(--line); margin: 4px 0; }
+  .profile-dropdown-item { display: flex; align-items: center; gap: 10px; padding: 9px 14px; width: 100%; border: none; background: none; color: var(--ink); font-size: 13px; cursor: pointer; transition: background 0.15s; }
+  .profile-dropdown-item:hover { background: var(--bg); }
+  .profile-dropdown-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+  .profile-dropdown-danger { color: var(--danger); }
+  .profile-dropdown-danger:hover { background: rgba(239,68,68,0.08); }
+  .profile-dropdown-lang select { flex: 1; border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; font-size: 12px; background: var(--card); color: var(--ink); cursor: pointer; }
   .tab-panel { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
   .tab-panel .page-header { display: none; }
   #pull-refresh-indicator { display: none; }
@@ -461,28 +469,7 @@
       box-shadow: 0 16px 34px rgba(15,23,42,0.16);
     }
     #app-topbar .title-group { margin-bottom: 0; }
-    #app-topbar .user-panel {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 10px;
-      width: auto;
-      flex-wrap: wrap;
-    }
-    #app-topbar .user-meta {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 2px;
-      min-width: 0;
-    }
-    #app-topbar .user-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    #app-topbar .user-panel .signout-btn { width: auto; padding: 6px 10px; }
+    #app-topbar .profile-wrapper { margin-left: auto; }
   }
 
   /* ========== POS STYLES ========== */
@@ -749,19 +736,33 @@
         <h2 id="page-title">Dashboard</h2>
         <p id="page-sub">Overview of your workspace right now.</p>
       </div>
-      <div class="user-panel">
-        <div class="user-meta">
-          <div class="user-name" id="user-name-top">—</div>
-          <div class="user-role" id="user-role-top">—</div>
-        </div>
-        <div class="user-actions">
-          <select id="lang-select" onchange="setLanguage(this.value)" style="background:rgba(255,255,255,0.18);color:#fff;border:1px solid rgba(255,255,255,0.24);border-radius:8px;padding:4px 8px;font-size:12px;font-weight:600;cursor:pointer;appearance:auto;">
-            <option value="en">EN</option>
-            <option value="am">አማ</option>
-            <option value="om">ORO</option>
-          </select>
-          <button id="theme-toggle" title="Toggle theme" aria-label="Toggle theme" onclick="toggleTheme()">🌙</button>
-          <button class="signout-btn" onclick="confirmSignOut()">Sign out</button>
+      <div class="profile-wrapper">
+        <button class="profile-avatar" id="profile-avatar" onclick="toggleProfileMenu(event)" title="Menu">
+          <span id="profile-initial">—</span>
+        </button>
+        <div class="profile-dropdown" id="profile-dropdown">
+          <div class="profile-dropdown-header">
+            <div class="profile-dropdown-name" id="user-name-top">—</div>
+            <div class="profile-dropdown-role" id="user-role-top">—</div>
+          </div>
+          <div class="profile-dropdown-divider"></div>
+          <button class="profile-dropdown-item" onclick="toggleTheme()">
+            <span class="profile-dropdown-icon" id="theme-icon">🌙</span>
+            <span data-i18n="profile.darkMode">Dark Mode</span>
+          </button>
+          <div class="profile-dropdown-item profile-dropdown-lang">
+            <span class="profile-dropdown-icon">🌐</span>
+            <select id="lang-select" onchange="setLanguage(this.value)">
+              <option value="en">English</option>
+              <option value="am">አማርኛ</option>
+              <option value="om">Afaan Oromoo</option>
+            </select>
+          </div>
+          <div class="profile-dropdown-divider"></div>
+          <button class="profile-dropdown-item profile-dropdown-danger" onclick="confirmSignOut()">
+            <span class="profile-dropdown-icon">🚪</span>
+            <span data-i18n="profile.signOut">Sign out</span>
+          </button>
         </div>
       </div>
     </div>
@@ -2757,6 +2758,7 @@
       document.getElementById("user-role-display").textContent = data.role;
       document.getElementById("user-name-top").textContent = userName;
       document.getElementById("user-role-top").textContent = data.role;
+      updateProfileAvatar(userName);
       applyRolePermissions(data.role);
       applyBusinessTypeVisibility(data.businesses.business_types?.type_key);
       hide("auth-screen"); hide("onboarding-screen"); show("app-screen");
@@ -2922,6 +2924,25 @@
     } finally {
       setBtnLoading(btn, false);
     }
+  }
+  function toggleProfileMenu(e) {
+    e.stopPropagation();
+    const dd = document.getElementById("profile-dropdown");
+    dd.classList.toggle("open");
+  }
+  document.addEventListener("click", function(e) {
+    const dd = document.getElementById("profile-dropdown");
+    if (dd && !dd.contains(e.target) && !document.getElementById("profile-avatar").contains(e.target)) {
+      dd.classList.remove("open");
+    }
+  });
+  function updateProfileAvatar(name) {
+    const initial = (name || "—").trim().charAt(0).toUpperCase();
+    document.getElementById("profile-initial").textContent = initial;
+  }
+  function updateThemeIcon() {
+    const icon = document.getElementById("theme-icon");
+    if (icon) icon.textContent = isDark ? "☀️" : "🌙";
   }
   function confirmSignOut() {
     if (!confirm("Are you sure you want to sign out?")) return;
@@ -4490,8 +4511,7 @@
   function setThemeClass(isDark) {
     if (isDark) document.documentElement.classList.add('theme-dark');
     else document.documentElement.classList.remove('theme-dark');
-    const btn = document.getElementById('theme-toggle');
-    if (btn) btn.textContent = isDark ? '☀️' : '🌙';
+    updateThemeIcon();
   }
 
   function toggleTheme() {

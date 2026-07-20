@@ -96,7 +96,7 @@
     "by_day": "📅 Guyyaa",
     "list": "📋 Tarree",
     "new_sale": "🛒 Gurgii haaraa",
-    "kds": "🍳 KDS",
+    "kds": "🍳 Cunqarsaa",
     "col_customer": "Maayyi",
     "col_date": "Guyyaa",
     "col_total": "Hundi",
@@ -501,6 +501,7 @@
   },
   "kds": {
     "title": "Meeshaa Cunqarsuu",
+    "subtitle": "Ajajjii yeroo ittiin qabatamuu garee cunqarsaa.",
     "no_orders": "Ajajjii hin jiru",
     "start": "Eegali",
     "ready": "Ta'aa jira",
@@ -633,5 +634,9 @@
     "none_yet": "Hin jiru",
     "load_more": "Dabalataa",
     "copy": "Galmee"
+  },
+  "profile": {
+    "darkMode": "Haalqa Gamoo",
+    "signOut": "Ba'i"
   }
 }

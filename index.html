@@ -425,8 +425,9 @@
     .chart-card, .report-card { width: 100%; }
     .nav-item { min-width: 0; }
     main { padding: 18px 14px 110px; }
-    .toolbar { flex-direction: column; align-items: stretch; }
+    .toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: stretch; }
     .toolbar > * { width: 100%; }
+    .toolbar > div:first-child { grid-column: 1 / -1; }
     .btn-small, .btn-ghost { width: 100%; }
     #mobile-more-panel.open { bottom: 72px; }
     input, select, textarea, button { min-height: 44px; }
@@ -840,9 +841,11 @@
           <input type="date" id="sales-date-filter" onchange="pagination.sales=0; loadSales()" />
         </div>
         <button class="btn-small" onclick="exportSalesCSV()" data-i18n="sales.csv">📥 CSV</button>
-        <button class="btn-small" id="sales-group-toggle" onclick="toggleSalesGroup()" style="background:var(--accent-soft); color:var(--accent);">📋 <span data-i18n="sales.list">List</span></button>
         <button class="btn-small" onclick="posOpenTableMap()" data-i18n="sales.new_sale">🛒 New Sale</button>
         <button class="btn-small" onclick="openKDS()" data-i18n="sales.kds">🍳 Kitchen</button>
+      </div>
+      <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
+        <button class="btn-small" id="sales-group-toggle" onclick="toggleSalesGroup()" style="background:var(--accent-soft); color:var(--accent); padding:6px 12px; font-size:12px;">📋 <span data-i18n="sales.list">List</span></button>
       </div>
       <div class="ledger" id="sales-ledger"></div>
     </section>
@@ -862,8 +865,10 @@
           </select>
           <input type="date" id="payments-date-filter" onchange="pagination.payments=0; loadPayments()" />
         </div>
-        <button class="btn-small" id="payments-group-toggle" onclick="togglePaymentsGroup()" style="background:var(--accent-soft); color:var(--accent);">📋 <span data-i18n="payments.list">List</span></button>
         <button class="btn-small" onclick="openModal('payment-crud-modal')" data-i18n="payments.add">+ Record payment</button>
+      </div>
+      <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
+        <button class="btn-small" id="payments-group-toggle" onclick="togglePaymentsGroup()" style="background:var(--accent-soft); color:var(--accent); padding:6px 12px; font-size:12px;">📋 <span data-i18n="payments.list">List</span></button>
       </div>
       <div class="ledger" id="payments-ledger"></div>
     </section>
@@ -878,8 +883,10 @@
           <input type="date" id="expenses-date-filter" onchange="pagination.expenses=0; loadExpenses()" />
         </div>
         <button class="btn-small" onclick="exportExpensesCSV()" data-i18n="expenses.csv">📥 CSV</button>
-        <button class="btn-small" id="expenses-group-toggle" onclick="toggleExpensesGroup()" style="background:var(--accent-soft); color:var(--accent);">📋 <span data-i18n="expenses.list">List</span></button>
         <button class="btn-small" onclick="openModal('expense-modal')" data-i18n="expenses.add">+ Add expense</button>
+      </div>
+      <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
+        <button class="btn-small" id="expenses-group-toggle" onclick="toggleExpensesGroup()" style="background:var(--accent-soft); color:var(--accent); padding:6px 12px; font-size:12px;">📋 <span data-i18n="expenses.list">List</span></button>
       </div>
       <div class="ledger" id="expenses-ledger"></div>
     </section>
@@ -900,8 +907,10 @@
           <input type="date" id="purchases-date-filter" onchange="pagination.purchases=0; loadPurchases()" />
         </div>
         <button class="btn-small" onclick="exportPurchasesCSV()" data-i18n="purchases.csv">📥 CSV</button>
-        <button class="btn-small" id="purchases-group-toggle" onclick="togglePurchasesGroup()" style="background:var(--accent-soft); color:var(--accent);">📋 <span data-i18n="purchases.list">List</span></button>
         <button class="btn-small" onclick="openPurchaseModal()" data-i18n="purchases.add">+ New purchase</button>
+      </div>
+      <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
+        <button class="btn-small" id="purchases-group-toggle" onclick="togglePurchasesGroup()" style="background:var(--accent-soft); color:var(--accent); padding:6px 12px; font-size:12px;">📋 <span data-i18n="purchases.list">List</span></button>
       </div>
       <div class="ledger" id="purchases-ledger"></div>
     </section>
@@ -1447,7 +1456,10 @@
 <div id="kds-modal" class="modal-backdrop hidden">
   <div class="modal kds-modal">
     <div class="kds-header">
-      <h3 data-i18n="kds.title">Kitchen Display</h3>
+      <div>
+        <h3 data-i18n="kds.title">Kitchen Display</h3>
+        <p style="margin:2px 0 0; font-size:12px; opacity:0.85;" data-i18n="kds.subtitle">Real-time order queue for the kitchen team.</p>
+      </div>
       <button class="btn-ghost btn-sm" onclick="closeModal('kds-modal')" data-i18n="modal.close">Close</button>
     </div>
     <div class="kds-grid" id="kds-grid"></div>

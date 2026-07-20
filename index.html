@@ -789,7 +789,7 @@
       <div class="report-card compact-card" style="margin-top:16px;">
         <h3>Snapshot</h3>
         <div class="dashboard-summary-grid">
-          <div><span class="card-label">Avg sale</span><strong id="dashboard-average-sale">$0.00</strong></div>
+          <div><span class="card-label">Avg sale</span><strong id="dashboard-average-sale">ETB 0.00</strong></div>
           <div><span class="card-label">Worst stock</span><strong id="dashboard-low-stock-item">—</strong></div>
           <div><span class="card-label">Top product</span><strong id="d-top-product">—</strong></div>
           <div><span class="card-label">Top category</span><strong id="d-top-category">—</strong></div>
@@ -1005,7 +1005,7 @@
         </div>
         <div class="report-summary-card report-card">
           <div class="label">Waste Cost</div>
-          <div class="value num" id="eff-waste-cost">$0</div>
+           <div class="value num" id="eff-waste-cost">ETB 0</div>
           <div class="note">Total cost of wasted inventory.</div>
         </div>
         <div class="report-summary-card report-card">
@@ -1053,7 +1053,7 @@
         <label>Tax Rate (%)</label>
         <input type="number" id="setting-tax-rate" min="0" max="100" step="0.01" value="0" />
         <label>Currency Symbol</label>
-        <input type="text" id="setting-currency" maxlength="5" value="$" style="max-width:80px;" />
+        <input type="text" id="setting-currency" maxlength="5" value="ETB" style="max-width:80px;" />
         <label>Receipt Footer</label>
         <textarea id="setting-receipt-footer" rows="2" placeholder="Thank you for your business!"></textarea>
         <button class="btn-primary" id="settings-save-btn" onclick="saveSettings()">Save Settings</button>
@@ -1244,9 +1244,9 @@
     <div id="produce-requirements" style="margin:14px 0; font-size:13px; color:var(--ink-soft);"></div>
     <div class="produce-costing" id="produce-costing" style="margin:12px 0; padding:12px; background:var(--paper); border-radius:8px; display:none;">
       <h4 style="margin:0 0 8px;">Batch Cost Analysis</h4>
-      <div class="costing-row"><span>Material Cost</span><strong id="prod-material-cost">$0.00</strong></div>
-      <div class="costing-row"><span>Cost per Unit</span><strong id="prod-unit-cost">$0.00</strong></div>
-      <div class="costing-row"><span>Selling Price</span><strong id="prod-sell-price">$0.00</strong></div>
+       <div class="costing-row"><span>Material Cost</span><strong id="prod-material-cost">ETB 0.00</strong></div>
+       <div class="costing-row"><span>Cost per Unit</span><strong id="prod-unit-cost">ETB 0.00</strong></div>
+       <div class="costing-row"><span>Selling Price</span><strong id="prod-sell-price">ETB 0.00</strong></div>
       <div class="costing-row"><span>Margin</span><strong id="prod-margin">0%</strong></div>
       <div class="costing-row"><span>Yield %</span><strong id="prod-yield-pct">—</strong></div>
     </div>
@@ -1283,10 +1283,10 @@
         </div>
         <div class="pos-cart" id="pos-cart"></div>
         <div class="pos-totals">
-          <div class="pos-total-row"><span>Subtotal</span><span id="pos-subtotal">$0.00</span></div>
-          <div class="pos-total-row"><span>Discount</span><span id="pos-discount">-$0.00</span></div>
-          <div class="pos-total-row"><span>Tax</span><span id="pos-tax">$0.00</span></div>
-          <div class="pos-total-row grand"><span>Total</span><span id="pos-grand-total">$0.00</span></div>
+           <div class="pos-total-row"><span>Subtotal</span><span id="pos-subtotal">ETB 0.00</span></div>
+           <div class="pos-total-row"><span>Discount</span><span id="pos-discount">-ETB 0.00</span></div>
+           <div class="pos-total-row"><span>Tax</span><span id="pos-tax">ETB 0.00</span></div>
+           <div class="pos-total-row grand"><span>Total</span><span id="pos-grand-total">ETB 0.00</span></div>
         </div>
         <div class="pos-cart-actions">
           <button class="btn-ghost" onclick="posClearCart()">Clear</button>
@@ -1303,7 +1303,7 @@
     <div class="close" onclick="closeModal('payment-modal')">Close</div>
     <h3>Payment</h3>
     <div class="payment-summary">
-      <div>Total Due: <strong id="payment-total-due">$0.00</strong></div>
+       <div>Total Due: <strong id="payment-total-due">ETB 0.00</strong></div>
     </div>
     <label>Payment Method</label>
     <select id="pay-method" class="payment-method-select">
@@ -1314,7 +1314,7 @@
     <div class="payment-cash" id="payment-cash" style="display:none;">
       <label>Cash Received</label>
       <input type="number" id="cash-received" step="0.01" min="0" />
-      <div class="change-display">Change: <strong id="cash-change">$0.00</strong></div>
+       <div class="change-display">Change: <strong id="cash-change">ETB 0.00</strong></div>
     </div>
     <div class="payment-tip" id="payment-tip" style="display:none;">
       <label>Tip</label>
@@ -1504,7 +1504,7 @@
   async function loadMore(key) {
     await { products: loadProducts, customers: loadCustomers, sales: loadSales, payments: loadPayments, expenses: loadExpenses, purchases: loadPurchases, materials: loadMaterials, suppliers: loadSuppliers, movements: loadMovements }[key](true);
   }
-  function money(n) { return Number(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function money(n) { const sym = getSettings().currency_symbol || 'ETB'; return sym + ' ' + Number(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function abbreviateNumber(value) {
     const n = Number(value ?? 0);
     if (Math.abs(n) >= 1e9) return `${(n / 1e9).toFixed(1).replace(/\.0$/, "")}B`;
@@ -1512,7 +1512,7 @@
     if (Math.abs(n) >= 1e3) return `${(n / 1e3).toFixed(1).replace(/\.0$/, "")}K`;
     return n.toString();
   }
-  function abbreviateCurrency(value) { return "$" + abbreviateNumber(value); }
+  function abbreviateCurrency(value) { return "ETB " + abbreviateNumber(value); }
 
   // --- 4. Toast notifications ---
   function showToast(msg, type = "success") {
@@ -2511,7 +2511,7 @@
     clearError('settings-error');
     const btn = document.getElementById('settings-save-btn');
     const taxRate = parseFloat(document.getElementById('setting-tax-rate').value) || 0;
-    const currency = document.getElementById('setting-currency').value.trim() || '$';
+    const currency = document.getElementById('setting-currency').value.trim() || 'ETB';
     const receiptFooter = document.getElementById('setting-receipt-footer').value.trim();
     const bizName = document.getElementById('setting-biz-name').value.trim();
     const address = document.getElementById('setting-address').value.trim();

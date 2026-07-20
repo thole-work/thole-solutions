@@ -96,7 +96,7 @@
     "by_day": "📅 By Day",
     "list": "📋 List",
     "new_sale": "🛒 New Sale",
-    "kds": "🍳 KDS",
+    "kds": "🍳 Kitchen",
     "col_customer": "Customer",
     "col_date": "Date",
     "col_total": "Total",
@@ -468,7 +468,10 @@
     "no_tables": "No tables configured. Go to Settings > Tables.",
     "occupied": "Occupied",
     "walk_in": "Walk-in (no table)",
-    "select_table": "Select Table"
+    "select_table": "Select Table",
+    "send_kitchen": "Send to Kitchen",
+    "pay_bill": "Pay Bill",
+    "takeout": "Takeout"
   },
   "payment_screen": {
     "title": "Payment",
@@ -501,6 +504,7 @@
   },
   "kds": {
     "title": "Kitchen Display",
+    "subtitle": "Real-time order queue for the kitchen team.",
     "no_orders": "No active orders",
     "start": "Start",
     "ready": "Ready",
@@ -633,5 +637,9 @@
     "none_yet": "None yet",
     "load_more": "Load more",
     "copy": "Copy"
+  },
+  "profile": {
+    "darkMode": "Dark Mode",
+    "signOut": "Sign out"
   }
 }

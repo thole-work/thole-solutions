@@ -819,7 +819,7 @@
           <input type="date" id="sales-date-filter" onchange="pagination.sales=0; loadSales()" />
         </div>
         <button class="btn-small" onclick="exportSalesCSV()">📥 CSV</button>
-        <button class="btn-small" id="sales-group-toggle" onclick="toggleSalesGroup()" style="background:var(--accent-soft); color:var(--accent);">📅 By Day</button>
+        <button class="btn-small" id="sales-group-toggle" onclick="toggleSalesGroup()" style="background:var(--accent-soft); color:var(--accent);">📋 List</button>
         <button class="btn-small" onclick="posOpenTableMap()">🛒 New Sale</button>
         <button class="btn-small" style="background:var(--sky); color:var(--ink);" onclick="openKDS()">🍳 KDS</button>
       </div>
@@ -841,7 +841,7 @@
           </select>
           <input type="date" id="payments-date-filter" onchange="pagination.payments=0; loadPayments()" />
         </div>
-        <button class="btn-small" id="payments-group-toggle" onclick="togglePaymentsGroup()" style="background:var(--accent-soft); color:var(--accent);">📅 By Day</button>
+        <button class="btn-small" id="payments-group-toggle" onclick="togglePaymentsGroup()" style="background:var(--accent-soft); color:var(--accent);">📋 List</button>
         <button class="btn-small" onclick="openModal('payment-crud-modal')">+ Record payment</button>
       </div>
       <div class="ledger" id="payments-ledger"></div>
@@ -857,7 +857,7 @@
           <input type="date" id="expenses-date-filter" onchange="pagination.expenses=0; loadExpenses()" />
         </div>
         <button class="btn-small" onclick="exportExpensesCSV()">📥 CSV</button>
-        <button class="btn-small" id="expenses-group-toggle" onclick="toggleExpensesGroup()" style="background:var(--accent-soft); color:var(--accent);">📅 By Day</button>
+        <button class="btn-small" id="expenses-group-toggle" onclick="toggleExpensesGroup()" style="background:var(--accent-soft); color:var(--accent);">📋 List</button>
         <button class="btn-small" onclick="openModal('expense-modal')">+ Add expense</button>
       </div>
       <div class="ledger" id="expenses-ledger"></div>
@@ -879,7 +879,7 @@
           <input type="date" id="purchases-date-filter" onchange="pagination.purchases=0; loadPurchases()" />
         </div>
         <button class="btn-small" onclick="exportPurchasesCSV()">📥 CSV</button>
-        <button class="btn-small" id="purchases-group-toggle" onclick="togglePurchasesGroup()" style="background:var(--accent-soft); color:var(--accent);">📅 By Day</button>
+        <button class="btn-small" id="purchases-group-toggle" onclick="togglePurchasesGroup()" style="background:var(--accent-soft); color:var(--accent);">📋 List</button>
         <button class="btn-small" onclick="openPurchaseModal()">+ New purchase</button>
       </div>
       <div class="ledger" id="purchases-ledger"></div>
@@ -3221,7 +3221,7 @@
   // ============================================================
   // SALES
   // ============================================================
-  let salesGroupByDay = false;
+  let salesGroupByDay = true;
   let salesExpandedDay = null;
   function toggleSalesGroup() {
     salesGroupByDay = !salesGroupByDay;
@@ -3431,7 +3431,7 @@
   // ============================================================
   // PAYMENTS
   // ============================================================
-  let paymentsGroupByDay = false;
+  let paymentsGroupByDay = true;
   let paymentsExpandedDay = null;
   function togglePaymentsGroup() {
     paymentsGroupByDay = !paymentsGroupByDay;
@@ -3554,7 +3554,7 @@
   // ============================================================
   // EXPENSES
   // ============================================================
-  let expensesGroupByDay = false;
+  let expensesGroupByDay = true;
   let expensesExpandedDay = null;
   function toggleExpensesGroup() {
     expensesGroupByDay = !expensesGroupByDay;
@@ -3743,7 +3743,7 @@
     renderDashboard();
   }
 
-  let purchasesGroupByDay = false;
+  let purchasesGroupByDay = true;
   let purchasesExpandedDay = null;
   function togglePurchasesGroup() {
     purchasesGroupByDay = !purchasesGroupByDay;

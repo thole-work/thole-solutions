@@ -640,35 +640,35 @@
     <p class="sub" id="auth-sub">Manage your business in one place.</p>
 
   <div id="login-form">
-    <label>Email</label><input type="email" id="login-email" />
-    <label>Password</label><input type="password" id="login-password" />
-    <button class="btn-primary" id="login-submit-btn" onclick="handleLogin()">Sign in</button>
-    <div class="switch">New here? <a onclick="showSignup()">Redeem an invite code</a> or <a onclick="showNewBusiness()">start a new business</a></div>
+    <label data-i18n="auth.email">Email</label><input type="email" id="login-email" />
+    <label data-i18n="auth.password">Password</label><input type="password" id="login-password" />
+    <button class="btn-primary" id="login-submit-btn" onclick="handleLogin()" data-i18n="auth.sign_in">Sign in</button>
+    <div class="switch"><span data-i18n="auth.new_here">New here?</span> <a onclick="showSignup()" data-i18n="auth.redeem_invite">Redeem an invite code</a> or <a onclick="showNewBusiness()" data-i18n="auth.start_business">start a new business</a></div>
   </div>
 
   <div id="signup-form" class="hidden">
-    <label>Full name</label><input type="text" id="signup-name" />
-    <label>Invite code</label><input type="text" id="signup-code" placeholder="e.g. TEST-0001" />
-    <label>Email</label><input type="email" id="signup-email" />
-    <label>Password</label><input type="password" id="signup-password" placeholder="At least 6 characters" />
-    <button class="btn-primary" id="signup-submit-btn" onclick="handleSignup()">Redeem & create account</button>
-    <div class="switch">Already have an account? <a onclick="showLogin()">Sign in</a></div>
+    <label data-i18n="auth.full_name">Full name</label><input type="text" id="signup-name" />
+    <label data-i18n="auth.invite_code">Invite code</label><input type="text" id="signup-code" placeholder="e.g. TEST-0001" />
+    <label data-i18n="auth.email">Email</label><input type="email" id="signup-email" />
+    <label data-i18n="auth.password">Password</label><input type="password" id="signup-password" data-i18n-placeholder="auth.password_placeholder" placeholder="At least 6 characters" />
+    <button class="btn-primary" id="signup-submit-btn" onclick="handleSignup()" data-i18n="auth.redeem_create">Redeem & create account</button>
+    <div class="switch"><span data-i18n="auth.already_account">Already have an account?</span> <a onclick="showLogin()" data-i18n="auth.sign_in">Sign in</a></div>
   </div>
 
   <div id="newbiz-form" class="hidden">
-    <label>Your name</label><input type="text" id="nb-name" />
-    <label>Business name</label><input type="text" id="nb-business-name" />
-    <label>Business type</label>
+    <label data-i18n="auth.your_name">Your name</label><input type="text" id="nb-name" />
+    <label data-i18n="auth.business_name">Business name</label><input type="text" id="nb-business-name" />
+    <label data-i18n="auth.business_type">Business type</label>
     <select id="nb-business-type">
-      <option value="retail">Retail shop</option>
-      <option value="restaurant">Restaurant</option>
-      <option value="salon">Salon / service</option>
-      <option value="factory">Factory / production</option>
+      <option value="retail" data-i18n="auth.retail">Retail shop</option>
+      <option value="restaurant" data-i18n="auth.restaurant">Restaurant</option>
+      <option value="salon" data-i18n="auth.salon">Salon / service</option>
+      <option value="factory" data-i18n="auth.factory">Factory / production</option>
     </select>
-    <label>Email</label><input type="email" id="nb-email" />
-    <label>Password</label><input type="password" id="nb-password" placeholder="At least 6 characters" />
-    <button class="btn-primary" id="nb-create-btn" onclick="handleCreateBusiness()">Create business & account</button>
-    <div class="switch">Already have an account? <a onclick="showLogin()">Sign in</a></div>
+    <label data-i18n="auth.email">Email</label><input type="email" id="nb-email" />
+    <label data-i18n="auth.password">Password</label><input type="password" id="nb-password" data-i18n-placeholder="auth.password_placeholder" placeholder="At least 6 characters" />
+    <button class="btn-primary" id="nb-create-btn" onclick="handleCreateBusiness()" data-i18n="auth.create_business">Create business & account</button>
+    <div class="switch"><span data-i18n="auth.already_account">Already have an account?</span> <a onclick="showLogin()" data-i18n="auth.sign_in">Sign in</a></div>
   </div>
 
   <div id="auth-error" class="error hidden"></div>
@@ -677,22 +677,22 @@
 
 <div id="invite-reveal-screen" class="hidden" style="max-width: 420px; margin: 0 auto; padding: 60px 20px; text-align:center;">
   <div class="brand-mark" style="margin:0 auto 18px;"><img src="logo.png" alt="Thole Solutions" /></div>
-  <h1>You're all set</h1>
-  <p class="sub">Share this code with your staff so they can join:</p>
+  <h1 data-i18n="auth.all_set">You're all set</h1>
+  <p class="sub" data-i18n="auth.share_code">Share this code with your staff so they can join:</p>
   <div class="num" style="font-size:28px; font-weight:600; letter-spacing:0.05em; background:var(--accent-soft); color:var(--accent); padding:16px; border-radius:10px; margin:16px 0;" id="invite-code-display">—</div>
-  <p class="sub" style="margin-top:0;">They'll enter it under "Redeem an invite code" when they sign up.</p>
-  <button class="btn-primary" onclick="finishInviteReveal()">Go to dashboard</button>
+  <p class="sub" style="margin-top:0;" data-i18n="auth.enter_under">They'll enter it under "Redeem an invite code" when they sign up.</p>
+  <button class="btn-primary" onclick="finishInviteReveal()" data-i18n="auth.go_dashboard">Go to dashboard</button>
 </div>
 
 <div id="onboarding-screen" class="hidden" style="max-width: 420px; margin: 0 auto; padding: 60px 20px;">
   <div class="brand-mark"><img src="logo.png" alt="Thole Solutions" /></div>
-  <h1>Join your business</h1>
-  <p class="sub">You're signed in — just one more step. Ask your admin for your invite code.</p>
-  <label>Your name</label><input type="text" id="ob-name" />
-  <label>Invite code</label><input type="text" id="ob-code" placeholder="e.g. TEST-0001" />
-  <button class="btn-primary" onclick="handleRedeem()">Join business</button>
+  <h1 data-i18n="auth.join_business">Join your business</h1>
+  <p class="sub" data-i18n="auth.join_subtitle">You're signed in — just one more step. Ask your admin for your invite code.</p>
+  <label data-i18n="auth.your_name">Your name</label><input type="text" id="ob-name" />
+  <label data-i18n="auth.invite_code">Invite code</label><input type="text" id="ob-code" placeholder="e.g. TEST-0001" />
+  <button class="btn-primary" onclick="handleRedeem()" data-i18n="auth.join_button">Join business</button>
   <div id="ob-error" class="error hidden"></div>
-  <div class="switch" style="margin-top:18px;"><a onclick="confirmSignOut()">Sign out and use a different account</a></div>
+  <div class="switch" style="margin-top:18px;"><a onclick="confirmSignOut()" data-i18n="auth.diff_account">Sign out and use a different account</a></div>
 </div>
 
 <div id="app-screen" class="hidden">
@@ -705,41 +705,41 @@
       </div>
     </div>
     <nav>
-      <div class="nav-item nav-primary active" data-tab="dashboard" onclick="switchTab('dashboard')"><span class="nav-icon">🏠</span> Dashboard</div>
-      <div class="nav-item nav-primary" data-tab="products" onclick="switchTab('products')"><span class="nav-icon">📦</span> Stock</div>
-      <div class="nav-item nav-primary" data-tab="sales" onclick="switchTab('sales')"><span class="nav-icon">💰</span> Sales</div>
-      <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers')"><span class="nav-icon">👥</span> Customers</div>
-      <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments')"><span class="nav-icon">💳</span> Payments</div>
-      <div class="nav-item nav-secondary" data-tab="expenses" onclick="switchTab('expenses')"><span class="nav-icon">💸</span> Expenses</div>
-      <div class="nav-item nav-secondary" data-tab="suppliers" onclick="switchTab('suppliers')"><span class="nav-icon">🚚</span> Suppliers</div>
-      <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases')"><span class="nav-icon">🛒</span> Purchase Orders</div>
-      <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team')"><span class="nav-icon">👤</span> Team</div>
-      <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports')"><span class="nav-icon">📈</span> Reports</div>
-      <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials')"><span class="nav-icon">🧱</span> Raw Materials</div>
-      <div class="nav-item nav-secondary" data-tab="stock-movements" onclick="switchTab('stock-movements')"><span class="nav-icon">📊</span> Stock Movements</div>
-      <div class="nav-item nav-secondary" data-tab="efficiency" onclick="switchTab('efficiency')"><span class="nav-icon">⚙️</span> Efficiency</div>
-      <div class="nav-item nav-secondary" data-tab="settings" onclick="switchTab('settings')"><span class="nav-icon">🔧</span> Settings</div>
-      <div class="nav-item mobile-more-btn" onclick="toggleMoreMenu()"><span class="nav-icon">⋯</span> More</div>
+      <div class="nav-item nav-primary active" data-tab="dashboard" onclick="switchTab('dashboard')"><span class="nav-icon">🏠</span> <span data-i18n="nav.dashboard">Dashboard</span></div>
+      <div class="nav-item nav-primary" data-tab="products" onclick="switchTab('products')"><span class="nav-icon">📦</span> <span data-i18n="nav.stock">Stock</span></div>
+      <div class="nav-item nav-primary" data-tab="sales" onclick="switchTab('sales')"><span class="nav-icon">💰</span> <span data-i18n="nav.sales">Sales</span></div>
+      <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers')"><span class="nav-icon">👥</span> <span data-i18n="nav.customers">Customers</span></div>
+      <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments')"><span class="nav-icon">💳</span> <span data-i18n="nav.payments">Payments</span></div>
+      <div class="nav-item nav-secondary" data-tab="expenses" onclick="switchTab('expenses')"><span class="nav-icon">💸</span> <span data-i18n="nav.expenses">Expenses</span></div>
+      <div class="nav-item nav-secondary" data-tab="suppliers" onclick="switchTab('suppliers')"><span class="nav-icon">🚚</span> <span data-i18n="nav.suppliers">Suppliers</span></div>
+      <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases')"><span class="nav-icon">🛒</span> <span data-i18n="nav.purchase_orders">Purchase Orders</span></div>
+      <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team')"><span class="nav-icon">👤</span> <span data-i18n="nav.team">Team</span></div>
+      <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports')"><span class="nav-icon">📈</span> <span data-i18n="nav.reports">Reports</span></div>
+      <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials')"><span class="nav-icon">🧱</span> <span data-i18n="nav.materials">Raw Materials</span></div>
+      <div class="nav-item nav-secondary" data-tab="stock-movements" onclick="switchTab('stock-movements')"><span class="nav-icon">📊</span> <span data-i18n="nav.stock_movements">Stock Movements</span></div>
+      <div class="nav-item nav-secondary" data-tab="efficiency" onclick="switchTab('efficiency')"><span class="nav-icon">⚙️</span> <span data-i18n="nav.efficiency">Efficiency</span></div>
+      <div class="nav-item nav-secondary" data-tab="settings" onclick="switchTab('settings')"><span class="nav-icon">🔧</span> <span data-i18n="nav.settings">Settings</span></div>
+      <div class="nav-item mobile-more-btn" onclick="toggleMoreMenu()"><span class="nav-icon">⋯</span> <span data-i18n="nav.more">More</span></div>
     </nav>
     <div class="side-footer">
       <div class="user-name" id="user-name-display">—</div>
       <div class="user-role" id="user-role-display">—</div>
-      <span class="logout-link" onclick="confirmSignOut()">Sign out</span>
+      <span class="logout-link" onclick="confirmSignOut()" data-i18n="nav.sign_out">Sign out</span>
     </div>
   </aside>
 
   <div id="mobile-more-panel">
-    <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers'); toggleMoreMenu();"><span class="nav-icon">👥</span> Customers</div>
-    <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments'); toggleMoreMenu();"><span class="nav-icon">💳</span> Payments</div>
-    <div class="nav-item nav-secondary" data-tab="expenses" onclick="switchTab('expenses'); toggleMoreMenu();"><span class="nav-icon">💸</span> Expenses</div>
-    <div class="nav-item nav-secondary" data-tab="suppliers" onclick="switchTab('suppliers'); toggleMoreMenu();"><span class="nav-icon">🚚</span> Suppliers</div>
-    <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases'); toggleMoreMenu();"><span class="nav-icon">🛒</span> Purchase Orders</div>
-    <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team'); toggleMoreMenu();"><span class="nav-icon">👤</span> Team</div>
-    <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports'); toggleMoreMenu();"><span class="nav-icon">📈</span> Reports</div>
-    <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials'); toggleMoreMenu();"><span class="nav-icon">🧱</span> Raw Materials</div>
-    <div class="nav-item nav-secondary" data-tab="stock-movements" onclick="switchTab('stock-movements'); toggleMoreMenu();"><span class="nav-icon">📊</span> Stock Movements</div>
-    <div class="nav-item nav-secondary" data-tab="efficiency" onclick="switchTab('efficiency'); toggleMoreMenu();"><span class="nav-icon">⚙️</span> Efficiency</div>
-    <div class="nav-item nav-secondary" data-tab="settings" onclick="switchTab('settings'); toggleMoreMenu();"><span class="nav-icon">🔧</span> Settings</div>
+    <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers'); toggleMoreMenu();"><span class="nav-icon">👥</span> <span data-i18n="nav.customers">Customers</span></div>
+    <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments'); toggleMoreMenu();"><span class="nav-icon">💳</span> <span data-i18n="nav.payments">Payments</span></div>
+    <div class="nav-item nav-secondary" data-tab="expenses" onclick="switchTab('expenses'); toggleMoreMenu();"><span class="nav-icon">💸</span> <span data-i18n="nav.expenses">Expenses</span></div>
+    <div class="nav-item nav-secondary" data-tab="suppliers" onclick="switchTab('suppliers'); toggleMoreMenu();"><span class="nav-icon">🚚</span> <span data-i18n="nav.suppliers">Suppliers</span></div>
+    <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases'); toggleMoreMenu();"><span class="nav-icon">🛒</span> <span data-i18n="nav.purchase_orders">Purchase Orders</span></div>
+    <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team'); toggleMoreMenu();"><span class="nav-icon">👤</span> <span data-i18n="nav.team">Team</span></div>
+    <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports'); toggleMoreMenu();"><span class="nav-icon">📈</span> <span data-i18n="nav.reports">Reports</span></div>
+    <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials'); toggleMoreMenu();"><span class="nav-icon">🧱</span> <span data-i18n="nav.materials">Raw Materials</span></div>
+    <div class="nav-item nav-secondary" data-tab="stock-movements" onclick="switchTab('stock-movements'); toggleMoreMenu();"><span class="nav-icon">📊</span> <span data-i18n="nav.stock_movements">Stock Movements</span></div>
+    <div class="nav-item nav-secondary" data-tab="efficiency" onclick="switchTab('efficiency'); toggleMoreMenu();"><span class="nav-icon">⚙️</span> <span data-i18n="nav.efficiency">Efficiency</span></div>
+    <div class="nav-item nav-secondary" data-tab="settings" onclick="switchTab('settings'); toggleMoreMenu();"><span class="nav-icon">🔧</span> <span data-i18n="nav.settings">Settings</span></div>
   </div>
   <div id="mobile-more-backdrop" onclick="toggleMoreMenu()"></div>
 
@@ -755,6 +755,11 @@
           <div class="user-role" id="user-role-top">—</div>
         </div>
         <div class="user-actions">
+          <select id="lang-select" onchange="setLanguage(this.value)" style="background:rgba(255,255,255,0.18);color:#fff;border:1px solid rgba(255,255,255,0.24);border-radius:8px;padding:4px 8px;font-size:12px;font-weight:600;cursor:pointer;appearance:auto;">
+            <option value="en">EN</option>
+            <option value="am">አማ</option>
+            <option value="om">ORO</option>
+          </select>
           <button id="theme-toggle" title="Toggle theme" aria-label="Toggle theme" onclick="toggleTheme()">🌙</button>
           <button class="signout-btn" onclick="confirmSignOut()">Sign out</button>
         </div>
@@ -767,164 +772,164 @@
     </div>
 
     <section id="tab-dashboard" class="tab-panel">
-      <div class="page-header"><h2>Dashboard</h2><p>Key business health metrics in one place.</p></div>
+      <div class="page-header"><h2 data-i18n="nav.dashboard">Dashboard</h2><p data-i18n="dashboard.subtitle">Key business health metrics in one place.</p></div>
       <div class="metrics">
-        <div class="metric-card"><div class="label">Revenue</div><div class="value num skeleton" id="m-revenue">&nbsp;</div><div class="note">Total sales value.</div></div>
-        <div class="metric-card accent"><div class="label">Today's sales</div><div class="value num skeleton" id="m-today-sales">&nbsp;</div><div class="note" id="m-today-note">Revenue earned today.</div></div>
-        <div class="metric-card"><div class="label">Total costs</div><div class="value num skeleton" id="m-total-costs">&nbsp;</div><div class="note">Expenses + purchases + waste.</div></div>
-        <div class="metric-card"><div class="label">Net profit</div><div class="value num skeleton" id="m-profit">&nbsp;</div><div class="note">Revenue minus all costs.</div></div>
-        <div class="metric-card warn"><div class="label">Low stock</div><div class="value num skeleton" id="m-lowstock">&nbsp;</div><div class="note">Items at or below reorder.</div></div>
-        <div class="metric-card"><div class="label">Orders</div><div class="value num skeleton" id="m-sales">&nbsp;</div><div class="note">Total orders placed.</div></div>
-        <div class="metric-card"><div class="label">Avg order</div><div class="value num skeleton" id="m-avg-order">&nbsp;</div><div class="note">Revenue per order.</div></div>
+        <div class="metric-card"><div class="label" data-i18n="dashboard.revenue">Revenue</div><div class="value num skeleton" id="m-revenue">&nbsp;</div><div class="note" data-i18n="dashboard.revenue_note">Total sales value.</div></div>
+        <div class="metric-card accent"><div class="label" data-i18n="dashboard.today_sales">Today's sales</div><div class="value num skeleton" id="m-today-sales">&nbsp;</div><div class="note" id="m-today-note" data-i18n="dashboard.today_sales_note">Revenue earned today.</div></div>
+        <div class="metric-card"><div class="label" data-i18n="dashboard.total_costs">Total costs</div><div class="value num skeleton" id="m-total-costs">&nbsp;</div><div class="note" data-i18n="dashboard.costs_breakdown">Expenses + purchases + waste.</div></div>
+        <div class="metric-card"><div class="label" data-i18n="dashboard.net_profit">Net profit</div><div class="value num skeleton" id="m-profit">&nbsp;</div><div class="note" data-i18n="dashboard.net_profit_note">Revenue minus all costs.</div></div>
+        <div class="metric-card warn"><div class="label" data-i18n="dashboard.low_stock">Low stock</div><div class="value num skeleton" id="m-lowstock">&nbsp;</div><div class="note" data-i18n="dashboard.low_stock_note">Items at or below reorder.</div></div>
+        <div class="metric-card"><div class="label" data-i18n="dashboard.orders">Orders</div><div class="value num skeleton" id="m-sales">&nbsp;</div><div class="note" data-i18n="dashboard.orders_note">Total orders placed.</div></div>
+        <div class="metric-card"><div class="label" data-i18n="dashboard.avg_order">Avg order</div><div class="value num skeleton" id="m-avg-order">&nbsp;</div><div class="note" data-i18n="dashboard.avg_order_note">Revenue per order.</div></div>
       </div>
       <div class="report-card compact-card">
-        <h3>Action needed</h3>
-        <p id="dashboard-top-priority" class="card-note">Loading the most important update...</p>
+        <h3 data-i18n="dashboard.action_needed">Action needed</h3>
+        <p id="dashboard-top-priority" class="card-note" data-i18n="dashboard.action_loading">Loading the most important update...</p>
       </div>
       <div class="report-grid">
         <div class="report-card">
-          <h3>Cost breakdown</h3>
+          <h3 data-i18n="dashboard.cost_breakdown">Cost breakdown</h3>
           <div class="dashboard-summary-grid">
-            <div><span class="card-label">Operating expenses</span><strong id="d-expenses">0</strong></div>
-            <div><span class="card-label">Purchases (COGS)</span><strong id="d-purchases">0</strong></div>
-            <div><span class="card-label">Waste cost</span><strong id="d-waste">0</strong></div>
-            <div><span class="card-label">Material inventory</span><strong id="d-material-value">0</strong></div>
+            <div><span class="card-label" data-i18n="dashboard.operating_expenses">Operating expenses</span><strong id="d-expenses">0</strong></div>
+            <div><span class="card-label" data-i18n="dashboard.purchases_cogs">Purchases (COGS)</span><strong id="d-purchases">0</strong></div>
+            <div><span class="card-label" data-i18n="dashboard.waste_cost">Waste cost</span><strong id="d-waste">0</strong></div>
+            <div><span class="card-label" data-i18n="dashboard.material_inventory">Material inventory</span><strong id="d-material-value">0</strong></div>
           </div>
         </div>
         <div class="report-card">
-          <h3>Efficiency snapshot</h3>
+          <h3 data-i18n="dashboard.efficiency_snapshot">Efficiency snapshot</h3>
           <div class="dashboard-summary-grid">
-            <div><span class="card-label">Gross margin</span><strong id="d-margin">—</strong></div>
-            <div><span class="card-label">Cost per order</span><strong id="d-cost-per-order">—</strong></div>
-            <div><span class="card-label">Profit margin</span><strong id="d-profit-margin">—</strong></div>
-            <div><span class="card-label">Waste rate</span><strong id="d-waste-rate">—</strong></div>
+            <div><span class="card-label" data-i18n="dashboard.gross_margin">Gross margin</span><strong id="d-margin">—</strong></div>
+            <div><span class="card-label" data-i18n="dashboard.cost_per_order">Cost per order</span><strong id="d-cost-per-order">—</strong></div>
+            <div><span class="card-label" data-i18n="dashboard.profit_margin">Profit margin</span><strong id="d-profit-margin">—</strong></div>
+            <div><span class="card-label" data-i18n="dashboard.waste_rate">Waste rate</span><strong id="d-waste-rate">—</strong></div>
           </div>
         </div>
       </div>
       <div class="report-card compact-card" style="margin-top:16px;">
-        <h3>Snapshot</h3>
+        <h3 data-i18n="dashboard.snapshot">Snapshot</h3>
         <div class="dashboard-summary-grid">
-          <div><span class="card-label">Avg sale</span><strong id="dashboard-average-sale">ETB 0.00</strong></div>
-          <div><span class="card-label">Worst stock</span><strong id="dashboard-low-stock-item">—</strong></div>
-          <div><span class="card-label">Top product</span><strong id="d-top-product">—</strong></div>
-          <div><span class="card-label">Top category</span><strong id="d-top-category">—</strong></div>
+          <div><span class="card-label" data-i18n="dashboard.avg_sale">Avg sale</span><strong id="dashboard-average-sale">ETB 0.00</strong></div>
+          <div><span class="card-label" data-i18n="dashboard.worst_stock">Worst stock</span><strong id="dashboard-low-stock-item">—</strong></div>
+          <div><span class="card-label" data-i18n="dashboard.top_product">Top product</span><strong id="d-top-product">—</strong></div>
+          <div><span class="card-label" data-i18n="dashboard.top_category">Top category</span><strong id="d-top-category">—</strong></div>
         </div>
       </div>
     </section>
 
     <section id="tab-products" class="tab-panel hidden">
-      <div class="page-header"><h2>Products & Stock</h2><p>Your catalog and current stock on hand.</p></div>
+      <div class="page-header"><h2 data-i18n="products.title">Products & Stock</h2><p data-i18n="products.subtitle">Your catalog and current stock on hand.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:8px; flex:1;">
-          <input type="text" id="product-search" placeholder="Search products…" oninput="renderProducts()" style="max-width:220px;" />
-          <select id="cat-filter" onchange="renderProducts()"><option value="">All categories</option></select>
+          <input type="text" id="product-search" data-i18n-placeholder="products.search" placeholder="Search products…" oninput="renderProducts()" style="max-width:220px;" />
+          <select id="cat-filter" onchange="renderProducts()"><option value="" data-i18n="products.all_categories">All categories</option></select>
         </div>
-        <button class="btn-small" onclick="openAddProduct()">+ Add product</button>
+        <button class="btn-small" onclick="openAddProduct()" data-i18n="products.add">+ Add product</button>
       </div>
       <div class="ledger" id="products-ledger"></div>
     </section>
 
     <section id="tab-sales" class="tab-panel hidden">
-      <div class="page-header"><h2>Sales</h2><p>All orders and transactions.</p></div>
+      <div class="page-header"><h2 data-i18n="nav.sales">Sales</h2><p data-i18n="sales.subtitle">All orders and transactions.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
           <select id="sales-filter-mode" onchange="const f=document.getElementById('sales-date-filter'); f.style.display=this.value==='all'?'none':''; f.type='date'; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.sales=0; salesExpandedDay=null; loadSales();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="all" selected>All Time</option><option value="date">Today</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
+            <option value="all" selected data-i18n="sales.all_time">All Time</option><option value="date" data-i18n="sales.today">Today</option><option value="week" data-i18n="sales.week">Week</option><option value="month" data-i18n="sales.month">Month</option><option value="number" data-i18n="sales.year">Year</option>
           </select>
           <input type="date" id="sales-date-filter" onchange="pagination.sales=0; loadSales()" />
         </div>
-        <button class="btn-small" onclick="exportSalesCSV()">📥 CSV</button>
-        <button class="btn-small" id="sales-group-toggle" onclick="toggleSalesGroup()" style="background:var(--accent-soft); color:var(--accent);">📋 List</button>
-        <button class="btn-small" onclick="posOpenTableMap()">🛒 New Sale</button>
-        <button class="btn-small" style="background:var(--sky); color:var(--ink);" onclick="openKDS()">🍳 KDS</button>
+        <button class="btn-small" onclick="exportSalesCSV()" data-i18n="sales.csv">📥 CSV</button>
+        <button class="btn-small" id="sales-group-toggle" onclick="toggleSalesGroup()" style="background:var(--accent-soft); color:var(--accent);">📋 <span data-i18n="sales.list">List</span></button>
+        <button class="btn-small" onclick="posOpenTableMap()" data-i18n="sales.new_sale">🛒 New Sale</button>
+        <button class="btn-small" style="background:var(--sky); color:var(--ink);" onclick="openKDS()" data-i18n="sales.kds">🍳 KDS</button>
       </div>
       <div class="ledger" id="sales-ledger"></div>
     </section>
 
     <section id="tab-customers" class="tab-panel hidden">
-      <div class="page-header"><h2>Customers</h2><p>People who buy from you.</p></div>
-      <div class="toolbar"><button class="btn-small" onclick="exportCustomersCSV()">📥 CSV</button><button class="btn-small" onclick="openModal('customer-modal')">+ Add customer</button></div>
+      <div class="page-header"><h2 data-i18n="nav.customers">Customers</h2><p data-i18n="customers.subtitle">People who buy from you.</p></div>
+      <div class="toolbar"><button class="btn-small" onclick="exportCustomersCSV()" data-i18n="customers.csv">📥 CSV</button><button class="btn-small" onclick="openModal('customer-modal')" data-i18n="customers.add">+ Add customer</button></div>
       <div class="ledger" id="customers-ledger"></div>
     </section>
 
     <section id="tab-payments" class="tab-panel hidden">
-      <div class="page-header"><h2>Payments</h2><p>Money received from customers.</p></div>
+      <div class="page-header"><h2 data-i18n="nav.payments">Payments</h2><p data-i18n="payments.subtitle">Money received from customers.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
           <select id="payments-filter-mode" onchange="const f=document.getElementById('payments-date-filter'); f.style.display=this.value==='all'?'none':''; f.type='date'; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.payments=0; paymentsExpandedDay=null; loadPayments();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="all" selected>All Time</option><option value="date">Today</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
+            <option value="all" selected data-i18n="payments.all_time">All Time</option><option value="date" data-i18n="payments.today">Today</option><option value="week" data-i18n="payments.week">Week</option><option value="month" data-i18n="payments.month">Month</option><option value="number" data-i18n="payments.year">Year</option>
           </select>
           <input type="date" id="payments-date-filter" onchange="pagination.payments=0; loadPayments()" />
         </div>
-        <button class="btn-small" id="payments-group-toggle" onclick="togglePaymentsGroup()" style="background:var(--accent-soft); color:var(--accent);">📋 List</button>
-        <button class="btn-small" onclick="openModal('payment-crud-modal')">+ Record payment</button>
+        <button class="btn-small" id="payments-group-toggle" onclick="togglePaymentsGroup()" style="background:var(--accent-soft); color:var(--accent);">📋 <span data-i18n="payments.list">List</span></button>
+        <button class="btn-small" onclick="openModal('payment-crud-modal')" data-i18n="payments.add">+ Record payment</button>
       </div>
       <div class="ledger" id="payments-ledger"></div>
     </section>
 
     <section id="tab-expenses" class="tab-panel hidden">
-      <div class="page-header"><h2>Expenses</h2><p>Overhead costs — rent, wages, utilities, supplies.</p></div>
+      <div class="page-header"><h2 data-i18n="nav.expenses">Expenses</h2><p data-i18n="expenses.subtitle">Overhead costs — rent, wages, utilities, supplies.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
           <select id="expenses-filter-mode" onchange="const f=document.getElementById('expenses-date-filter'); f.style.display=this.value==='all'?'none':''; f.type='date'; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.expenses=0; expensesExpandedDay=null; loadExpenses();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="all" selected>All Time</option><option value="date">Today</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
+            <option value="all" selected data-i18n="expenses.all_time">All Time</option><option value="date" data-i18n="expenses.today">Today</option><option value="week" data-i18n="expenses.week">Week</option><option value="month" data-i18n="expenses.month">Month</option><option value="number" data-i18n="expenses.year">Year</option>
           </select>
           <input type="date" id="expenses-date-filter" onchange="pagination.expenses=0; loadExpenses()" />
         </div>
-        <button class="btn-small" onclick="exportExpensesCSV()">📥 CSV</button>
-        <button class="btn-small" id="expenses-group-toggle" onclick="toggleExpensesGroup()" style="background:var(--accent-soft); color:var(--accent);">📋 List</button>
-        <button class="btn-small" onclick="openModal('expense-modal')">+ Add expense</button>
+        <button class="btn-small" onclick="exportExpensesCSV()" data-i18n="expenses.csv">📥 CSV</button>
+        <button class="btn-small" id="expenses-group-toggle" onclick="toggleExpensesGroup()" style="background:var(--accent-soft); color:var(--accent);">📋 <span data-i18n="expenses.list">List</span></button>
+        <button class="btn-small" onclick="openModal('expense-modal')" data-i18n="expenses.add">+ Add expense</button>
       </div>
       <div class="ledger" id="expenses-ledger"></div>
     </section>
 
     <section id="tab-suppliers" class="tab-panel hidden">
-      <div class="page-header"><h2>Suppliers</h2><p>Who you buy from.</p></div>
-      <div class="toolbar"><div></div><button class="btn-small" onclick="openModal('supplier-modal')">+ Add supplier</button></div>
+      <div class="page-header"><h2 data-i18n="nav.suppliers">Suppliers</h2><p data-i18n="suppliers.subtitle">Who you buy from.</p></div>
+      <div class="toolbar"><div></div><button class="btn-small" onclick="openModal('supplier-modal')" data-i18n="suppliers.add">+ Add supplier</button></div>
       <div class="ledger" id="suppliers-ledger"></div>
     </section>
 
     <section id="tab-purchases" class="tab-panel hidden">
-      <div class="page-header"><h2>Purchase Orders</h2><p>Restocking — this updates product stock automatically.</p></div>
+      <div class="page-header"><h2 data-i18n="nav.purchase_orders">Purchase Orders</h2><p data-i18n="purchases.subtitle">Restocking — this updates product stock automatically.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
           <select id="purchases-filter-mode" onchange="const f=document.getElementById('purchases-date-filter'); f.style.display=this.value==='all'?'none':''; f.type='date'; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.purchases=0; purchasesExpandedDay=null; loadPurchases();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="all" selected>All Time</option><option value="date">Today</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
+            <option value="all" selected data-i18n="purchases.all_time">All Time</option><option value="date" data-i18n="purchases.today">Today</option><option value="week" data-i18n="purchases.week">Week</option><option value="month" data-i18n="purchases.month">Month</option><option value="number" data-i18n="purchases.year">Year</option>
           </select>
           <input type="date" id="purchases-date-filter" onchange="pagination.purchases=0; loadPurchases()" />
         </div>
-        <button class="btn-small" onclick="exportPurchasesCSV()">📥 CSV</button>
-        <button class="btn-small" id="purchases-group-toggle" onclick="togglePurchasesGroup()" style="background:var(--accent-soft); color:var(--accent);">📋 List</button>
-        <button class="btn-small" onclick="openPurchaseModal()">+ New purchase</button>
+        <button class="btn-small" onclick="exportPurchasesCSV()" data-i18n="purchases.csv">📥 CSV</button>
+        <button class="btn-small" id="purchases-group-toggle" onclick="togglePurchasesGroup()" style="background:var(--accent-soft); color:var(--accent);">📋 <span data-i18n="purchases.list">List</span></button>
+        <button class="btn-small" onclick="openPurchaseModal()" data-i18n="purchases.add">+ New purchase</button>
       </div>
       <div class="ledger" id="purchases-ledger"></div>
     </section>
     
     <section id="tab-team" class="tab-panel hidden">
-      <div class="page-header"><h2>Team</h2><p>Everyone with access to this business.</p></div>
+      <div class="page-header"><h2 data-i18n="nav.team">Team</h2><p data-i18n="team.subtitle">Everyone with access to this business.</p></div>
       <div style="background:var(--accent-soft); border-radius:10px; padding:16px 18px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <div>
-          <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); margin-bottom:4px;">Invite code</div>
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); margin-bottom:4px;" data-i18n="team.invite_code">Invite code</div>
           <div class="num" style="font-size:20px; font-weight:600; color:var(--accent);" id="team-invite-code">—</div>
         </div>
-        <button class="btn-ghost" onclick="copyInviteCode(event)">Copy</button>
+        <button class="btn-ghost" onclick="copyInviteCode(event)" data-i18n="team.copy">Copy</button>
       </div>
       <div class="ledger" id="team-ledger"></div>
-      <p style="font-size:12px; color:var(--ink-faint); margin-top:14px;">Share this code with new staff — they use it under "Redeem an invite code" when they sign up. You can promote them to Manager here after.</p>
+      <p style="font-size:12px; color:var(--ink-faint); margin-top:14px;" data-i18n="team.note">Share this code with new staff — they use it under "Redeem an invite code" when they sign up. You can promote them to Manager here after.</p>
     </section>
 
     <section id="tab-reports" class="tab-panel hidden">
-      <div class="page-header"><h2>Reports</h2><p>Revenue trends, best sellers, and stock to watch.</p></div>
+      <div class="page-header"><h2 data-i18n="nav.reports">Reports</h2><p data-i18n="reports.subtitle">Revenue trends, best sellers, and stock to watch.</p></div>
       <div class="toolbar" style="margin-bottom:18px;">
         <div></div>
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <select id="reports-filter-mode" onchange="const f=document.getElementById('reports-start-date'); const f2=document.getElementById('reports-end-date'); if(this.value==='custom'){f.type='date';f2.type='date';f.style.display='';f2.style.display='';} else if(this.value==='all'){f.style.display='none';f2.style.display='none';} else {f.type='date';f2.style.display='none';f.style.display='';} loadReports();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="all" selected>All Time</option>
-            <option value="today">Today</option>
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-            <option value="year">This Year</option>
-            <option value="custom">Custom Range</option>
+            <option value="all" selected data-i18n="reports.all_time">All Time</option>
+            <option value="today" data-i18n="reports.today">Today</option>
+            <option value="week" data-i18n="reports.this_week">This Week</option>
+            <option value="month" data-i18n="reports.this_month">This Month</option>
+            <option value="year" data-i18n="reports.this_year">This Year</option>
+            <option value="custom" data-i18n="reports.custom_range">Custom Range</option>
           </select>
           <input type="date" id="reports-start-date" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);" onchange="loadReports()" />
           <input type="date" id="reports-end-date" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink); display:none;" onchange="loadReports()" />
@@ -932,70 +937,70 @@
       </div>
       <div class="reports-metrics">
         <div class="report-summary-card report-card">
-          <div class="label">Total revenue</div>
+          <div class="label" data-i18n="reports.total_revenue">Total revenue</div>
           <div class="value num" id="report-total-revenue">0</div>
-          <div class="note">Sum of all sales in your business.</div>
+          <div class="note" data-i18n="reports.total_revenue_note">Sum of all sales in your business.</div>
         </div>
         <div class="report-summary-card report-card">
-          <div class="label">Average sale</div>
+          <div class="label" data-i18n="reports.avg_sale">Average sale</div>
           <div class="value num" id="report-avg-sale">0</div>
-          <div class="note">Average order value over all sales.</div>
+          <div class="note" data-i18n="reports.avg_sale_note">Average order value over all sales.</div>
         </div>
         <div class="report-summary-card report-card">
-          <div class="label">Top seller</div>
+          <div class="label" data-i18n="reports.top_seller">Top seller</div>
           <div class="value" id="report-top-product">—</div>
-          <div class="note">Product generating the most revenue.</div>
+          <div class="note" data-i18n="reports.top_seller_note">Product generating the most revenue.</div>
         </div>
         <div class="report-summary-card report-card">
-          <div class="label">Low-stock items</div>
+          <div class="label" data-i18n="reports.low_stock_items">Low-stock items</div>
           <div class="value num" id="report-low-stock-count">0</div>
-          <div class="note">Items at or below the reorder threshold.</div>
+          <div class="note" data-i18n="reports.low_stock_note">Items at or below the reorder threshold.</div>
         </div>
       </div>
       <div class="report-grid">
         <div class="report-card">
           <div class="report-card-header">
-            <h3>Category share</h3>
-            <p class="note">Compact breakdown of sales across product categories.</p>
+            <h3 data-i18n="reports.category_share">Category share</h3>
+            <p class="note" data-i18n="reports.category_share_note">Compact breakdown of sales across product categories.</p>
           </div>
           <canvas id="category-chart" height="110"></canvas>
         </div>
         <div class="report-card report-insight-card">
-          <h3>Quick view</h3>
+          <h3 data-i18n="reports.quick_view">Quick view</h3>
           <div class="insight-list">
-            <div><span>Top category</span><strong id="report-top-category">—</strong></div>
-            <div><span>Top product</span><strong id="report-top-product-mini">—</strong></div>
-            <div><span>Low stock items</span><strong id="report-low-stock-count-mini">0</strong></div>
+            <div><span data-i18n="reports.top_category">Top category</span><strong id="report-top-category">—</strong></div>
+            <div><span data-i18n="reports.top_product">Top product</span><strong id="report-top-product-mini">—</strong></div>
+            <div><span data-i18n="reports.low_stock">Low stock items</span><strong id="report-low-stock-count-mini">0</strong></div>
           </div>
         </div>
       </div>
       <div class="report-card" style="margin-bottom:22px;">
-        <h3>Top selling products</h3>
+        <h3 data-i18n="reports.top_products">Top selling products</h3>
         <div class="ledger" id="top-products-ledger"></div>
       </div>
       <div class="report-card">
-        <h3>Low stock</h3>
+        <h3 data-i18n="reports.low_stock">Low stock</h3>
         <div class="ledger" id="low-stock-ledger"></div>
       </div>
     </section>
 
     <section id="tab-materials" class="tab-panel hidden">
-      <div class="page-header"><h2>Raw Materials</h2><p>Ingredients or components used to make your products.</p></div>
+      <div class="page-header"><h2 data-i18n="nav.materials">Raw Materials</h2><p data-i18n="materials.subtitle">Ingredients or components used to make your products.</p></div>
       <div class="toolbar">
-        <button class="btn-small" onclick="exportMaterialsCSV()">📥 CSV</button>
-        <button class="btn-small" onclick="openProduceModal()">Produce</button>
-        <button class="btn-small" onclick="openModal('material-modal')">+ Add raw material</button>
+        <button class="btn-small" onclick="exportMaterialsCSV()" data-i18n="materials.csv">📥 CSV</button>
+        <button class="btn-small" onclick="openProduceModal()" data-i18n="materials.produce">Produce</button>
+        <button class="btn-small" onclick="openModal('material-modal')" data-i18n="materials.add">+ Add raw material</button>
       </div>
       <div class="ledger" id="materials-ledger"></div>
     </section>
 
     <!-- ========== STOCK MOVEMENTS TAB ========== -->
     <section id="tab-stock-movements" class="tab-panel hidden">
-      <div class="page-header"><h2>Stock Movements</h2><p>Full audit trail of all stock changes.</p></div>
+      <div class="page-header"><h2 data-i18n="nav.stock_movements">Stock Movements</h2><p data-i18n="movements.subtitle">Full audit trail of all stock changes.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
           <select id="movements-filter-mode" onchange="const f=document.getElementById('movements-date-filter'); f.style.display=this.value==='all'?'none':''; f.type='date'; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.movements=0; loadMovements();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="all" selected>All Time</option><option value="date">Today</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
+            <option value="all" selected data-i18n="movements.all_time">All Time</option><option value="date" data-i18n="movements.today">Today</option><option value="week" data-i18n="movements.week">Week</option><option value="month" data-i18n="movements.month">Month</option><option value="number" data-i18n="movements.year">Year</option>
           </select>
           <input type="date" id="movements-date-filter" onchange="pagination.movements=0; loadMovements()" />
         </div>
@@ -1005,73 +1010,73 @@
 
     <!-- ========== EFFICIENCY TAB ========== -->
     <section id="tab-efficiency" class="tab-panel hidden">
-      <div class="page-header"><h2>Efficiency</h2><p>Food cost, labor, waste tracking, and production batches.</p></div>
+      <div class="page-header"><h2 data-i18n="nav.efficiency">Efficiency</h2><p data-i18n="efficiency.subtitle">Food cost, labor, waste tracking, and production batches.</p></div>
 
       <div class="reports-metrics">
         <div class="report-summary-card report-card">
-          <div class="label">Food Cost %</div>
+          <div class="label" data-i18n="efficiency.food_cost">Food Cost %</div>
           <div class="value num" id="eff-food-cost">—</div>
-          <div class="note">Raw material cost as % of product revenue.</div>
+          <div class="note" data-i18n="efficiency.food_cost_note">Raw material cost as % of product revenue.</div>
         </div>
         <div class="report-summary-card report-card">
-          <div class="label">Labor Cost %</div>
+          <div class="label" data-i18n="efficiency.labor_cost">Labor Cost %</div>
           <div class="value num" id="eff-labor-cost">—</div>
-          <div class="note">Total labor cost as % of revenue.</div>
+          <div class="note" data-i18n="efficiency.labor_cost_note">Total labor cost as % of revenue.</div>
         </div>
         <div class="report-summary-card report-card">
-          <div class="label">Waste Cost</div>
+          <div class="label" data-i18n="efficiency.waste_cost">Waste Cost</div>
            <div class="value num" id="eff-waste-cost">ETB 0</div>
-          <div class="note">Total cost of wasted inventory.</div>
+          <div class="note" data-i18n="efficiency.waste_cost_note">Total cost of wasted inventory.</div>
         </div>
         <div class="report-summary-card report-card">
-          <div class="label">Yield %</div>
+          <div class="label" data-i18n="efficiency.yield">Yield %</div>
           <div class="value num" id="eff-yield">—</div>
-          <div class="note">Average production yield across batches.</div>
+          <div class="note" data-i18n="efficiency.yield_note">Average production yield across batches.</div>
         </div>
       </div>
 
       <div class="report-card" style="margin-bottom:22px;">
-        <div class="report-card-header"><h3>Waste Log</h3></div>
-        <div class="toolbar"><button class="btn-small" onclick="openWasteModal()">+ Log Waste</button></div>
+        <div class="report-card-header"><h3 data-i18n="efficiency.waste_log">Waste Log</h3></div>
+        <div class="toolbar"><button class="btn-small" onclick="openWasteModal()" data-i18n="efficiency.add_waste">+ Log Waste</button></div>
         <div id="waste-ledger"></div>
       </div>
 
       <div class="report-card" style="margin-bottom:22px;">
-        <div class="report-card-header"><h3>Labor Shifts</h3></div>
+        <div class="report-card-header"><h3 data-i18n="efficiency.labor_shifts">Labor Shifts</h3></div>
         <div id="shifts-ledger"></div>
       </div>
 
       <div class="report-card" style="margin-bottom:22px;">
-        <div class="report-card-header"><h3>Production Batches</h3></div>
+        <div class="report-card-header"><h3 data-i18n="efficiency.batches">Production Batches</h3></div>
         <div id="produce-batches-ledger"></div>
       </div>
     </section>
 
     <!-- ========== SETTINGS TAB ========== -->
     <section id="tab-settings" class="tab-panel hidden">
-      <div class="page-header"><h2>Settings</h2><p>Configure your business info, tax, currency, and receipt options.</p></div>
+      <div class="page-header"><h2 data-i18n="nav.settings">Settings</h2><p data-i18n="settings.subtitle">Configure your business info, tax, currency, and receipt options.</p></div>
 
       <div class="report-card" style="max-width:480px; margin-bottom:22px;">
-        <h3>Business Info (for receipts)</h3>
-        <label>Business Name</label>
-        <input type="text" id="setting-biz-name" placeholder="Your business name" />
-        <label>Address</label>
-        <input type="text" id="setting-address" placeholder="123 Main St, City" />
-        <label>Phone</label>
-        <input type="text" id="setting-phone" placeholder="(555) 123-4567" />
-        <label>Tax ID</label>
-        <input type="text" id="setting-tax-id" placeholder="XX-1234567" />
+        <h3 data-i18n="settings.biz_info">Business Info (for receipts)</h3>
+        <label data-i18n="settings.biz_name">Business Name</label>
+        <input type="text" id="setting-biz-name" data-i18n-placeholder="settings.biz_name_placeholder" placeholder="Your business name" />
+        <label data-i18n="settings.address">Address</label>
+        <input type="text" id="setting-address" data-i18n-placeholder="settings.address_placeholder" placeholder="123 Main St, City" />
+        <label data-i18n="settings.phone">Phone</label>
+        <input type="text" id="setting-phone" data-i18n-placeholder="settings.phone_placeholder" placeholder="(555) 123-4567" />
+        <label data-i18n="settings.tax_id">Tax ID</label>
+        <input type="text" id="setting-tax-id" data-i18n-placeholder="settings.tax_id_placeholder" placeholder="XX-1234567" />
       </div>
 
       <div class="report-card" style="max-width:480px;">
-        <h3>Tax & Currency</h3>
-        <label>Tax Rate (%)</label>
+        <h3 data-i18n="settings.tax_currency">Tax & Currency</h3>
+        <label data-i18n="settings.tax_rate">Tax Rate (%)</label>
         <input type="number" id="setting-tax-rate" min="0" max="100" step="0.01" value="0" />
-        <label>Currency Symbol</label>
+        <label data-i18n="settings.currency">Currency Symbol</label>
         <input type="text" id="setting-currency" maxlength="5" value="ETB" style="max-width:80px;" />
-        <label>Receipt Footer</label>
-        <textarea id="setting-receipt-footer" rows="2" placeholder="Thank you for your business!"></textarea>
-        <button class="btn-primary" id="settings-save-btn" onclick="saveSettings()">Save Settings</button>
+        <label data-i18n="settings.receipt_footer">Receipt Footer</label>
+        <textarea id="setting-receipt-footer" rows="2" data-i18n-placeholder="settings.receipt_footer_placeholder" placeholder="Thank you for your business!"></textarea>
+        <button class="btn-primary" id="settings-save-btn" onclick="saveSettings()" data-i18n="settings.save">Save Settings</button>
         <div id="settings-error" class="error hidden"></div>
         <div id="settings-success" class="success hidden"></div>
       </div>
@@ -1081,46 +1086,46 @@
 
 <div id="product-modal" class="modal-backdrop hidden">
   <div class="modal">
-    <div class="close" onclick="closeModal('product-modal')">Close</div>
-    <h3 id="product-modal-title">Add product</h3>
-    <label>Name</label><input type="text" id="p-name" />
-    <label>Category</label>
+    <div class="close" onclick="closeModal('product-modal')" data-i18n="modal.close">Close</div>
+    <h3 id="product-modal-title" data-i18n="product_modal.add">Add product</h3>
+    <label data-i18n="product_modal.name">Name</label><input type="text" id="p-name" />
+    <label data-i18n="product_modal.category">Category</label>
     <select id="p-category" onchange="const ni=document.getElementById('p-category-new'); if(this.value==='__new__'){ni.classList.remove('hidden');ni.focus();}else{ni.classList.add('hidden');}">
-      <option value="">None</option>
+      <option value="" data-i18n="product_modal.none">None</option>
     </select>
     <input type="text" id="p-category-new" class="hidden" placeholder="Type new category name" style="margin-top:4px;" />
     <div id="p-type-row" class="field-row">
-      <div><label>Type</label>
+      <div><label data-i18n="product_modal.type">Type</label>
         <select id="p-type">
-          <option value="resale">Buy & Sell</option>
-          <option value="manufactured">Manufactured</option>
+          <option value="resale" data-i18n="product_modal.resale">Buy & Sell</option>
+          <option value="manufactured" data-i18n="product_modal.manufactured">Manufactured</option>
         </select>
       </div>
     </div>
     <div class="field-row">
-      <div><label>Selling price</label><input type="number" id="p-price" min="0" step="any" /></div>
+      <div><label data-i18n="product_modal.price">Selling price</label><input type="number" id="p-price" min="0" step="any" /></div>
     </div>
     <div class="field-row">
-      <div><label>Unit</label><input type="text" id="p-unit" placeholder="plate, kg, item" /></div>
-      <div><label>Starting stock</label><input type="number" id="p-stock" placeholder="0" min="0" /></div>
+      <div><label data-i18n="product_modal.unit">Unit</label><input type="text" id="p-unit" placeholder="plate, kg, item" /></div>
+      <div><label data-i18n="product_modal.stock">Starting stock</label><input type="number" id="p-stock" placeholder="0" min="0" /></div>
     </div>
-    <label>Low stock alert below</label><input type="number" id="p-threshold" placeholder="optional" min="0" />
-    <button class="btn-primary" id="product-submit-btn" onclick="submitProduct()">Save product</button>
-    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('product-modal')">Cancel</button>
-    <button class="btn-ghost" id="product-duplicate-btn" style="width:100%; margin-top:10px;" onclick="duplicateProduct()">Duplicate this product</button>
-    <button class="btn-ghost" id="product-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('products', 'product-modal')">Delete product</button>
+    <label data-i18n="product_modal.threshold">Low stock alert below</label><input type="number" id="p-threshold" placeholder="optional" min="0" />
+    <button class="btn-primary" id="product-submit-btn" onclick="submitProduct()" data-i18n="product_modal.save">Save product</button>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('product-modal')" data-i18n="modal.cancel">Cancel</button>
+    <button class="btn-ghost" id="product-duplicate-btn" style="width:100%; margin-top:10px;" onclick="duplicateProduct()" data-i18n="product_modal.duplicate">Duplicate this product</button>
+    <button class="btn-ghost" id="product-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('products', 'product-modal')" data-i18n="product_modal.delete">Delete product</button>
     <div id="product-error" class="error hidden"></div>
   </div>
 </div>
 
 <div id="customer-modal" class="modal-backdrop hidden">
   <div class="modal">
-    <div class="close" onclick="closeModal('customer-modal')">Close</div>
-    <h3 id="customer-modal-title">Add customer</h3>
-    <label>Name</label><input type="text" id="c-name" />
-    <label>Phone</label><input type="text" id="c-phone" />
-    <button class="btn-primary" id="customer-submit-btn" onclick="submitCustomer()">Save customer</button>
-    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('customer-modal')">Cancel</button>
+    <div class="close" onclick="closeModal('customer-modal')" data-i18n="modal.close">Close</div>
+    <h3 id="customer-modal-title" data-i18n="customer_modal.add">Add customer</h3>
+    <label data-i18n="modal.name">Name</label><input type="text" id="c-name" />
+    <label data-i18n="modal.phone">Phone</label><input type="text" id="c-phone" />
+    <button class="btn-primary" id="customer-submit-btn" onclick="submitCustomer()" data-i18n="customer_modal.save">Save customer</button>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('customer-modal')" data-i18n="modal.cancel">Cancel</button>
     <button class="btn-ghost" id="customer-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('customers', 'customer-modal')">Delete customer</button>
     <div id="customer-error" class="error hidden"></div>
   </div>
@@ -1128,22 +1133,22 @@
 
 <div id="payment-crud-modal" class="modal-backdrop hidden">
   <div class="modal">
-    <div class="close" onclick="closeModal('payment-crud-modal')">Close</div>
-    <h3 id="payment-crud-modal-title">Record payment</h3>
-    <label>Customer</label>
+    <div class="close" onclick="closeModal('payment-crud-modal')" data-i18n="modal.close">Close</div>
+    <h3 id="payment-crud-modal-title" data-i18n="payment_modal.record">Record payment</h3>
+    <label data-i18n="payment_modal.customer">Customer</label>
     <select id="pay-customer"></select>
     <div class="field-row">
-      <div><label>Amount</label><input type="number" id="pay-amount" min="0" step="any" /></div>
-      <div><label>Method</label>
+      <div><label data-i18n="modal.amount">Amount</label><input type="number" id="pay-amount" min="0" step="any" /></div>
+      <div><label data-i18n="payment_modal.method">Method</label>
         <select id="pay-crud-method">
-          <option value="cash">Cash</option>
-          <option value="bank_transfer">Bank transfer</option>
-          <option value="mobile_money">Mobile money</option>
+          <option value="cash" data-i18n="payment_modal.cash">Cash</option>
+          <option value="bank_transfer" data-i18n="payment_modal.bank">Bank transfer</option>
+          <option value="mobile_money" data-i18n="payment_modal.mobile">Mobile money</option>
         </select>
       </div>
     </div>
-    <button class="btn-primary" id="payment-submit-btn" onclick="submitPayment()">Save payment</button>
-    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('payment-crud-modal')">Cancel</button>
+    <button class="btn-primary" id="payment-submit-btn" onclick="submitPayment()" data-i18n="payment_modal.save">Save payment</button>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('payment-crud-modal')" data-i18n="modal.cancel">Cancel</button>
     <button class="btn-ghost" id="payment-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('payments', 'payment-crud-modal')">Delete payment</button>
     <div id="payment-crud-error" class="error hidden"></div>
   </div>
@@ -1151,23 +1156,23 @@
 
 <div id="expense-modal" class="modal-backdrop hidden">
   <div class="modal">
-    <div class="close" onclick="closeModal('expense-modal')">Close</div>
-    <h3 id="expense-modal-title">Add expense</h3>
-    <label>Category</label>
+    <div class="close" onclick="closeModal('expense-modal')" data-i18n="modal.close">Close</div>
+    <h3 id="expense-modal-title" data-i18n="expense_modal.add">Add expense</h3>
+    <label data-i18n="expense_modal.category">Category</label>
     <select id="e-category">
-      <option value="rent">Rent</option>
-      <option value="utilities">Utilities</option>
-      <option value="wages">Wages</option>
-      <option value="supplies">Supplies</option>
-      <option value="other">Other</option>
+      <option value="rent" data-i18n="expense_modal.rent">Rent</option>
+      <option value="utilities" data-i18n="expense_modal.utilities">Utilities</option>
+      <option value="wages" data-i18n="expense_modal.wages">Wages</option>
+      <option value="supplies" data-i18n="expense_modal.supplies">Supplies</option>
+      <option value="other" data-i18n="expense_modal.other">Other</option>
     </select>
-    <label>Description</label><input type="text" id="e-description" />
+    <label data-i18n="modal.description">Description</label><input type="text" id="e-description" />
     <div class="field-row">
-      <div><label>Amount</label><input type="number" id="e-amount" min="0" step="any" /></div>
-      <div><label>Date</label><input type="date" id="e-date" /></div>
+      <div><label data-i18n="modal.amount">Amount</label><input type="number" id="e-amount" min="0" step="any" /></div>
+      <div><label data-i18n="modal.date">Date</label><input type="date" id="e-date" /></div>
     </div>
-    <button class="btn-primary" id="expense-submit-btn" onclick="submitExpense()">Save expense</button>
-    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('expense-modal')">Cancel</button>
+    <button class="btn-primary" id="expense-submit-btn" onclick="submitExpense()" data-i18n="expense_modal.save">Save expense</button>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('expense-modal')" data-i18n="modal.cancel">Cancel</button>
     <button class="btn-ghost" id="expense-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('expenses', 'expense-modal')">Delete expense</button>
     <div id="expense-error" class="error hidden"></div>
   </div>
@@ -1175,12 +1180,12 @@
 
 <div id="supplier-modal" class="modal-backdrop hidden">
   <div class="modal">
-    <div class="close" onclick="closeModal('supplier-modal')">Close</div>
-    <h3 id="supplier-modal-title">Add supplier</h3>
-    <label>Name</label><input type="text" id="sup-name" />
-    <label>Phone</label><input type="text" id="sup-phone" />
-    <button class="btn-primary" id="supplier-submit-btn" onclick="submitSupplier()">Save supplier</button>
-    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('supplier-modal')">Cancel</button>
+    <div class="close" onclick="closeModal('supplier-modal')" data-i18n="modal.close">Close</div>
+    <h3 id="supplier-modal-title" data-i18n="supplier_modal.add">Add supplier</h3>
+    <label data-i18n="modal.name">Name</label><input type="text" id="sup-name" />
+    <label data-i18n="modal.phone">Phone</label><input type="text" id="sup-phone" />
+    <button class="btn-primary" id="supplier-submit-btn" onclick="submitSupplier()" data-i18n="supplier_modal.save">Save supplier</button>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('supplier-modal')" data-i18n="modal.cancel">Cancel</button>
     <button class="btn-ghost" id="supplier-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('suppliers', 'supplier-modal')">Delete supplier</button>
     <div id="supplier-error" class="error hidden"></div>
   </div>
@@ -1188,43 +1193,43 @@
 
 <div id="purchase-modal" class="modal-backdrop hidden">
   <div class="modal">
-    <div class="close" onclick="closeModal('purchase-modal')">Close</div>
-    <h3>New purchase</h3>
+    <div class="close" onclick="closeModal('purchase-modal')" data-i18n="modal.close">Close</div>
+    <h3 data-i18n="purchase_modal.new">New purchase</h3>
     <div id="po-type-toggle" style="display:none; margin-bottom:10px;">
-      <label style="margin-bottom:6px;">What are you buying?</label>
+      <label style="margin-bottom:6px;" data-i18n="purchase_modal.buying">What are you buying?</label>
       <select id="po-type" onchange="togglePurchaseType()" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-        <option value="product">Resale Product</option>
-        <option value="material">Raw Material</option>
+        <option value="product" data-i18n="purchase_modal.resale">Resale Product</option>
+        <option value="material" data-i18n="purchase_modal.raw_material">Raw Material</option>
       </select>
     </div>
-    <label id="po-item-label">Product</label>
+    <label id="po-item-label" data-i18n="purchase_modal.product">Product</label>
     <select id="po-product"></select>
     <select id="po-material" class="hidden"></select>
     <div class="field-row">
-      <div><label>Quantity received</label><input type="number" id="po-qty" value="1" min="1" /></div>
-      <div><label>Unit cost</label><input type="number" id="po-cost" min="0" step="any" /></div>
+      <div><label data-i18n="purchase_modal.qty_received">Quantity received</label><input type="number" id="po-qty" value="1" min="1" /></div>
+      <div><label data-i18n="purchase_modal.unit_cost">Unit cost</label><input type="number" id="po-cost" min="0" step="any" /></div>
     </div>
-    <button class="btn-primary" id="purchase-submit-btn" onclick="submitPurchase()">Save purchase</button>
-    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('purchase-modal')">Cancel</button>
+    <button class="btn-primary" id="purchase-submit-btn" onclick="submitPurchase()" data-i18n="purchase_modal.save">Save purchase</button>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('purchase-modal')" data-i18n="modal.cancel">Cancel</button>
     <div id="purchase-error" class="error hidden"></div>
   </div>
 </div>
 
 <div id="material-modal" class="modal-backdrop hidden">
   <div class="modal">
-    <div class="close" onclick="closeModal('material-modal')">Close</div>
-    <h3 id="material-modal-title">Add raw material</h3>
-    <label>Name</label><input type="text" id="m-name" />
+    <div class="close" onclick="closeModal('material-modal')" data-i18n="modal.close">Close</div>
+    <h3 id="material-modal-title" data-i18n="material_modal.add">Add raw material</h3>
+    <label data-i18n="material_modal.name">Name</label><input type="text" id="m-name" />
     <div class="field-row">
-      <div><label>Unit</label><input type="text" id="m-unit" placeholder="kg, litre, piece" /></div>
-      <div><label>Cost per unit</label><input type="number" id="m-cost" min="0" step="any" /></div>
+      <div><label data-i18n="material_modal.unit">Unit</label><input type="text" id="m-unit" placeholder="kg, litre, piece" /></div>
+      <div><label data-i18n="material_modal.cost_per_unit">Cost per unit</label><input type="number" id="m-cost" min="0" step="any" /></div>
     </div>
     <div class="field-row">
-      <div><label>Starting stock</label><input type="number" id="m-stock" placeholder="0" min="0" /></div>
-      <div><label>Low stock alert below</label><input type="number" id="m-threshold" placeholder="optional" min="0" /></div>
+      <div><label data-i18n="material_modal.stock">Starting stock</label><input type="number" id="m-stock" placeholder="0" min="0" /></div>
+      <div><label data-i18n="material_modal.threshold">Low stock alert below</label><input type="number" id="m-threshold" placeholder="optional" min="0" /></div>
     </div>
-    <button class="btn-primary" id="material-submit-btn" onclick="submitMaterial()">Save raw material</button>
-    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('material-modal')">Cancel</button>
+    <button class="btn-primary" id="material-submit-btn" onclick="submitMaterial()" data-i18n="material_modal.save">Save raw material</button>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('material-modal')" data-i18n="modal.cancel">Cancel</button>
     <button class="btn-ghost" id="material-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('raw_materials', 'material-modal')">Delete raw material</button>
     <div id="material-error" class="error hidden"></div>
   </div>
@@ -1232,41 +1237,41 @@
 
 <div id="recipe-modal" class="modal-backdrop hidden">
   <div class="modal">
-    <div class="close" onclick="closeModal('recipe-modal')">Close</div>
-    <h3>Recipe for <span id="recipe-product-name"></span></h3>
-    <p style="font-size:12px; color:var(--ink-faint); margin-top:-6px;">How much of each raw material makes ONE unit of this product.</p>
+    <div class="close" onclick="closeModal('recipe-modal')" data-i18n="modal.close">Close</div>
+    <h3><span data-i18n="recipe_modal.title">Recipe for</span> <span id="recipe-product-name"></span></h3>
+    <p style="font-size:12px; color:var(--ink-faint); margin-top:-6px;" data-i18n="recipe_modal.desc">How much of each raw material makes ONE unit of this product.</p>
     <div id="recipe-items-list" style="margin:14px 0;"></div>
     <div class="field-row">
-      <div><label>Raw material</label><select id="ri-material"></select></div>
-      <div><label>Qty per unit</label><input type="number" id="ri-qty" min="0.01" step="any" /></div>
+      <div><label data-i18n="recipe_modal.material">Raw material</label><select id="ri-material"></select></div>
+      <div><label data-i18n="recipe_modal.qty_per_unit">Qty per unit</label><input type="number" id="ri-qty" min="0.01" step="any" /></div>
     </div>
-    <button class="btn-primary" id="recipe-submit-btn" onclick="addRecipeItem()">Add to recipe</button>
-    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('recipe-modal')">Cancel</button>
+    <button class="btn-primary" id="recipe-submit-btn" onclick="addRecipeItem()" data-i18n="recipe_modal.add">Add to recipe</button>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('recipe-modal')" data-i18n="modal.cancel">Cancel</button>
     <div id="recipe-error" class="error hidden"></div>
   </div>
 </div>
 
 <div id="produce-modal" class="modal-backdrop hidden">
   <div class="modal produce-modal">
-    <div class="close" onclick="closeModal('produce-modal')">Close</div>
-    <h3>Produce Batch</h3>
-    <label>Product</label>
+    <div class="close" onclick="closeModal('produce-modal')" data-i18n="modal.close">Close</div>
+    <h3 data-i18n="produce_modal.title">Produce Batch</h3>
+    <label data-i18n="produce_modal.product">Product</label>
     <select id="prod-product" onchange="onProduceProductChange()"></select>
     <div class="field-row">
-      <div><label>Planned Qty</label><input type="number" id="prod-planned-qty" value="1" min="1" onchange="onProduceProductChange()" /></div>
-      <div><label>Actual Yield</label><input type="number" id="prod-actual-yield" min="0" step="any" placeholder="Optional" /></div>
+      <div><label data-i18n="produce_modal.planned_qty">Planned Qty</label><input type="number" id="prod-planned-qty" value="1" min="1" onchange="onProduceProductChange()" /></div>
+      <div><label data-i18n="produce_modal.actual_yield">Actual Yield</label><input type="number" id="prod-actual-yield" min="0" step="any" placeholder="Optional" /></div>
     </div>
     <div id="produce-requirements" style="margin:14px 0; font-size:13px; color:var(--ink-soft);"></div>
     <div class="produce-costing" id="produce-costing" style="margin:12px 0; padding:12px; background:var(--paper); border-radius:8px; display:none;">
-      <h4 style="margin:0 0 8px;">Batch Cost Analysis</h4>
-       <div class="costing-row"><span>Material Cost</span><strong id="prod-material-cost">ETB 0.00</strong></div>
-       <div class="costing-row"><span>Cost per Unit</span><strong id="prod-unit-cost">ETB 0.00</strong></div>
-       <div class="costing-row"><span>Selling Price</span><strong id="prod-sell-price">ETB 0.00</strong></div>
-      <div class="costing-row"><span>Margin</span><strong id="prod-margin">0%</strong></div>
-      <div class="costing-row"><span>Yield %</span><strong id="prod-yield-pct">—</strong></div>
+      <h4 style="margin:0 0 8px;" data-i18n="produce_modal.cost_analysis">Batch Cost Analysis</h4>
+       <div class="costing-row"><span data-i18n="produce_modal.material_cost">Material Cost</span><strong id="prod-material-cost">ETB 0.00</strong></div>
+       <div class="costing-row"><span data-i18n="produce_modal.unit_cost">Cost per Unit</span><strong id="prod-unit-cost">ETB 0.00</strong></div>
+       <div class="costing-row"><span data-i18n="produce_modal.sell_price">Selling Price</span><strong id="prod-sell-price">ETB 0.00</strong></div>
+      <div class="costing-row"><span data-i18n="produce_modal.margin">Margin</span><strong id="prod-margin">0%</strong></div>
+      <div class="costing-row"><span data-i18n="produce_modal.yield_pct">Yield %</span><strong id="prod-yield-pct">—</strong></div>
     </div>
-    <button class="btn-primary" id="produce-submit-btn" onclick="submitProduce()">Produce</button>
-    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('produce-modal')">Cancel</button>
+    <button class="btn-primary" id="produce-submit-btn" onclick="submitProduce()" data-i18n="produce_modal.produce">Produce</button>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('produce-modal')" data-i18n="modal.cancel">Cancel</button>
     <div id="produce-error" class="error hidden"></div>
   </div>
 </div>
@@ -1277,9 +1282,9 @@
     <div class="pos-header">
       <h3 id="pos-table-name">Table 1</h3>
       <div class="pos-header-actions">
-        <button class="btn-ghost btn-sm" onclick="posSplitBill()">Split</button>
-        <button class="btn-ghost btn-sm" onclick="posHoldOrder()">Hold</button>
-        <button class="btn-ghost btn-sm" onclick="closeModal('pos-modal')">Close</button>
+        <button class="btn-ghost btn-sm" onclick="posSplitBill()" data-i18n="pos.split">Split</button>
+        <button class="btn-ghost btn-sm" onclick="posHoldOrder()" data-i18n="pos.hold">Hold</button>
+        <button class="btn-ghost btn-sm" onclick="closeModal('pos-modal')" data-i18n="pos.close">Close</button>
       </div>
     </div>
     
@@ -1293,19 +1298,19 @@
       <!-- Right: Cart -->
       <div class="pos-right">
         <div class="pos-cart-header">
-          <span>Order</span>
+          <span data-i18n="pos.order">Order</span>
           <span class="pos-cart-count" id="pos-cart-count">0 items</span>
         </div>
         <div class="pos-cart" id="pos-cart"></div>
         <div class="pos-totals">
-           <div class="pos-total-row"><span>Subtotal</span><span id="pos-subtotal">ETB 0.00</span></div>
-           <div class="pos-total-row"><span>Discount</span><span id="pos-discount">-ETB 0.00</span></div>
-           <div class="pos-total-row"><span>Tax</span><span id="pos-tax">ETB 0.00</span></div>
-           <div class="pos-total-row grand"><span>Total</span><span id="pos-grand-total">ETB 0.00</span></div>
+           <div class="pos-total-row"><span data-i18n="pos.subtotal">Subtotal</span><span id="pos-subtotal">ETB 0.00</span></div>
+           <div class="pos-total-row"><span data-i18n="pos.discount">Discount</span><span id="pos-discount">-ETB 0.00</span></div>
+           <div class="pos-total-row"><span data-i18n="pos.tax">Tax</span><span id="pos-tax">ETB 0.00</span></div>
+           <div class="pos-total-row grand"><span data-i18n="pos.total">Total</span><span id="pos-grand-total">ETB 0.00</span></div>
         </div>
         <div class="pos-cart-actions">
-          <button class="btn-ghost" onclick="posClearCart()">Clear</button>
-          <button class="btn-primary" id="pos-pay-btn" onclick="posOpenPayment()">Pay</button>
+          <button class="btn-ghost" onclick="posClearCart()" data-i18n="pos.clear">Clear</button>
+          <button class="btn-primary" id="pos-pay-btn" onclick="posOpenPayment()" data-i18n="pos.pay">Pay</button>
         </div>
       </div>
     </div>
@@ -1315,30 +1320,30 @@
 <!-- ========== PAYMENT MODAL ========== -->
 <div id="payment-modal" class="modal-backdrop hidden">
   <div class="modal payment-modal">
-    <div class="close" onclick="closeModal('payment-modal')">Close</div>
-    <h3>Payment</h3>
+    <div class="close" onclick="closeModal('payment-modal')" data-i18n="modal.close">Close</div>
+    <h3 data-i18n="payment_screen.title">Payment</h3>
     <div class="payment-summary">
-       <div>Total Due: <strong id="payment-total-due">ETB 0.00</strong></div>
+       <div><span data-i18n="payment_screen.total_due">Total Due:</span> <strong id="payment-total-due">ETB 0.00</strong></div>
     </div>
-    <label>Payment Method</label>
+    <label data-i18n="payment_screen.method">Payment Method</label>
     <select id="pay-method" class="payment-method-select">
-      <option value="cash">Cash</option>
-      <option value="card">Card</option>
-      <option value="mobile_money">Mobile Money</option>
+      <option value="cash" data-i18n="payment_screen.cash">Cash</option>
+      <option value="card" data-i18n="payment_screen.card">Card</option>
+      <option value="mobile_money" data-i18n="payment_screen.mobile_money">Mobile Money</option>
     </select>
     <div class="payment-cash" id="payment-cash" style="display:none;">
-      <label>Cash Received</label>
+      <label data-i18n="payment_screen.cash_received">Cash Received</label>
       <input type="number" id="cash-received" step="0.01" min="0" />
-       <div class="change-display">Change: <strong id="cash-change">ETB 0.00</strong></div>
+       <div class="change-display"><span data-i18n="payment_screen.change">Change:</span> <strong id="cash-change">ETB 0.00</strong></div>
     </div>
     <div class="payment-tip" id="payment-tip" style="display:none;">
-      <label>Tip</label>
+      <label data-i18n="payment_screen.tip">Tip</label>
       <div class="tip-buttons" id="tip-buttons"></div>
-      <input type="number" id="custom-tip" step="0.01" min="0" placeholder="Custom tip" />
+      <input type="number" id="custom-tip" step="0.01" min="0" data-i18n-placeholder="payment_screen.custom_tip" placeholder="Custom tip" />
     </div>
     <div class="payment-actions">
-      <button class="btn-ghost" onclick="closeModal('payment-modal')">Back</button>
-      <button class="btn-primary" onclick="completePayment()">Complete Payment</button>
+      <button class="btn-ghost" onclick="closeModal('payment-modal')" data-i18n="payment_screen.back">Back</button>
+      <button class="btn-primary" onclick="completePayment()" data-i18n="payment_screen.complete">Complete Payment</button>
     </div>
     <div id="payment-error" class="error hidden"></div>
   </div>
@@ -1347,12 +1352,12 @@
 <!-- ========== RECEIPT PRINT MODAL ========== -->
 <div id="receipt-modal" class="modal-backdrop hidden">
   <div class="modal receipt-modal">
-    <div class="close" onclick="closeModal('receipt-modal')">Close</div>
+    <div class="close" onclick="closeModal('receipt-modal')" data-i18n="modal.close">Close</div>
     <div id="receipt-content" class="receipt-content"></div>
     <div class="receipt-actions">
-      <button class="btn-ghost" onclick="printReceipt()">🖨️ Print</button>
-      <button class="btn-ghost" onclick="downloadReceiptCSV()">📥 CSV</button>
-      <button class="btn-primary" onclick="closeModal('receipt-modal')">Done</button>
+      <button class="btn-ghost" onclick="printReceipt()">🖨️ <span data-i18n="receipt.print">Print</span></button>
+      <button class="btn-ghost" onclick="downloadReceiptCSV()">📥 <span data-i18n="receipt.csv">CSV</span></button>
+      <button class="btn-primary" onclick="closeModal('receipt-modal')" data-i18n="receipt.done">Done</button>
     </div>
   </div>
 </div>
@@ -1360,11 +1365,11 @@
 <!-- ========== TABLE MAP MODAL (for POS entry) ========== -->
 <div id="table-map-modal" class="modal-backdrop hidden">
   <div class="modal table-map-modal">
-    <div class="close" onclick="closeModal('table-map-modal')">Close</div>
-    <h3>Select Table</h3>
+    <div class="close" onclick="closeModal('table-map-modal')" data-i18n="modal.close">Close</div>
+    <h3 data-i18n="pos.select_table">Select Table</h3>
     <div class="table-grid" id="table-grid"></div>
     <div class="table-map-actions">
-      <button class="btn-ghost" onclick="posNewWalkIn()">Walk-in (no table)</button>
+      <button class="btn-ghost" onclick="posNewWalkIn()" data-i18n="pos.walk_in">Walk-in (no table)</button>
     </div>
   </div>
 </div>
@@ -1372,21 +1377,21 @@
 <!-- ========== WASTE LOG MODAL ========== -->
 <div id="waste-modal" class="modal-backdrop hidden">
   <div class="modal">
-    <div class="close" onclick="closeModal('waste-modal')">Close</div>
-    <h3 id="waste-modal-title">Log Waste</h3>
-    <label>Type</label>
+    <div class="close" onclick="closeModal('waste-modal')" data-i18n="modal.close">Close</div>
+    <h3 id="waste-modal-title" data-i18n="efficiency.add_waste">Log Waste</h3>
+    <label data-i18n="modal.quantity">Type</label>
     <select id="waste-type" onchange="toggleWasteFields()">
       <option value="product">Finished Product</option>
       <option value="raw_material">Raw Material</option>
     </select>
-    <label>Item</label>
+    <label data-i18n="modal.item">Item</label>
     <select id="waste-product"></select>
     <select id="waste-material" style="display:none;"></select>
     <div class="field-row">
-      <div><label>Quantity</label><input type="number" id="waste-qty" min="0.01" step="any" /></div>
+      <div><label data-i18n="modal.quantity">Quantity</label><input type="number" id="waste-qty" min="0.01" step="any" /></div>
       <div><label>Unit Cost</label><input type="number" id="waste-cost" min="0" step="any" placeholder="Auto-filled" /></div>
     </div>
-    <label>Reason</label>
+    <label data-i18n="modal.reason">Reason</label>
     <select id="waste-reason">
       <option value="spoilage">Spoilage</option>
       <option value="prep_waste">Prep Waste</option>
@@ -1394,12 +1399,12 @@
       <option value="spilled">Spilled</option>
       <option value="returned">Customer Returned</option>
       <option value="expired">Expired</option>
-      <option value="other">Other</option>
+      <option value="other" data-i18n="expense_modal.other">Other</option>
     </select>
-    <label>Notes</label>
+    <label data-i18n="modal.notes">Notes</label>
     <textarea id="waste-notes" rows="2" placeholder="Optional details..."></textarea>
-    <button class="btn-primary" id="waste-submit-btn" onclick="submitWaste()">Log Waste</button>
-    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('waste-modal')">Cancel</button>
+    <button class="btn-primary" id="waste-submit-btn" onclick="submitWaste()" data-i18n="efficiency.add_waste">Log Waste</button>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('waste-modal')" data-i18n="modal.cancel">Cancel</button>
     <div id="waste-error" class="error hidden"></div>
   </div>
 </div>
@@ -1407,8 +1412,8 @@
 <!-- ========== LABOR SHIFT MODAL ========== -->
 <div id="shift-modal" class="modal-backdrop hidden">
   <div class="modal">
-    <div class="close" onclick="closeModal('shift-modal')">Close</div>
-    <h3 id="shift-modal-title">Clock In</h3>
+    <div class="close" onclick="closeModal('shift-modal')" data-i18n="modal.close">Close</div>
+    <h3 id="shift-modal-title" data-i18n="efficiency.add_shift">Clock In</h3>
     <label>Staff</label>
     <select id="shift-staff"></select>
     <label>Role</label>
@@ -1431,7 +1436,7 @@
       <div><label>Break (minutes)</label><input type="number" id="shift-break" min="0" value="0" /></div>
     </div>
     <button class="btn-primary" id="shift-submit-btn" onclick="submitShift()">Save Shift</button>
-    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('shift-modal')">Cancel</button>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('shift-modal')" data-i18n="modal.cancel">Cancel</button>
     <div id="shift-error" class="error hidden"></div>
   </div>
 </div>
@@ -1440,8 +1445,8 @@
 <div id="kds-modal" class="modal-backdrop hidden">
   <div class="modal kds-modal">
     <div class="kds-header">
-      <h3>Kitchen Display</h3>
-      <button class="btn-ghost btn-sm" onclick="closeModal('kds-modal')">Close</button>
+      <h3 data-i18n="kds.title">Kitchen Display</h3>
+      <button class="btn-ghost btn-sm" onclick="closeModal('kds-modal')" data-i18n="modal.close">Close</button>
     </div>
     <div class="kds-grid" id="kds-grid"></div>
   </div>
@@ -1465,6 +1470,102 @@
   const PAGE_SIZE = 25;
   let reqVersion = { products: 0, customers: 0, sales: 0, payments: 0, expenses: 0, purchases: 0, materials: 0, suppliers: 0, movements: 0 };
   let loading = { products: false, customers: false, sales: false, payments: false, expenses: false, purchases: false, materials: false, suppliers: false, movements: false };
+
+  // ============================================================
+  // i18n — INTERNATIONALIZATION
+  // ============================================================
+  const I18N_LANGS = ['en', 'am', 'om'];
+  const I18N_NAMES = { en: 'English', am: 'አማርኛ', om: 'Afaan Oromoo' };
+  let currentLang = localStorage.getItem('thole:lang') || 'en';
+  let translations = {};
+
+  async function loadTranslations(lang) {
+    if (lang === 'en') {
+      try {
+        const r = await fetch('translations/en.json');
+        if (r.ok) translations = await r.json();
+      } catch(e) { console.warn('Failed to load translations', e); }
+      return;
+    }
+    try {
+      const [baseR, langR] = await Promise.all([
+        fetch('translations/en.json'),
+        fetch(`translations/${lang}.json`)
+      ]);
+      const base = baseR.ok ? await baseR.json() : {};
+      const over = langR.ok ? await langR.json() : {};
+      translations = deepMerge(base, over);
+    } catch(e) { console.warn('Failed to load translations', e); }
+  }
+
+  function deepMerge(target, source) {
+    const out = { ...target };
+    for (const key of Object.keys(source)) {
+      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key]) && target[key] && typeof target[key] === 'object') {
+        out[key] = deepMerge(target[key], source[key]);
+      } else {
+        out[key] = source[key];
+      }
+    }
+    return out;
+  }
+
+  function t(key, params) {
+    const keys = key.split('.');
+    let val = translations;
+    for (const k of keys) {
+      if (val && typeof val === 'object') val = val[k];
+      else return key;
+    }
+    if (val === undefined || val === null) return key;
+    if (typeof val !== 'string') return key;
+    if (params) {
+      for (const [pk, pv] of Object.entries(params)) {
+        val = val.replace(new RegExp(`\\{${pk}\\}`, 'g'), pv);
+      }
+    }
+    return val;
+  }
+
+  function applyTranslations() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      const translated = t(key);
+      if (translated !== key) el.textContent = translated;
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+      const key = el.getAttribute('data-i18n-placeholder');
+      const translated = t(key);
+      if (translated !== key) el.placeholder = translated;
+    });
+    document.querySelectorAll('[data-i18n-title]').forEach(el => {
+      const key = el.getAttribute('data-i18n-title');
+      const translated = t(key);
+      if (translated !== key) el.title = translated;
+    });
+    document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+      const key = el.getAttribute('data-i18n-aria');
+      const translated = t(key);
+      if (translated !== key) el.setAttribute('aria-label', translated);
+    });
+  }
+
+  async function setLanguage(lang) {
+    currentLang = lang;
+    localStorage.setItem('thole:lang', lang);
+    document.documentElement.lang = lang;
+    await loadTranslations(lang);
+    applyTranslations();
+    const activeTab = document.querySelector('.nav-item.active')?.dataset.tab || 'dashboard';
+    updateTopbar(activeTab);
+    const langSel = document.getElementById('lang-select');
+    if (langSel) langSel.value = lang;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      const translated = t(key);
+      if (translated !== key) el.textContent = translated;
+    });
+  }
 
   // HELPER: Translates Day/Week/Month/Year inputs into Supabase time ranges
   function applyTimeFilter(query, val, mode, col = "created_at") {
@@ -2624,6 +2725,7 @@
 
   async function boot() {
     try {
+      await setLanguage(currentLang);
       const { data: { session } } = await sb.auth.getSession();
       if (!session) { revealAuth(); showLogin(); return; }
       currentUser = session.user;
@@ -2722,18 +2824,18 @@
   // AUTH
   // ============================================================
   function showSignup() {
-    document.getElementById("auth-title").textContent = "Join your business";
-    document.getElementById("auth-sub").textContent = "Enter the invite code your admin gave you.";
+    document.getElementById("auth-title").textContent = t("auth.join_business");
+    document.getElementById("auth-sub").textContent = t("auth.join_subtitle");
     hide("login-form"); hide("newbiz-form"); show("signup-form"); clearError("auth-error");
   }
   function showNewBusiness() {
-    document.getElementById("auth-title").textContent = "Start your business";
-    document.getElementById("auth-sub").textContent = "You'll be the owner — set up your team after.";
+    document.getElementById("auth-title").textContent = t("auth.start_business");
+    document.getElementById("auth-sub").textContent = t("auth.new_here");
     hide("login-form"); hide("signup-form"); show("newbiz-form"); clearError("auth-error");
   }
   function showLogin() {
-    document.getElementById("auth-title").textContent = "Sign in";
-    document.getElementById("auth-sub").textContent = "Manage your business in one place.";
+    document.getElementById("auth-title").textContent = t("auth.sign_in");
+    document.getElementById("auth-sub").textContent = t("auth.subtitle");
     hide("signup-form"); hide("newbiz-form"); show("login-form"); clearError("auth-error");
   }
 
@@ -2870,7 +2972,7 @@
       const resetIndicator = () => {
         if (!indicator) return;
         indicator.classList.remove('show', 'active');
-        indicator.querySelector('.label').textContent = 'Pull to sync';
+        indicator.querySelector('.label').textContent = t('topbar.pull_to_sync');
         indicator.style.transform = 'translate(-50%, -120%)';
       };
 
@@ -2879,13 +2981,13 @@
         const eased = Math.min(distance * 0.6, 92);
         indicator.classList.toggle('show', eased > 4);
         indicator.classList.toggle('active', eased >= 84);
-        indicator.querySelector('.label').textContent = eased >= 84 ? 'Release to sync' : 'Pull to sync';
+        indicator.querySelector('.label').textContent = eased >= 84 ? t('topbar.release_to_sync') : t('topbar.pull_to_sync');
         indicator.style.transform = `translate(-50%, ${Math.min(eased * 0.4, 28)}px)`;
       };
 
       const refreshActiveView = async () => {
         if (!indicator) return;
-        indicator.querySelector('.label').textContent = 'Syncing…';
+        indicator.querySelector('.label').textContent = t('topbar.syncing');
         indicator.classList.add('active');
         indicator.style.transform = 'translate(-50%, 0)';
         try {

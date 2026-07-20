@@ -25,12 +25,10 @@
     --accent-soft: #E7E8F7;
     --sky: #5CACF7;
     --sky-soft: #E7F1FE;
-    --danger: #1D1F91;
-    --danger-soft: #E7E8F7;
-    --success: #5CACF7;
-    --success-soft: #E7F1FE;
-    --warning: #5CACF7;
-    --warning-soft: #E7F1FE;
+    --amber: #9C6B1F;
+    --amber-soft: #F5EBD8;
+    --danger: #A6432C;
+    --danger-soft: #F4E6E1;
   }
   * { box-sizing: border-box; scrollbar-width: none; -ms-overflow-style: none; touch-action: manipulation; -webkit-text-size-adjust: 100%; }
   *::-webkit-scrollbar { display: none; width: 0; height: 0; }
@@ -51,7 +49,7 @@
   }
   .nav-item.active {
     transform: translateY(-1px);
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 8%, transparent);
+    box-shadow: inset 0 0 0 1px rgba(29,31,145,0.08);
   }
   .btn-small:hover, .btn-ghost:hover, .profile-dropdown-item:hover {
     transform: translateY(-2px);
@@ -88,12 +86,12 @@
   #auth-screen {
     display: flex; flex-direction: column; justify-content: flex-end;
     max-width: 100%; width: 100vw; height: 100vh; padding: 0;
-    background: var(--accent-dark); position: relative; overflow: hidden;
+    background: #12229D; position: relative; overflow: hidden;
   }
   #auth-banner {
     position: absolute; inset: 0; width: 100%; height: 100%;
     object-fit: contain; object-position: center; z-index: 1;
-    background: var(--accent-dark);
+    background: #12229D;
   }
   @media (max-width: 768px) {
     #auth-banner { object-fit: cover; }
@@ -138,7 +136,7 @@
   .switch { text-align: center; margin-top: 18px; font-size: 13px; color: var(--ink-soft); }
   .switch a { color: var(--accent); cursor: pointer; text-decoration: underline; }
   .error { background: var(--danger-soft); color: var(--danger); padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-top: 14px; }
-  .success { background: var(--success-soft); color: var(--accent); padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-top: 14px; }
+  .success { background: #d4edda; color: #155724; padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-top: 14px; }
   .error.hidden, .success.hidden { display: none; }
 
   /* ---------- APP SHELL ---------- */
@@ -175,14 +173,14 @@
   .logout-link { font-size: 12px; color: var(--ink-faint); text-decoration: underline; cursor: pointer; margin-top: 6px; display: inline-block; }
 
   main { flex: 1; display: flex; flex-direction: column; padding: 32px 40px 24px; overflow: hidden; max-width: 980px; min-width: 0; }
-  #app-topbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-shrink: 0; position: sticky; top: 0; z-index: 30; margin-bottom: 16px; background: var(--accent); color: white; padding: 12px 16px; border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; box-shadow: 0 20px 50px rgba(15,23,42,0.16); backdrop-filter: blur(18px); transition: opacity 0.3s ease, transform 0.3s ease, filter 0.3s ease; }
+  #app-topbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-shrink: 0; position: sticky; top: 0; z-index: 30; margin-bottom: 16px; background: rgba(29,31,145,0.96); color: white; padding: 12px 16px; border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; box-shadow: 0 20px 50px rgba(15,23,42,0.16); backdrop-filter: blur(18px); transition: opacity 0.3s ease, transform 0.3s ease, filter 0.3s ease; }
   #app-topbar.topbar-dimmed { opacity: 0.15; transform: translateY(-12px); filter: blur(8px); pointer-events: none; }
   #app-topbar .title-group { min-width: 0; }
   #app-topbar h2 { margin: 0; font-size: 18px; color: white; }
   #app-topbar p { margin: 4px 0 0; color: rgba(255,255,255,0.85); font-size: 12px; }
   #app-topbar .profile-wrapper { position: relative; }
-  #app-topbar .profile-avatar { width: 38px; height: 38px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.35); background: var(--sky); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s, border-color 0.2s; letter-spacing: 0; }
-  #app-topbar .profile-avatar:hover { background: var(--accent); border-color: rgba(255,255,255,0.5); }
+  #app-topbar .profile-avatar { width: 38px; height: 38px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.35); background: #5CACF7; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s, border-color 0.2s; letter-spacing: 0; }
+  #app-topbar .profile-avatar:hover { background: #4a9bf5; border-color: rgba(255,255,255,0.5); }
   .profile-dropdown { display: none; position: absolute; top: calc(100% + 8px); right: 0; background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,0.18); min-width: 200px; z-index: 100; padding: 6px 0; animation: dropdownSlideIn 0.15s ease; }
   .profile-dropdown.open { display: block; }
   @keyframes dropdownSlideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
@@ -194,7 +192,7 @@
   .profile-dropdown-item:hover { background: var(--bg); }
   .profile-dropdown-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
   .profile-dropdown-danger { color: var(--danger); }
-  .profile-dropdown-danger:hover { background: color-mix(in srgb, var(--danger) 8%, transparent); }
+  .profile-dropdown-danger:hover { background: rgba(239,68,68,0.08); }
   .profile-dropdown-lang select { flex: 1; border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; font-size: 12px; background: var(--card); color: var(--ink); cursor: pointer; }
   .tab-panel { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
   .tab-panel .page-header { display: none; }
@@ -250,7 +248,7 @@
   .checklist li.pending .marker { background: var(--line); color: var(--ink-faint); }
   .checklist li .checklist-label { flex: 1; min-width: 0; color: var(--ink); font-size: 14px; line-height: 1.35; }
   .checklist li button { border: none; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 600; cursor: pointer; padding: 8px 12px; }
-  .checklist li button:hover { background: var(--accent-soft); }
+  .checklist li button:hover { background: #e6e9ff; }
 
   @media (max-width: 720px) {
     .onboarding-card { padding: 16px; margin-bottom: 22px; }
@@ -292,7 +290,7 @@
     box-shadow: 0 8px 24px rgba(15,23,42,0.12); backdrop-filter: blur(12px);
     animation: toastIn 0.3s ease both;
   }
-  .toast.toast-success { border-left: 3px solid var(--sky); }
+  .toast.toast-success { border-left: 3px solid #22C55E; }
   .toast.toast-error { border-left: 3px solid var(--danger); }
   .toast.toast-out { animation: toastOut 0.25s ease both; }
   @keyframes toastIn { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
@@ -330,7 +328,7 @@
   input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offset: 1px; }
 
   /* Dark theme variables */
-  .theme-dark { --paper: #0B1020; --card: #0F1724; --ink: #E6EEF7; --ink-soft: #C3CEE6; --ink-faint: #9FB0D0; --line: rgba(255,255,255,0.06); --accent: #5E7CFF; --accent-soft: rgba(94,124,255,0.12); --sky: #5CACF7; --danger: #5E7CFF; --danger-soft: rgba(94,124,255,0.12); --success: #5CACF7; --success-soft: rgba(92,172,247,0.15); --warning: #5CACF7; --warning-soft: rgba(92,172,247,0.15); }
+  .theme-dark { --paper: #0B1020; --card: #0F1724; --ink: #E6EEF7; --ink-soft: #C3CEE6; --ink-faint: #9FB0D0; --line: rgba(255,255,255,0.06); --accent: #5E7CFF; --accent-soft: rgba(94,124,255,0.12); --sky: #5CACF7; --amber: #9C6B1F; --danger: #E06B5D; }
 
   /* Force readable contrast inside key components */
   .metric-card, .report-card, .ledger, .checklist li, .modal {
@@ -467,7 +465,7 @@
       align-items: center;
       padding: 12px 14px;
       border-radius: 16px;
-      background: var(--accent);
+      background: rgba(29,31,145,0.98);
       box-shadow: 0 16px 34px rgba(15,23,42,0.16);
     }
     #app-topbar .title-group { margin-bottom: 0; }
@@ -575,7 +573,7 @@
   .table-btn { aspect-ratio: 1; border: 2px solid var(--line); background: var(--card); border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; transition: all 0.2s; }
   .table-btn:hover { border-color: var(--accent); transform: scale(1.02); }
   .table-btn.occupied { border-color: var(--danger); background: var(--danger-soft); }
-  .table-btn.reserved { border-color: var(--sky); background: var(--sky-soft); }
+  .table-btn.reserved { border-color: var(--amber); background: var(--amber-soft); }
   .table-number { font-size: 18px; font-weight: 700; color: var(--ink); }
   .table-status { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); }
   .table-btn.occupied .table-status { color: var(--danger); font-weight: 600; }
@@ -599,15 +597,15 @@
   .kds-header h3 { margin: 0; }
   .kds-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; padding: 12px; height: calc(100vh - 80px); overflow-y: auto; }
   .kds-ticket { background: var(--card); border: 2px solid var(--line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; }
-  .kds-ticket.pending { border-color: var(--sky); }
-  .kds-ticket.preparing { border-color: var(--sky); }
+  .kds-ticket.pending { border-color: var(--amber); }
+  .kds-ticket.preparing { border-color: var(--amber); }
   .kds-ticket.ready { border-color: var(--accent); }
   .kds-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
   .kds-order-id { font-weight: 700; font-family: 'JetBrains Mono', monospace; }
   .kds-time { font-size: 12px; color: var(--ink-soft); }
   .kds-status { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; }
-  .kds-status.pending { background: var(--sky-soft); color: var(--sky); }
-  .kds-status.preparing { background: var(--sky-soft); color: var(--sky); }
+  .kds-status.pending { background: var(--amber-soft); color: var(--amber); }
+  .kds-status.preparing { background: var(--amber-soft); color: var(--amber); }
   .kds-status.ready { background: var(--accent-soft); color: var(--accent); }
   .kds-items { margin-bottom: 8px; }
   .kds-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
@@ -844,7 +842,7 @@
         <button class="btn-small" onclick="exportSalesCSV()" data-i18n="sales.csv">📥 CSV</button>
         <button class="btn-small" id="sales-group-toggle" onclick="toggleSalesGroup()" style="background:var(--accent-soft); color:var(--accent);">📋 <span data-i18n="sales.list">List</span></button>
         <button class="btn-small" onclick="posOpenTableMap()" data-i18n="sales.new_sale">🛒 New Sale</button>
-        <button class="btn-small" style="background:var(--sky); color:var(--ink);" onclick="openKDS()" data-i18n="sales.kds">🍳 KDS</button>
+        <button class="btn-small" style="background:var(--amber); color:var(--ink);" onclick="openKDS()" data-i18n="sales.kds">🍳 KDS</button>
       </div>
       <div class="ledger" id="sales-ledger"></div>
     </section>
@@ -3445,7 +3443,7 @@
     if (cache.sales.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💰</div>No sales recorded yet.<br><span style="font-size:12px;">Tap "New Sale" to open the POS.</span></div>`; return; }
     const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;"><div>Customer</div><div>Date</div><div style="text-align:right">Total</div><div></div><div></div></div>`;
     const rows = cache.sales.map((o) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;">
-        <div>${o.customers ? escapeHtml(o.customers.name) : "Walk-in"}${o.status !== 'completed' ? ` <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:${o.status === 'voided' ? 'var(--danger-soft)' : 'var(--sky-soft)'}; color:${o.status === 'voided' ? 'var(--danger)' : 'var(--sky)'}; font-weight:600;">${o.status.toUpperCase()}</span>` : ''}</div>
+        <div>${o.customers ? escapeHtml(o.customers.name) : "Walk-in"}${o.status !== 'completed' ? ` <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:${o.status === 'voided' ? 'var(--danger-soft)' : 'var(--amber-soft)'}; color:${o.status === 'voided' ? 'var(--danger)' : 'var(--amber)'}; font-weight:600;">${o.status.toUpperCase()}</span>` : ''}</div>
         <div style="color:var(--ink-faint); font-size:12px;">${new Date(o.created_at).toLocaleDateString()}</div>
         <div class="num" style="text-align:right">${money(o.total_amount)}</div>
         <div style="text-align:right;"><span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="posShowReceipt('${escapeAttr(o.id)}')">Receipt</span></div>
@@ -3730,7 +3728,7 @@
       if (!data || data.length === 0) { el.innerHTML = backBtn + `<div class="empty-state">No expenses for this day.</div>`; return; }
       const head = `<div class="ledger-head" style="grid-template-columns: 1fr 2fr 1fr;"><div>Category</div><div>Description</div><div style="text-align:right">Amount</div></div>`;
       const rows = data.map(e => `<div class="ledger-row" style="grid-template-columns: 1fr 2fr 1fr; cursor:pointer;" onclick="openEditExpense('${escapeAttr(e.id)}')">
-        <div><span class="cat-badge" style="background:var(--sky-soft); color:var(--sky);">${escapeHtml(e.category)}</span></div>
+        <div><span class="cat-badge" style="background:var(--amber-soft); color:var(--amber);">${escapeHtml(e.category)}</span></div>
         <div style="color:var(--ink-soft); font-size:13px;">${escapeHtml(e.description ?? "—")}</div>
         <div class="num" style="text-align:right">${money(e.amount)}</div>
       </div>`).join("");
@@ -3773,7 +3771,7 @@
     if (cache.expenses.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💸</div>No expenses recorded yet.<br><span style="font-size:12px;">Track rent, wages, utilities, and more.</span></div>`; return; }
     const head = `<div class="ledger-head" style="grid-template-columns: 1fr 2fr 1fr;"><div>Category</div><div>Description</div><div style="text-align:right">Amount</div></div>`;
     const rows = cache.expenses.map((e) => `<div class="ledger-row" style="grid-template-columns: 1fr 2fr 1fr; cursor:pointer;" onclick="openEditExpense('${escapeAttr(e.id)}')">
-        <div><span class="cat-badge" style="background:var(--sky-soft); color:var(--sky);">${escapeHtml(e.category)}</span></div>
+        <div><span class="cat-badge" style="background:var(--amber-soft); color:var(--amber);">${escapeHtml(e.category)}</span></div>
         <div style="color:var(--ink-soft); font-size:13px;">${escapeHtml(e.description ?? "—")}</div>
         <div class="num" style="text-align:right">${money(e.amount)}</div>
       </div>`).join("");
@@ -4203,7 +4201,7 @@
 
     const labels = entries.map(([category]) => category);
     const data = entries.map(([, total]) => total);
-    const colors = ["#1D1F91","#5CACF7","#14166B","#5CACF7","#1D1F91","#14166B"];
+    const colors = ["#1D1F91","#5CACF7","#9C6B1F","#F59E0B","#10B981","#8B5CF6"];
 
     if (categoryChartInstance) categoryChartInstance.destroy();
     categoryChartInstance = new Chart(canvas, {
@@ -4214,7 +4212,7 @@
       },
       options: {
         plugins: {
-          legend: { position: "bottom", labels: { color: "#565B78", boxWidth: 12 } },
+          legend: { position: "bottom", labels: { color: "#374151", boxWidth: 12 } },
         },
         responsive: true,
         maintainAspectRatio: false,

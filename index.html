@@ -842,7 +842,7 @@
         <button class="btn-small" onclick="exportSalesCSV()" data-i18n="sales.csv">📥 CSV</button>
         <button class="btn-small" id="sales-group-toggle" onclick="toggleSalesGroup()" style="background:var(--accent-soft); color:var(--accent);">📋 <span data-i18n="sales.list">List</span></button>
         <button class="btn-small" onclick="posOpenTableMap()" data-i18n="sales.new_sale">🛒 New Sale</button>
-        <button class="btn-small" style="background:var(--amber); color:var(--ink);" onclick="openKDS()" data-i18n="sales.kds">🍳 KDS</button>
+        <button class="btn-small" onclick="openKDS()" data-i18n="sales.kds">🍳 Kitchen</button>
       </div>
       <div class="ledger" id="sales-ledger"></div>
     </section>
@@ -1311,6 +1311,7 @@
         </div>
         <div class="pos-cart-actions">
           <button class="btn-ghost" onclick="posClearCart()" data-i18n="pos.clear">Clear</button>
+          <button class="btn-primary hidden" id="pos-kitchen-btn" onclick="posSendToKitchen()" data-i18n="pos.send_kitchen">Send to Kitchen</button>
           <button class="btn-primary" id="pos-pay-btn" onclick="posOpenPayment()" data-i18n="pos.pay">Pay</button>
         </div>
       </div>

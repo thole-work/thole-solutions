@@ -711,7 +711,7 @@
     </div>
     <nav>
       <div class="nav-item nav-primary active" data-tab="dashboard" onclick="switchTab('dashboard')"><span class="nav-icon">🏠</span> <span data-i18n="nav.dashboard">Dashboard</span></div>
-      <div class="nav-item nav-primary" data-tab="products" onclick="switchTab('products')"><span class="nav-icon">📦</span> <span data-i18n="nav.stock">Stock</span></div>
+      <div class="nav-item nav-primary" data-tab="products" onclick="switchTab('products')"><span class="nav-icon">📦</span> <span data-i18n="nav.products">Products</span></div>
       <div class="nav-item nav-primary" data-tab="sales" onclick="switchTab('sales')"><span class="nav-icon">💰</span> <span data-i18n="nav.sales">Sales</span></div>
       <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers')"><span class="nav-icon">👥</span> <span data-i18n="nav.customers">Customers</span></div>
       <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments')"><span class="nav-icon">💳</span> <span data-i18n="nav.payments">Payments</span></div>
@@ -720,7 +720,7 @@
       <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases')"><span class="nav-icon">🛒</span> <span data-i18n="nav.purchase_orders">Purchase Orders</span></div>
       <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team')"><span class="nav-icon">👤</span> <span data-i18n="nav.team">Team</span></div>
       <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports')"><span class="nav-icon">📈</span> <span data-i18n="nav.reports">Reports</span></div>
-      <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials')"><span class="nav-icon">🧱</span> <span data-i18n="nav.materials">Raw Materials</span></div>
+      <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials')"><span class="nav-icon">🧱</span> <span data-i18n="nav.store">Store</span></div>
       <div class="nav-item nav-secondary" data-tab="stock-movements" onclick="switchTab('stock-movements')"><span class="nav-icon">📊</span> <span data-i18n="nav.stock_movements">Stock Movements</span></div>
       <div class="nav-item nav-secondary" data-tab="efficiency" onclick="switchTab('efficiency')"><span class="nav-icon">⚙️</span> <span data-i18n="nav.efficiency">Efficiency</span></div>
       <div class="nav-item nav-secondary" data-tab="settings" onclick="switchTab('settings')"><span class="nav-icon">🔧</span> <span data-i18n="nav.settings">Settings</span></div>
@@ -741,7 +741,7 @@
     <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases'); toggleMoreMenu();"><span class="nav-icon">🛒</span> <span data-i18n="nav.purchase_orders">Purchase Orders</span></div>
     <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team'); toggleMoreMenu();"><span class="nav-icon">👤</span> <span data-i18n="nav.team">Team</span></div>
     <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports'); toggleMoreMenu();"><span class="nav-icon">📈</span> <span data-i18n="nav.reports">Reports</span></div>
-    <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials'); toggleMoreMenu();"><span class="nav-icon">🧱</span> <span data-i18n="nav.materials">Raw Materials</span></div>
+    <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials'); toggleMoreMenu();"><span class="nav-icon">🧱</span> <span data-i18n="nav.store">Store</span></div>
     <div class="nav-item nav-secondary" data-tab="stock-movements" onclick="switchTab('stock-movements'); toggleMoreMenu();"><span class="nav-icon">📊</span> <span data-i18n="nav.stock_movements">Stock Movements</span></div>
     <div class="nav-item nav-secondary" data-tab="efficiency" onclick="switchTab('efficiency'); toggleMoreMenu();"><span class="nav-icon">⚙️</span> <span data-i18n="nav.efficiency">Efficiency</span></div>
     <div class="nav-item nav-secondary" data-tab="settings" onclick="switchTab('settings'); toggleMoreMenu();"><span class="nav-icon">🔧</span> <span data-i18n="nav.settings">Settings</span></div>
@@ -843,20 +843,18 @@
     </section>
 
     <section id="tab-products" class="tab-panel hidden">
-      <div class="page-header"><h2 data-i18n="products.title">Inventory</h2><p data-i18n="products.subtitle">All stock, raw materials, and products.</p></div>
+      <div class="page-header"><h2 data-i18n="products.title">Products</h2><p data-i18n="products.subtitle">Resale items and recipe-made products.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:8px; flex:1;">
-          <input type="text" id="product-search" data-i18n-placeholder="products.search" placeholder="Search inventory…" oninput="renderProducts()" style="max-width:220px;" />
-          <select id="cat-filter" onchange="renderProducts()"><option value="" data-i18n="products.all_categories">All items</option></select>
+          <input type="text" id="product-search" data-i18n-placeholder="products.search" placeholder="Search products…" oninput="renderProducts()" style="max-width:220px;" />
+          <select id="cat-filter" onchange="renderProducts()"><option value="" data-i18n="products.all_categories">All categories</option></select>
           <select id="inv-type-filter" onchange="renderProducts()" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="">All types</option>
+            <option value="">All</option>
             <option value="product">Resale</option>
             <option value="manufactured">Recipe</option>
-            <option value="material">Raw Material</option>
           </select>
         </div>
         <button class="btn-small" onclick="openAddProduct()" data-i18n="products.add">+ Add product</button>
-        <button class="btn-small" onclick="openPurchaseModal()" data-i18n="products.purchase">🛒 Purchase</button>
       </div>
       <div class="ledger" id="products-ledger"></div>
     </section>
@@ -1020,14 +1018,17 @@
     </section>
 
     <section id="tab-materials" class="tab-panel hidden">
-      <div class="page-header"><h2 data-i18n="nav.materials">Raw Materials</h2><p data-i18n="materials.subtitle">Ingredients or components used to make your products.</p></div>
+      <div class="page-header"><h2 data-i18n="nav.store">Store</h2><p data-i18n="materials.subtitle">Raw material inventory, purchasing, and stock alerts.</p></div>
       <div class="toolbar">
-        <button class="btn-small" onclick="exportMaterialsCSV()" data-i18n="materials.csv">📥 CSV</button>
-        <button class="btn-small" onclick="openProduceModal()" data-i18n="materials.produce">Produce</button>
-        <button class="btn-small" onclick="openPurchaseModal()" data-i18n="materials.purchase">🛒 Purchase</button>
-        <button class="btn-small" onclick="openModal('material-modal')" data-i18n="materials.add">+ Add raw material</button>
+        <button class="btn-small" onclick="openPurchaseModal()" data-i18n="store.purchase">🛒 Purchase</button>
+        <button class="btn-small" onclick="openModal('material-modal')" data-i18n="store.add">+ Add item</button>
+        <button class="btn-small" onclick="exportMaterialsCSV()" data-i18n="store.csv">📥 CSV</button>
       </div>
       <div class="ledger" id="materials-ledger"></div>
+      <div class="report-card" style="margin-top:16px;">
+        <h3 data-i18n="store.low_stock_alerts">Low stock alerts</h3>
+        <div id="store-low-stock"></div>
+      </div>
     </section>
 
     <!-- ========== STOCK MOVEMENTS TAB ========== -->
@@ -3975,12 +3976,9 @@
   // ============================================================
   async function loadProducts(append = false) {
     await pagedLoad('products', { table: 'products', orderBy: 'category', extraFilters: [['is_active', true]], append });
-    if (businessUsesRawMaterials()) {
-      await pagedLoad('materials', { table: 'raw_materials', orderBy: 'name', append: false });
-    }
     const cats = [...new Set(cache.products.map((p) => p.category).filter(Boolean))];
     document.getElementById("cat-filter").innerHTML =
-      `<option value="">All items</option>` + cats.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+      `<option value="">All categories</option>` + cats.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
     renderProducts();
   }
 
@@ -3989,55 +3987,39 @@
     const categoryFilter = document.getElementById("cat-filter").value;
     const search = (document.getElementById("product-search")?.value ?? "").trim().toLowerCase();
 
-    let items = [];
-    for (const p of cache.products) {
-      if (typeFilter === 'material') continue;
-      if (typeFilter === 'manufactured' && p.product_type !== 'manufactured') continue;
-      if (typeFilter === 'product' && (p.product_type === 'manufactured')) continue;
-      if (categoryFilter && p.category !== categoryFilter) continue;
-      if (search && !p.name.toLowerCase().includes(search)) continue;
-      items.push({ type: p.product_type === 'manufactured' ? 'manufactured' : 'resale', data: p });
-    }
-    if (businessUsesRawMaterials() && typeFilter !== 'manufactured' && typeFilter !== 'product') {
-      for (const m of cache.materials) {
-        if (search && !m.name.toLowerCase().includes(search)) continue;
-        items.push({ type: 'material', data: m });
-      }
-    }
+    let list = cache.products;
+    if (typeFilter === 'manufactured') list = list.filter(p => p.product_type === 'manufactured');
+    else if (typeFilter === 'product') list = list.filter(p => p.product_type !== 'manufactured');
+    if (categoryFilter) list = list.filter(p => p.category === categoryFilter);
+    if (search) list = list.filter(p => p.name.toLowerCase().includes(search));
 
     const el = document.getElementById("products-ledger");
-    if (items.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">📦</div>No items found.</div>`; return; }
+    if (list.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">📦</div>No products yet.<br><span style="font-size:12px;">Add your first product.</span></div>`; return; }
 
-    const hasMulti = businessUsesRawMaterials() && items.some(i => i.type !== 'resale');
     el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;"><div>Item</div><div>Status</div><div style="text-align:right">Value</div><div style="text-align:right">${hasMulti ? '' : ''}</div></div>` +
-      items.map((item) => {
-        if (item.type === 'material') {
-          const m = item.data;
-          const isLow = m.low_stock_threshold !== null && Number(m.stock_qty) <= Number(m.low_stock_threshold);
-          return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 0.6fr; cursor:pointer;" onclick="openEditMaterial('${escapeAttr(m.id)}')">
-            <div>
-              <div>${escapeHtml(m.name)} <span style="font-size:10px; padding:1px 5px; border-radius:4px; background:var(--amber-soft); color:var(--amber); font-weight:600;">MATERIAL</span></div>
-              <span class="cat-badge">${escapeHtml(m.unit)}</span>
-            </div>
-            <div class="${isLow ? 'low-tag' : 'num'}">${m.stock_qty ?? 0} ${escapeHtml(m.unit)}${isLow ? ` <span style="color:var(--danger);">↓ reorder</span>` : ''}</div>
-            <div class="num" style="text-align:right">${m.cost_per_unit ? money(m.cost_per_unit) + '/unit' : '—'}</div>
-            <div style="text-align:right"><span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="event.stopPropagation(); openPurchaseModal()">Buy</span></div>
-          </div>`;
+      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;"><div>Product</div><div>${businessUsesRawMaterials() ? 'Stock / Sold' : 'Stock'}</div><div style="text-align:right">Price</div><div></div></div>` +
+      list.map((p) => {
+        const isManufactured = p.product_type === 'manufactured';
+        let stockDisplay, statusClass, statusLabel;
+        if (isManufactured) {
+          stockDisplay = p.total_sold != null ? p.total_sold + ' sold' : '0 sold';
+          statusClass = '';
+          statusLabel = '';
+        } else {
+          const qty = p.stock_qty !== null ? Number(p.stock_qty) : null;
+          const threshold = p.low_stock_threshold !== null ? Number(p.low_stock_threshold) : null;
+          stockDisplay = qty !== null ? qty + ' ' + escapeHtml(p.unit) : '—';
+          if (qty === null || qty === 0) { statusClass = 'low-tag'; statusLabel = 'Out of Stock'; }
+          else if (threshold !== null && qty <= threshold) { statusClass = 'low-tag'; statusLabel = 'Low Stock'; }
+          else { statusClass = ''; statusLabel = 'In Stock'; }
         }
-        const p = item.data;
-        const isManufactured = item.type === 'manufactured';
-        const isLow = !isManufactured && p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold);
-        const stockDisplay = isManufactured
-          ? (p.total_sold != null ? p.total_sold + ' sold' : '0 sold')
-          : (p.stock_qty !== null ? p.stock_qty + ' ' + escapeHtml(p.unit) : '—');
         return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 0.6fr; cursor:pointer;" onclick="openEditProduct('${escapeAttr(p.id)}')">
           <div>
-            <div>${escapeHtml(p.name)} ${isManufactured ? '<span style="font-size:10px; padding:1px 5px; border-radius:4px; background:var(--accent-soft); color:var(--accent); font-weight:600;">RECIPE</span>' : ''}${!isManufactured && businessUsesRawMaterials() ? '<span style="font-size:10px; padding:1px 5px; border-radius:4px; background:var(--sky-soft); color:var(--sky); font-weight:600;">RESALE</span>' : ''}</div>
+            <div>${escapeHtml(p.name)} ${isManufactured ? '<span style="font-size:10px; padding:1px 5px; border-radius:4px; background:var(--accent-soft); color:var(--accent); font-weight:600;">RECIPE</span>' : '<span style="font-size:10px; padding:1px 5px; border-radius:4px; background:var(--sky-soft); color:var(--sky); font-weight:600;">RESALE</span>'}</div>
             ${p.category ? `<span class="cat-badge">${escapeHtml(p.category)}</span>` : ""}
             ${isManufactured ? `<span style="color:var(--accent); font-size:11px; text-decoration:underline; margin-left:8px;" onclick="event.stopPropagation(); openRecipeModal('${escapeAttr(p.id)}')">Recipe</span>` : ""}
           </div>
-          <div class="${isLow ? 'low-tag' : 'num'}">${stockDisplay}${isLow ? ` <span style="color:var(--danger);">↓ reorder</span>` : ''}</div>
+          <div class="${statusClass || 'num'}">${stockDisplay}${statusLabel ? ` <span style="${statusLabel === 'Out of Stock' ? 'color:var(--danger);font-weight:600' : statusLabel === 'Low Stock' ? 'color:var(--amber);font-weight:600' : 'color:var(--accent)'}">${statusLabel}</span>` : ''}</div>
           <div class="num" style="text-align:right">${money(p.price)}</div>
           <div style="text-align:right">${!isManufactured ? `<span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="event.stopPropagation(); openPurchaseModal()">Buy</span>` : `<span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="event.stopPropagation(); openProduceModal()">Make</span>`}</div>
         </div>`;
@@ -5081,6 +5063,22 @@
         </div>`;
       }).join("");
     appendPaginated(el, head + rows, "materials", append);
+
+    // Low stock alerts
+    const lowEl = document.getElementById("store-low-stock");
+    if (lowEl) {
+      const low = cache.materials.filter(m => m.low_stock_threshold !== null && Number(m.stock_qty) <= Number(m.low_stock_threshold));
+      if (low.length === 0) {
+        lowEl.innerHTML = `<div style="color:var(--accent); font-size:13px; padding:12px 0;">All items well-stocked.</div>`;
+      } else {
+        lowEl.innerHTML = low.map(m => {
+          return `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--line);">
+            <span><strong>${escapeHtml(m.name)}</strong> <span style="color:var(--ink-faint); font-size:12px;">(${escapeHtml(m.unit)})</span></span>
+            <span style="color:var(--danger); font-weight:600;">${m.stock_qty} / ${m.low_stock_threshold}</span>
+          </div>`;
+        }).join('');
+      }
+    }
   }
 
   function openEditMaterial(materialId) {

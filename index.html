@@ -143,7 +143,7 @@
   #app-screen { display: flex; min-height: 100vh; height: 100vh; overflow: hidden; }
   aside {
     width: 220px; background: var(--card); border-right: 1px solid var(--line);
-    display: flex; flex-direction: column; flex-shrink: 0;
+    display: flex; flex-direction: column; flex-shrink: 0; min-height: 0;
   }
   .side-header { padding: 22px 18px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
   .side-header img { width: 32px; height: 32px; border-radius: 7px; flex-shrink: 0; }
@@ -157,7 +157,7 @@
     text-shadow: 0 1px 0 rgba(255,255,255,0.18);
   }
   .side-header .type-tag { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
-  nav { flex: 1; padding: 14px 10px; }
+  nav { flex: 1; padding: 14px 10px; overflow-y: auto; min-height: 0; }
   .nav-item {
     display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 7px;
     font-size: 14px; color: var(--ink-soft); cursor: pointer; margin-bottom: 2px;
@@ -181,10 +181,6 @@
   #app-topbar .profile-wrapper { position: relative; }
   #app-topbar .profile-avatar { width: 38px; height: 38px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.35); background: #5CACF7; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s, border-color 0.2s; letter-spacing: 0; }
   #app-topbar .profile-avatar:hover { background: #4a9bf5; border-color: rgba(255,255,255,0.5); }
-  #app-topbar .shift-btn { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border: 1px solid rgba(255,255,255,0.25); border-radius: 20px; background: rgba(255,255,255,0.08); color: #fff; font-size: 12px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-  #app-topbar .shift-btn:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.4); }
-  #app-topbar .shift-btn.is-active { background: rgba(34,197,94,0.2); border-color: rgba(34,197,94,0.5); }
-  #app-topbar .shift-btn .shift-icon { font-size: 14px; }
   .profile-dropdown { display: none; position: absolute; top: calc(100% + 8px); right: 0; background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,0.18); min-width: 200px; z-index: 100; padding: 6px 0; animation: dropdownSlideIn 0.15s ease; }
   .profile-dropdown.open { display: block; }
   @keyframes dropdownSlideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
@@ -380,7 +376,7 @@
       box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
     }
     .side-header, .side-footer { display: none; }
-    nav { display: flex; justify-content: space-around; padding: 10px 4px; width: 100%; }
+    nav { display: flex; justify-content: space-around; padding: 10px 4px; width: 100%; overflow: visible; }
     .nav-item {
       flex-direction: column; gap: 4px; padding: 10px 6px; font-size: 12px;
       text-align: center; flex: 1; border-radius: 10px;
@@ -755,14 +751,6 @@
         <h2 id="page-title">Dashboard</h2>
         <p id="page-sub">Overview of your workspace right now.</p>
       </div>
-      <button class="shift-btn" id="shift-btn" onclick="toggleShift()" style="display:none;" title="Clock In / Out">
-        <span id="shift-icon">⏰</span>
-        <span id="shift-label" data-i18n="shift.clock_in">Clock In</span>
-      </button>
-      <button class="shift-btn" id="register-btn" onclick="toggleRegister()" style="display:none;" title="Open / Close Register">
-        <span id="register-icon">🪙</span>
-        <span id="register-label">Register</span>
-      </button>
       <div class="profile-wrapper">
         <button class="profile-avatar" id="profile-avatar" onclick="toggleProfileMenu(event)" title="Menu">
           <span id="profile-initial">—</span>
@@ -1470,28 +1458,6 @@
     <div id="split-totals" style="margin-bottom:12px; font-weight:700;"></div>
     <button class="btn-primary" onclick="confirmSplit()" data-i18n="pos.apply_split">Apply Split</button>
     <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('split-modal')" data-i18n="modal.cancel">Cancel</button>
-  </div>
-</div>
-
-<!-- ========== REGISTER MODAL (Open/Close) ========== -->
-<div id="register-modal" class="modal-backdrop hidden">
-  <div class="modal" style="max-width:400px;">
-    <div class="close" onclick="closeModal('register-modal')" data-i18n="modal.close">Close</div>
-    <h3 id="register-modal-title">Open Register</h3>
-    <div id="register-open-fields">
-      <label data-i18n="register.opening_float">Opening Float</label>
-      <input type="number" id="register-float" step="0.01" min="0" placeholder="0" />
-    </div>
-    <div id="register-close-fields" style="display:none;">
-      <div id="register-summary" style="margin-bottom:16px; font-size:14px;"></div>
-      <label data-i18n="register.actual_cash">Actual Cash in Drawer</label>
-      <input type="number" id="register-actual-cash" step="0.01" min="0" placeholder="0" />
-      <div style="margin-top:8px; font-size:13px; color:var(--ink-faint);"><span data-i18n="register.expected">Expected:</span> <strong id="register-expected-cash">ETB 0.00</strong></div>
-      <div style="margin-top:4px; font-size:13px; color:var(--ink-faint);"><span data-i18n="register.difference">Difference:</span> <strong id="register-diff">ETB 0.00</strong></div>
-    </div>
-    <button class="btn-primary" id="register-save-btn" onclick="saveRegister()" data-i18n="register.confirm">Confirm</button>
-    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('register-modal')" data-i18n="modal.cancel">Cancel</button>
-    <div id="register-error" class="error hidden"></div>
   </div>
 </div>
 
@@ -2922,8 +2888,6 @@
       document.getElementById('setting-tax-id').value = b.tax_id || '';
     }
     loadTablesSettings();
-    loadActiveShift();
-    loadActiveRegister();
   }
 
   function getSettings() {
@@ -3016,75 +2980,6 @@
     closeModal('table-settings-modal');
     showToast('Table deleted', 'success');
     loadTablesSettings();
-  }
-
-  // ========== SHIFT MANAGEMENT (Clock In/Out) ==========
-  let activeShift = null;
-  let shiftTimerInterval = null;
-
-  function updateShiftDisplay() {
-    const btn = document.getElementById('shift-btn');
-    const label = document.getElementById('shift-label');
-    const icon = document.getElementById('shift-icon');
-    if (!btn) return;
-    if (activeShift) {
-      btn.style.display = 'flex';
-      btn.classList.add('is-active');
-      icon.textContent = '⏱️';
-      const elapsed = Date.now() - new Date(activeShift.clock_in).getTime();
-      const hours = Math.floor(elapsed / 3600000);
-      const mins = Math.floor((elapsed % 3600000) / 60000);
-      label.textContent = `${hours}h ${mins.toString().padStart(2, '0')}m`;
-    } else {
-      btn.style.display = 'flex';
-      btn.classList.remove('is-active');
-      icon.textContent = '⏰';
-      label.textContent = t('shift.clock_in');
-    }
-  }
-
-  async function loadActiveShift() {
-    if (!currentUser || !membership) { document.getElementById('shift-btn').style.display = 'none'; return; }
-    const { data } = await sb.from('labor_shifts')
-      .select('*')
-      .eq('business_id', membership.business_id)
-      .eq('user_id', currentUser.id)
-      .is('clock_out', null)
-      .order('clock_in', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    activeShift = data || null;
-    if (shiftTimerInterval) { clearInterval(shiftTimerInterval); shiftTimerInterval = null; }
-    updateShiftDisplay();
-    if (activeShift) {
-      shiftTimerInterval = setInterval(updateShiftDisplay, 10000);
-    }
-  }
-
-  async function toggleShift() {
-    if (activeShift) {
-      // Clock out
-      if (!confirm('Clock out now?')) return;
-      const { error } = await sb.from('labor_shifts').update({ clock_out: new Date().toISOString() })
-        .eq('id', activeShift.id).eq('business_id', membership.business_id);
-      if (error) return showToast(error.message, 'error');
-      activeShift = null;
-      if (shiftTimerInterval) { clearInterval(shiftTimerInterval); shiftTimerInterval = null; }
-      showToast('Clocked out', 'success');
-      updateShiftDisplay();
-    } else {
-      // Clock in
-      const { error } = await sb.from('labor_shifts').insert({
-        business_id: membership.business_id,
-        user_id: currentUser.id,
-        role: membership.role || 'staff',
-        hourly_rate: 0,
-        clock_in: new Date().toISOString(),
-      }).select().single();
-      if (error) return showToast(error.message, 'error');
-      await loadActiveShift();
-      showToast('Clocked in', 'success');
-    }
   }
 
   // ========== CUSTOMER PICKER (POS) ==========
@@ -3523,8 +3418,6 @@
       updateProfileAvatar(userName);
       applyRolePermissions(data.role);
       applyBusinessTypeVisibility(data.businesses.business_types?.type_key);
-      loadActiveShift();
-      loadActiveRegister();
       hide("auth-screen"); hide("onboarding-screen"); show("app-screen");
       setDefaultDateFilters();
       await loadEverything();

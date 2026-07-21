@@ -336,7 +336,27 @@
     "receipt_footer": "Receipt Footer",
     "receipt_footer_placeholder": "Thank you for your business!",
     "save": "Save Settings",
-    "saved": "Settings saved."
+    "saved": "Settings saved.",
+    "tables_title": "Tables",
+    "tables_desc": "Manage restaurant tables for dine-in orders.",
+    "add_table": "Add Table",
+    "edit_table": "Edit",
+    "save_table": "Save Table",
+    "delete_table": "Delete Table",
+    "table_number": "Table Number",
+    "table_name": "Name (optional)",
+    "table_capacity": "Capacity (optional)"
+  },
+  "shift": {
+    "clock_in": "Clock In",
+    "clock_out": "Clock Out"
+  },
+  "register": {
+    "opening_float": "Opening Float",
+    "actual_cash": "Actual Cash in Drawer",
+    "expected": "Expected:",
+    "difference": "Difference:",
+    "confirm": "Confirm"
   },
   "modal": {
     "close": "Close",
@@ -470,7 +490,15 @@
     "walk_in": "Walk-in (no table)",
     "select_table": "Select Table",
     "send_kitchen": "Send to Kitchen",
-    "pay_bill": "Pay Bill",
+    "select_customer": "Select Customer",
+    "change": "Change",
+    "split_bill": "Split Bill",
+    "num_splits": "Number of ways",
+    "apply_split": "Apply Split",
+    "held_orders": "held orders",
+    "place_order": "Place Order",
+    "ready_to_pay": "Ready to Pay",
+    "order_placed": "Order placed — pending at kitchen",
     "takeout": "Takeout"
   },
   "payment_screen": {

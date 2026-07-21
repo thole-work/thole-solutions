@@ -3667,7 +3667,7 @@
     if (table === "payments") { loadPayments(); }
     if (table === "expenses") { loadExpenses(); }
     if (table === "purchase_orders") { loadPurchases(); }
-    if (table === "raw_materials" || table === "recipe_items") { loadMaterials(); { const { data: ri } = await sb.from('recipe_items').select('*').eq('business_id', membership.business_id); cache.recipeItems = ri || []; } }
+    if (table === "raw_materials" || table === "recipe_items") { loadMaterials(); sb.from('recipe_items').select('*').eq('business_id', membership.business_id).then(({ data: ri }) => { cache.recipeItems = ri || []; }); }
     if (table === "waste_log" && activeTab === "efficiency") { loadWaste(); renderEfficiency(); }
     if (table === "labor_shifts" && activeTab === "efficiency") { loadShifts(); renderEfficiency(); }
     if (table === "produce_batches" && activeTab === "efficiency") { loadProduceBatches(); renderEfficiency(); }

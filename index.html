@@ -712,6 +712,7 @@
     <nav>
       <div class="nav-item nav-primary active" data-tab="dashboard" onclick="switchTab('dashboard')"><span class="nav-icon">🏠</span> <span data-i18n="nav.dashboard">Dashboard</span></div>
       <div class="nav-item nav-primary" data-tab="products" onclick="switchTab('products')"><span class="nav-icon">📦</span> <span data-i18n="nav.products">Products</span></div>
+      <div class="nav-item nav-primary" data-tab="materials" onclick="switchTab('materials')"><span class="nav-icon">🧱</span> <span data-i18n="nav.store">Store</span></div>
       <div class="nav-item nav-primary" data-tab="sales" onclick="switchTab('sales')"><span class="nav-icon">💰</span> <span data-i18n="nav.sales">Sales</span></div>
       <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers')"><span class="nav-icon">👥</span> <span data-i18n="nav.customers">Customers</span></div>
       <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments')"><span class="nav-icon">💳</span> <span data-i18n="nav.payments">Payments</span></div>
@@ -720,7 +721,6 @@
       <div class="nav-item nav-secondary" data-tab="purchases" onclick="switchTab('purchases')"><span class="nav-icon">🛒</span> <span data-i18n="nav.purchase_orders">Purchase Orders</span></div>
       <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team')"><span class="nav-icon">👤</span> <span data-i18n="nav.team">Team</span></div>
       <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports')"><span class="nav-icon">📈</span> <span data-i18n="nav.reports">Reports</span></div>
-      <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials')"><span class="nav-icon">🧱</span> <span data-i18n="nav.store">Store</span></div>
       <div class="nav-item nav-secondary" data-tab="stock-movements" onclick="switchTab('stock-movements')"><span class="nav-icon">📊</span> <span data-i18n="nav.stock_movements">Stock Movements</span></div>
       <div class="nav-item nav-secondary" data-tab="efficiency" onclick="switchTab('efficiency')"><span class="nav-icon">⚙️</span> <span data-i18n="nav.efficiency">Efficiency</span></div>
       <div class="nav-item nav-secondary" data-tab="settings" onclick="switchTab('settings')"><span class="nav-icon">🔧</span> <span data-i18n="nav.settings">Settings</span></div>
@@ -1149,8 +1149,23 @@
     <div class="field-row">
       <div><label data-i18n="product_modal.price">Selling price</label><input type="number" id="p-price" min="0" step="any" /></div>
     </div>
-    <div class="field-row">
-      <div><label data-i18n="product_modal.unit">Unit</label><input type="text" id="p-unit" placeholder="plate, kg, item" /></div>
+     <div class="field-row">
+      <div><label data-i18n="product_modal.unit">Unit</label>
+        <select id="p-unit">
+          <option value="pcs">pcs</option>
+          <option value="kg">kg</option>
+          <option value="g">g</option>
+          <option value="litre">litre</option>
+          <option value="ml">ml</option>
+          <option value="plate">plate</option>
+          <option value="cup">cup</option>
+          <option value="bowl">bowl</option>
+          <option value="pack">pack</option>
+          <option value="bottle">bottle</option>
+          <option value="box">box</option>
+          <option value="sack">sack</option>
+        </select>
+      </div>
       <div id="p-stock-row"><label data-i18n="product_modal.stock">Starting stock</label><input type="number" id="p-stock" placeholder="0" min="0" /></div>
     </div>
     <div id="p-threshold-row"><label data-i18n="product_modal.threshold">Low stock alert below</label><input type="number" id="p-threshold" placeholder="optional" min="0" /></div>
@@ -3522,9 +3537,6 @@
   function applyBusinessTypeVisibility(typeKey) {
     businessTypeKey = typeKey;
     const needsRawMaterials = businessUsesRawMaterials();
-    document.querySelectorAll('.nav-item[data-tab="materials"]').forEach((el) => {
-      el.classList.toggle("hidden", !needsRawMaterials);
-    });
     document.querySelectorAll('.nav-item[data-tab="stock-movements"], .nav-item[data-tab="efficiency"]').forEach((el) => {
       el.classList.toggle("hidden", !needsRawMaterials);
     });
@@ -4057,7 +4069,7 @@
     document.getElementById("p-unit").value = "";
     document.getElementById("p-stock").value = "";
     document.getElementById("p-threshold").value = "";
-    document.getElementById("p-type-row").style.display = businessUsesRawMaterials() ? "" : "none";
+    document.getElementById("p-type-row").style.display = "";
     document.getElementById("p-type").value = "resale";
     toggleProductTypeFields();
     openModal("product-modal");
@@ -4074,10 +4086,11 @@
     document.getElementById("p-name").value = p.name;
     populateCategorySelect('p-category', p.category);
     document.getElementById("p-price").value = p.price;
-    document.getElementById("p-unit").value = p.unit;
+    const unitSel = document.getElementById("p-unit");
+    if ([...unitSel.options].some(o => o.value === p.unit)) { unitSel.value = p.unit; } else { unitSel.value = 'pcs'; }
     document.getElementById("p-stock").value = p.stock_qty ?? "";
     document.getElementById("p-threshold").value = p.low_stock_threshold ?? "";
-    document.getElementById("p-type-row").style.display = businessUsesRawMaterials() ? "" : "none";
+    document.getElementById("p-type-row").style.display = "";
     document.getElementById("p-type").value = p.product_type || "resale";
     toggleProductTypeFields();
     openModal("product-modal");

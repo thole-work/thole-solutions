@@ -181,6 +181,10 @@
   #app-topbar .profile-wrapper { position: relative; }
   #app-topbar .profile-avatar { width: 38px; height: 38px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.35); background: #5CACF7; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s, border-color 0.2s; letter-spacing: 0; }
   #app-topbar .profile-avatar:hover { background: #4a9bf5; border-color: rgba(255,255,255,0.5); }
+  #app-topbar .shift-btn { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border: 1px solid rgba(255,255,255,0.25); border-radius: 20px; background: rgba(255,255,255,0.08); color: #fff; font-size: 12px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+  #app-topbar .shift-btn:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.4); }
+  #app-topbar .shift-btn.is-active { background: rgba(34,197,94,0.2); border-color: rgba(34,197,94,0.5); }
+  #app-topbar .shift-btn .shift-icon { font-size: 14px; }
   .profile-dropdown { display: none; position: absolute; top: calc(100% + 8px); right: 0; background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,0.18); min-width: 200px; z-index: 100; padding: 6px 0; animation: dropdownSlideIn 0.15s ease; }
   .profile-dropdown.open { display: block; }
   @keyframes dropdownSlideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
@@ -213,6 +217,7 @@
   .metric-card.accent .value { color: var(--accent); }
   .skeleton { background: linear-gradient(90deg, var(--line) 25%, var(--card) 50%, var(--line) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; color: transparent !important; user-select: none; pointer-events: none; }
   @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  @keyframes pulse-green { 0%, 100% { box-shadow: 0 0 0 0 rgba(22,163,74,0.4); } 50% { box-shadow: 0 0 0 8px rgba(22,163,74,0); } }
 
   .report-card.compact-card { padding: 18px; }
   .dashboard-summary-grid { display: grid; gap: 10px; margin-top: 8px; }
@@ -329,6 +334,8 @@
 
   /* Dark theme variables */
   .theme-dark { --paper: #0B1020; --card: #0F1724; --ink: #E6EEF7; --ink-soft: #C3CEE6; --ink-faint: #9FB0D0; --line: rgba(255,255,255,0.06); --accent: #5E7CFF; --accent-soft: rgba(94,124,255,0.12); --sky: #5CACF7; --amber: #9C6B1F; --danger: #E06B5D; }
+  .theme-dark .table-btn.served { border-color: #22c55e; background: rgba(22,163,74,0.15); }
+  .theme-dark .table-btn.served .served-status { color: #22c55e; }
 
   /* Force readable contrast inside key components */
   .metric-card, .report-card, .ledger, .checklist li, .modal {
@@ -502,6 +509,7 @@
   .pos-cart-item-qty { display: flex; align-items: center; gap: 6px; }
   .qty-btn { width: 28px; height: 28px; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; }
   .qty-btn:hover { background: var(--accent-soft); border-color: var(--accent); }
+  .split-badge { display:inline-block; font-size:10px; padding:1px 6px; border-radius:999px; background:var(--amber-soft); color:var(--amber); font-weight:600; margin-left:4px; vertical-align:middle; }
   .pos-cart-item-qty span { min-width: 24px; text-align: center; font-weight: 500; }
   .pos-cart-item-total { font-weight: 600; font-family: 'JetBrains Mono', monospace; text-align: right; min-width: 70px; }
   .pos-cart-item-actions { display: flex; flex-direction: column; gap: 4px; }
@@ -574,10 +582,12 @@
   .table-btn { aspect-ratio: 1; border: 2px solid var(--line); background: var(--card); border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; transition: all 0.2s; }
   .table-btn:hover { border-color: var(--accent); transform: scale(1.02); }
   .table-btn.occupied { border-color: var(--danger); background: var(--danger-soft); }
+  .table-btn.served { border-color: #16a34a; background: #dcfce7; cursor: pointer; animation: pulse-green 2s infinite; }
   .table-btn.reserved { border-color: var(--amber); background: var(--amber-soft); }
-  .table-number { font-size: 18px; font-weight: 700; color: var(--ink); }
+  .table-num { font-size: 18px; font-weight: 700; color: var(--ink); }
   .table-status { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); }
   .table-btn.occupied .table-status { color: var(--danger); font-weight: 600; }
+  .table-btn.served .served-status { color: #16a34a; font-weight: 600; }
   .table-type-selector { display: flex; gap: 8px; margin-bottom: 16px; }
   .table-type-btn { flex: 1; padding: 10px; border: 1px solid var(--line); background: var(--card); border-radius: 8px; cursor: pointer; }
   .table-type-btn.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
@@ -737,6 +747,14 @@
         <h2 id="page-title">Dashboard</h2>
         <p id="page-sub">Overview of your workspace right now.</p>
       </div>
+      <button class="shift-btn" id="shift-btn" onclick="toggleShift()" style="display:none;" title="Clock In / Out">
+        <span id="shift-icon">⏰</span>
+        <span id="shift-label" data-i18n="shift.clock_in">Clock In</span>
+      </button>
+      <button class="shift-btn" id="register-btn" onclick="toggleRegister()" style="display:none;" title="Open / Close Register">
+        <span id="register-icon">🪙</span>
+        <span id="register-label">Register</span>
+      </button>
       <div class="profile-wrapper">
         <button class="profile-avatar" id="profile-avatar" onclick="toggleProfileMenu(event)" title="Menu">
           <span id="profile-initial">—</span>
@@ -1090,6 +1108,13 @@
         <div id="settings-error" class="error hidden"></div>
         <div id="settings-success" class="success hidden"></div>
       </div>
+
+      <div class="report-card" style="max-width:480px; margin-top:22px;">
+        <h3 data-i18n="settings.tables_title">Tables</h3>
+        <p style="font-size:12px; color:var(--ink-faint); margin-bottom:12px;" data-i18n="settings.tables_desc">Manage restaurant tables for dine-in orders.</p>
+        <div id="settings-tables-list"></div>
+        <button class="btn-primary" onclick="openTableSettingsModal()" style="margin-top:12px;" data-i18n="settings.add_table">Add Table</button>
+      </div>
     </section>
   </main>
 </div>
@@ -1106,7 +1131,7 @@
     <input type="text" id="p-category-new" class="hidden" placeholder="Type new category name" style="margin-top:4px;" />
     <div id="p-type-row" class="field-row">
       <div><label data-i18n="product_modal.type">Type</label>
-        <select id="p-type">
+        <select id="p-type" onchange="toggleProductTypeFields()">
           <option value="resale" data-i18n="product_modal.resale">Buy & Sell</option>
           <option value="manufactured" data-i18n="product_modal.manufactured">Manufactured</option>
         </select>
@@ -1117,9 +1142,9 @@
     </div>
     <div class="field-row">
       <div><label data-i18n="product_modal.unit">Unit</label><input type="text" id="p-unit" placeholder="plate, kg, item" /></div>
-      <div><label data-i18n="product_modal.stock">Starting stock</label><input type="number" id="p-stock" placeholder="0" min="0" /></div>
+      <div id="p-stock-row"><label data-i18n="product_modal.stock">Starting stock</label><input type="number" id="p-stock" placeholder="0" min="0" /></div>
     </div>
-    <label data-i18n="product_modal.threshold">Low stock alert below</label><input type="number" id="p-threshold" placeholder="optional" min="0" />
+    <div id="p-threshold-row"><label data-i18n="product_modal.threshold">Low stock alert below</label><input type="number" id="p-threshold" placeholder="optional" min="0" /></div>
     <button class="btn-primary" id="product-submit-btn" onclick="submitProduct()" data-i18n="product_modal.save">Save product</button>
     <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('product-modal')" data-i18n="modal.cancel">Cancel</button>
     <button class="btn-ghost" id="product-duplicate-btn" style="width:100%; margin-top:10px;" onclick="duplicateProduct()" data-i18n="product_modal.duplicate">Duplicate this product</button>
@@ -1311,6 +1336,14 @@
           <span data-i18n="pos.order">Order</span>
           <span class="pos-cart-count" id="pos-cart-count">0 items</span>
         </div>
+        <div class="pos-customer-bar" id="pos-customer-bar" onclick="openCustomerPicker()" style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid var(--line); cursor:pointer; font-size:13px;">
+          <span><span id="pos-customer-label">Walk-in</span> <span id="pos-customer-table" style="color:var(--ink-faint);"></span></span>
+          <span style="font-size:10px; color:var(--accent);" data-i18n="pos.change">Change</span>
+        </div>
+        <div id="pos-held-bar" style="display:none; padding:8px 12px; border-bottom:1px solid var(--amber-soft); background:var(--amber-soft); font-size:12px; cursor:pointer;" onclick="showHeldOrders()">
+          <span>📋 <span id="pos-held-count">0</span> <span data-i18n="pos.held_orders">held orders</span></span>
+          <span style="color:var(--amber);">Resume ▸</span>
+        </div>
         <div class="pos-cart" id="pos-cart"></div>
         <div class="pos-totals">
            <div class="pos-total-row"><span data-i18n="pos.subtotal">Subtotal</span><span id="pos-subtotal">ETB 0.00</span></div>
@@ -1321,7 +1354,7 @@
         <div class="pos-cart-actions">
           <button class="btn-ghost" onclick="posClearCart()" data-i18n="pos.clear">Clear</button>
           <button class="btn-primary hidden" id="pos-kitchen-btn" onclick="posSendToKitchen()" data-i18n="pos.send_kitchen">Send to Kitchen</button>
-          <button class="btn-primary" id="pos-pay-btn" onclick="posOpenPayment()" data-i18n="pos.pay">Pay</button>
+          <button class="btn-primary" id="pos-pay-btn" onclick="submitOrder()" data-i18n="pos.place_order">Place Order</button>
         </div>
       </div>
     </div>
@@ -1370,6 +1403,88 @@
       <button class="btn-ghost" onclick="downloadReceiptCSV()">📥 <span data-i18n="receipt.csv">CSV</span></button>
       <button class="btn-primary" onclick="closeModal('receipt-modal')" data-i18n="receipt.done">Done</button>
     </div>
+  </div>
+</div>
+
+<!-- ========== CUSTOMER PICKER MODAL (for POS) ========== -->
+<div id="customer-picker-modal" class="modal-backdrop hidden">
+  <div class="modal" style="max-width:420px;">
+    <div class="close" onclick="closeModal('customer-picker-modal')" data-i18n="modal.close">Close</div>
+    <h3 data-i18n="pos.select_customer">Select Customer</h3>
+    <input type="text" id="cust-picker-search" placeholder="Search customers..." style="margin-bottom:8px;" oninput="searchCustomers(this.value)" />
+    <div id="cust-picker-list" style="max-height:300px; overflow-y:auto;"></div>
+    <button class="btn-ghost" onclick="showAddCustomerForm()" style="margin-top:8px;" data-i18n="customer_modal.add">+ New Customer</button>
+    <div id="cust-picker-new-form" style="display:none; margin-top:8px;">
+      <label data-i18n="modal.name">Name</label><input type="text" id="cust-picker-new-name" />
+      <label data-i18n="modal.phone">Phone</label><input type="text" id="cust-picker-new-phone" />
+      <button class="btn-primary" onclick="createAndSelectCustomer()" data-i18n="customer_modal.save">Save & Select</button>
+    </div>
+    <button class="btn-ghost" onclick="selectCustomer(null)" style="margin-top:8px; width:100%;" data-i18n="pos.walk_in">Walk-in (no customer)</button>
+  </div>
+</div>
+
+<!-- ========== HELD ORDERS MODAL ========== -->
+<div id="held-orders-modal" class="modal-backdrop hidden">
+  <div class="modal" style="max-width:450px;">
+    <div class="close" onclick="closeModal('held-orders-modal')" data-i18n="modal.close">Close</div>
+    <h3 data-i18n="pos.held_orders">Held Orders</h3>
+    <div id="held-orders-list" style="max-height:350px; overflow-y:auto;"></div>
+  </div>
+</div>
+
+<!-- ========== SPLIT BILL MODAL ========== -->
+<div id="split-modal" class="modal-backdrop hidden">
+  <div class="modal" style="max-width:500px;">
+    <div class="close" onclick="closeModal('split-modal')" data-i18n="modal.close">Close</div>
+    <h3 data-i18n="pos.split_bill">Split Bill</h3>
+    <div style="margin-bottom:12px;">
+      <label data-i18n="pos.num_splits">Number of ways</label>
+      <input type="number" id="split-count" min="2" max="10" value="2" onchange="renderSplitItems()" style="max-width:80px;" />
+    </div>
+    <div id="split-items" style="max-height:300px; overflow-y:auto; margin-bottom:12px;"></div>
+    <div id="split-totals" style="margin-bottom:12px; font-weight:700;"></div>
+    <button class="btn-primary" onclick="confirmSplit()" data-i18n="pos.apply_split">Apply Split</button>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('split-modal')" data-i18n="modal.cancel">Cancel</button>
+  </div>
+</div>
+
+<!-- ========== REGISTER MODAL (Open/Close) ========== -->
+<div id="register-modal" class="modal-backdrop hidden">
+  <div class="modal" style="max-width:400px;">
+    <div class="close" onclick="closeModal('register-modal')" data-i18n="modal.close">Close</div>
+    <h3 id="register-modal-title">Open Register</h3>
+    <div id="register-open-fields">
+      <label data-i18n="register.opening_float">Opening Float</label>
+      <input type="number" id="register-float" step="0.01" min="0" placeholder="0" />
+    </div>
+    <div id="register-close-fields" style="display:none;">
+      <div id="register-summary" style="margin-bottom:16px; font-size:14px;"></div>
+      <label data-i18n="register.actual_cash">Actual Cash in Drawer</label>
+      <input type="number" id="register-actual-cash" step="0.01" min="0" placeholder="0" />
+      <div style="margin-top:8px; font-size:13px; color:var(--ink-faint);"><span data-i18n="register.expected">Expected:</span> <strong id="register-expected-cash">ETB 0.00</strong></div>
+      <div style="margin-top:4px; font-size:13px; color:var(--ink-faint);"><span data-i18n="register.difference">Difference:</span> <strong id="register-diff">ETB 0.00</strong></div>
+    </div>
+    <button class="btn-primary" id="register-save-btn" onclick="saveRegister()" data-i18n="register.confirm">Confirm</button>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('register-modal')" data-i18n="modal.cancel">Cancel</button>
+    <div id="register-error" class="error hidden"></div>
+  </div>
+</div>
+
+<!-- ========== TABLE SETTINGS MODAL (add/edit table) ========== -->
+<div id="table-settings-modal" class="modal-backdrop hidden">
+  <div class="modal" style="max-width:400px;">
+    <div class="close" onclick="closeModal('table-settings-modal')" data-i18n="modal.close">Close</div>
+    <h3 id="table-settings-modal-title" data-i18n="settings.add_table">Add Table</h3>
+    <label data-i18n="settings.table_number">Table Number</label>
+    <input type="text" id="ts-table-number" placeholder="1" />
+    <label data-i18n="settings.table_name">Name (optional)</label>
+    <input type="text" id="ts-table-name" placeholder="Window table" />
+    <label data-i18n="settings.table_capacity">Capacity (optional)</label>
+    <input type="number" id="ts-table-capacity" min="1" placeholder="4" />
+    <button class="btn-primary" id="table-settings-save-btn" onclick="saveTableSettings()" data-i18n="settings.save_table">Save Table</button>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('table-settings-modal')" data-i18n="modal.cancel">Cancel</button>
+    <button class="btn-ghost" id="table-settings-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft); display:none;" onclick="deleteTableSettings()" data-i18n="settings.delete_table">Delete Table</button>
+    <div id="table-settings-error" class="error hidden"></div>
   </div>
 </div>
 
@@ -1696,13 +1811,14 @@
     orderId: null,
     orderType: 'dine_in', // dine_in, takeout, delivery
     customerId: null,
+    customerName: null,
     appliedDiscount: 0,
     discountType: 'amount', // amount, percent
     posSessionId: null,
   };
 
   function posReset() {
-    posState = { cart: [], tableId: null, tableNumber: null, orderId: null, orderType: 'dine_in', customerId: null, appliedDiscount: 0, discountType: 'amount', posSessionId: null };
+    posState = { cart: [], tableId: null, tableNumber: null, orderId: null, orderType: 'dine_in', customerId: null, customerName: null, appliedDiscount: 0, discountType: 'amount', posSessionId: activeRegister?.id || null };
   }
 
   // ============================================================
@@ -1982,7 +2098,7 @@
   
   async function kdsUpdateStatus(orderId, newStatus) {
     if (newStatus === 'served') {
-      // Fetch order with items to complete it
+      // Fetch order with items to deduct stock
       const { data: order } = await sb.from('orders')
         .select('*, order_items(*)')
         .eq('id', orderId).eq('business_id', membership.business_id).single();
@@ -1992,13 +2108,10 @@
           await adjustStock('products', item.product_id, -item.quantity, membership.business_id);
           await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: -item.quantity, reason: 'sale', refType: 'order', refId: order.id });
         }
-        // Free table
-        if (order.table_id) {
-          await sb.from('restaurant_tables').update({ status: 'available', current_order_id: null }).eq('id', order.table_id).eq('business_id', membership.business_id);
-        }
+        // Don't free table yet — table freed when payment is completed
       }
-      // Mark as completed (removes from KDS via realtime handler)
-      await sb.from('orders').update({ status: 'completed' }).eq('id', orderId).eq('business_id', membership.business_id);
+      // Mark as served (ready for payment)
+      await sb.from('orders').update({ status: 'served' }).eq('id', orderId).eq('business_id', membership.business_id);
       await loadProducts();
     } else {
       await sb.from('orders').update({ status: newStatus }).eq('id', orderId).eq('business_id', membership.business_id);
@@ -2015,7 +2128,7 @@
       discount = posState.appliedDiscount;
     }
     const taxable = subtotal - discount;
-    const settings = JSON.parse(localStorage.getItem('thole:settings') || '{}');
+    const settings = getSettings();
     const taxRate = (settings.tax_rate || 0) / 100;
     const tax = taxable * taxRate;
     const total = taxable + tax;
@@ -2030,10 +2143,12 @@
       posUpdateTotalsUI();
       return;
     }
-    el.innerHTML = posState.cart.map((item, idx) => `
+    el.innerHTML = posState.cart.map((item, idx) => {
+      const hasSplit = posState.cart.some(i => i.splitGroup && i.splitGroup > 1);
+      return `
       <div class="pos-cart-item">
         <div class="pos-cart-main">
-          <div class="pos-cart-name">${escapeHtml(item.name)}</div>
+          <div class="pos-cart-name">${escapeHtml(item.name)}${hasSplit && item.splitGroup ? ` <span class="split-badge">#${item.splitGroup}</span>` : ''}</div>
           <div class="pos-cart-qty">
             <button class="qty-btn" onclick="posChangeQty(${idx}, -1)">−</button>
             <span>${item.qty}</span>
@@ -2044,8 +2159,8 @@
           <div class="pos-cart-line-total">${money(item.line_total)}</div>
           <button class="pos-remove" onclick="posRemoveItem(${idx})" aria-label="Remove">✕</button>
         </div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
     posUpdateTotalsUI();
   }
 
@@ -2109,23 +2224,29 @@
 
   async function posLoadTables() {
     const { data } = await sb.from('restaurant_tables')
-      .select('*')
+      .select('*, orders!current_order_id(status, id)')
       .eq('business_id', membership.business_id)
       .order('table_number');
     const grid = document.getElementById('table-grid');
     if (!data || data.length === 0) {
-      grid.innerHTML = '<div class="pos-empty">No tables configured. Go to Settings > Tables.</div>';
+      grid.innerHTML = `<div class="pos-empty">${t('pos.no_tables')}</div>`;
       return;
     }
-    grid.innerHTML = data.map(t => `
-      <button class="table-btn ${t.status === 'occupied' ? 'occupied' : ''}" 
-        onclick="posSelectTable('${escapeAttr(t.id)}', '${escapeAttr(t.table_number)}')"
-        ${t.status === 'occupied' ? 'disabled' : ''}>
-        <span class="table-num">${escapeHtml(t.table_number)}</span>
-        ${t.name ? `<span class="table-name">${escapeHtml(t.name)}</span>` : ''}
-        ${t.status === 'occupied' ? '<span class="table-status">Occupied</span>' : ''}
-      </button>
-    `).join('');
+    grid.innerHTML = data.map(t => {
+      const orderStatus = t.orders?.status;
+      const orderId = t.orders?.id;
+      const isServed = orderStatus === 'served';
+      const isActive = orderStatus && ['pending','preparing','ready'].includes(orderStatus);
+      return `
+        <button class="table-btn ${isServed ? 'served' : isActive ? 'occupied' : ''}" 
+          onclick="${isServed ? `payTableOrder('${escapeAttr(orderId)}')` : isActive ? '' : `posSelectTable('${escapeAttr(t.id)}', '${escapeAttr(t.table_number)}')`}"
+          ${isActive ? 'disabled' : ''}>
+          <span class="table-num">${escapeHtml(t.table_number)}</span>
+          ${t.name ? `<span class="table-name">${escapeHtml(t.name)}</span>` : ''}
+          ${isServed ? `<span class="table-status served-status">${t('pos.ready_to_pay')}</span>` : isActive ? `<span class="table-status">${t('pos.occupied')}</span>` : ''}
+        </button>
+      `;
+    }).join('');
   }
 
   function posSelectTable(tableId, tableNumber) {
@@ -2145,6 +2266,8 @@
     openModal('pos-modal');
     posRenderProducts();
     posRenderCart();
+    updateCustomerDisplay();
+    updateHeldOrdersBar();
   }
 
   async function posRenderProducts() {
@@ -2181,12 +2304,95 @@
 
   // --- POS Cart Modal Actions ---
 
-  function posOpenPayment() {
+  function posUpdatePaymentTotal(newTotal) {
+    const el = document.getElementById('payment-total-due');
+    if (el) el.textContent = money(newTotal);
+  }
+
+  async function submitOrder() {
     if (posState.cart.length === 0) return showToast('Cart is empty', 'error');
-    const { total } = posCalcTotals();
+    const btn = document.getElementById('pos-pay-btn');
+    setBtnLoading(btn, true);
+
+    const { subtotal, discount, tax, total, taxRate } = posCalcTotals();
+
+    // Check if split — create separate orders per group
+    const hasSplit = posState.cart.some(i => i.splitGroup && i.splitGroup > 1);
+    const groups = {};
+    posState.cart.forEach(item => {
+      const g = item.splitGroup || 1;
+      if (!groups[g]) groups[g] = [];
+      groups[g].push(item);
+    });
+
+    const orderIds = [];
+    for (const [group, items] of Object.entries(groups)) {
+      const groupSubtotal = items.reduce((s, i) => s + i.line_total, 0);
+      const groupDiscount = subtotal > 0 ? discount * (groupSubtotal / subtotal) : 0;
+      const groupTax = (groupSubtotal - groupDiscount) * taxRate;
+      const groupTotal = groupSubtotal - groupDiscount + groupTax;
+
+      const { data: order, error: orderErr } = await sb.from('orders').insert({
+        business_id: membership.business_id,
+        table_id: posState.tableId || null,
+        customer_id: posState.customerId || null,
+        order_type: posState.tableId ? 'dine_in' : (posState.orderType || 'takeout'),
+        status: 'pending',
+        subtotal: groupSubtotal,
+        discount: groupDiscount,
+        discount_type: posState.discountType || 'amount',
+        tax_rate: taxRate,
+        tax: groupTax,
+        tip: 0,
+        total_amount: groupTotal,
+        payment_method: null,
+        created_by: currentUser.id,
+      }).select().single();
+      if (orderErr) { setBtnLoading(btn, false); return showToast(orderErr.message, 'error'); }
+      orderIds.push(order.id);
+
+      const orderItems = items.map(item => ({
+        order_id: order.id,
+        product_id: item.product_id,
+        quantity: item.qty,
+        unit_price: item.price,
+      }));
+      const { error: itemsErr } = await sb.from('order_items').insert(orderItems);
+      if (itemsErr) { setBtnLoading(btn, false); return showToast(itemsErr.message, 'error'); }
+    }
+
+    if (hasSplit) {
+      showToast(`${Object.keys(groups).length} orders placed`, 'success');
+    } else {
+      showToast(t('pos.order_placed'), 'success');
+    }
+
+    // Mark table as occupied (use first order id)
+    if (posState.tableId && orderIds.length > 0) {
+      await sb.from('restaurant_tables').update({ status: 'occupied', current_order_id: orderIds[0] }).eq('id', posState.tableId).eq('business_id', membership.business_id);
+    }
+
+    setBtnLoading(btn, false);
+    closeModal('pos-modal');
+    posReset();
+    await loadProducts();
+  }
+
+  async function payTableOrder(orderId) {
+    const { data: order } = await sb.from('orders')
+      .select('*, order_items(*, products(name))')
+      .eq('id', orderId).eq('business_id', membership.business_id).single();
+    if (!order) return showToast('Order not found', 'error');
+
+    // Store current order for payment processing
+    posState.orderId = orderId;
+    posState.tableId = order.table_id;
+
+    const total = order.total_amount || 0;
     document.getElementById('payment-total-due').textContent = money(total);
-    // Setup payment method change handler
+
     const methodSelect = document.getElementById('pay-method');
+    methodSelect.value = 'cash';
     methodSelect.onchange = () => {
       const cashDiv = document.getElementById('payment-cash');
       const tipDiv = document.getElementById('payment-tip');
@@ -2203,9 +2409,8 @@
         tipDiv.style.display = 'block';
       }
     };
-    // Trigger initial state
     methodSelect.dispatchEvent(new Event('change'));
-    // Setup tip buttons
+
     const tipBtns = document.getElementById('tip-buttons');
     tipBtns.innerHTML = '';
     [10, 15, 20].forEach(pct => {
@@ -2217,7 +2422,7 @@
         document.querySelectorAll('.tip-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById('custom-tip').value = '';
-        posUpdatePaymentTotal(total * (1 + pct/100));
+        posUpdatePaymentTotal(total * (1 + pct / 100));
       };
       tipBtns.appendChild(btn);
     });
@@ -2225,70 +2430,60 @@
       document.querySelectorAll('.tip-btn').forEach(b => b.classList.remove('active'));
       posUpdatePaymentTotal(total + parseFloat(e.target.value || 0));
     };
+
+    closeModal('table-map-modal');
     openModal('payment-modal');
   }
 
-  function posUpdatePaymentTotal(newTotal) {
-    const el = document.getElementById('payment-total-due');
-    if (el) el.textContent = money(newTotal);
-  }
-
   async function completePayment() {
+    const orderId = posState.orderId;
+    if (!orderId) return showToast('No order to pay', 'error');
+
     const btn = document.querySelector('#payment-modal .btn-primary');
     setBtnLoading(btn, true);
     clearError('payment-error');
 
-    const { subtotal, discount, tax, total, taxRate } = posCalcTotals();
-    const tip = parseFloat(document.getElementById('custom-tip').value) || 0;
-    const finalTotal = total + tip;
-    const method = document.getElementById('pay-method').value;
+    const { data: order } = await sb.from('orders').select('*').eq('id', orderId).single();
+    if (!order) { setBtnLoading(btn, false); return showToast('Order not found', 'error'); }
 
-    // 1. Create order
-    const { data: order, error: orderErr } = await sb.from('orders').insert({
-      business_id: membership.business_id,
-      table_id: posState.tableId || null,
-      customer_id: posState.customerId || null,
-      order_type: posState.tableId ? 'dine_in' : (posState.orderType || 'takeout'),
-      status: 'pending',
-      subtotal,
-      discount,
-      discount_type: posState.discountType || 'amount',
-      tax_rate: taxRate,
-      tax,
+    const baseTotal = order.total_amount || 0;
+    const tip = parseFloat(document.getElementById('custom-tip').value) || 0;
+    const finalTotal = baseTotal + tip;
+    const method = document.getElementById('pay-method').value;
+    const changeGiven = (method === 'cash') ? Math.max(0, (parseFloat(document.getElementById('cash-received').value) || 0) - finalTotal) : 0;
+
+    // 1. Update order with tip, payment method, mark completed
+    const { error: orderErr } = await sb.from('orders').update({
+      status: 'completed',
       tip,
       total_amount: finalTotal,
       payment_method: method,
-      created_by: currentUser.id,
-    }).select().single();
+      change_given: changeGiven,
+    }).eq('id', orderId).eq('business_id', membership.business_id);
     if (orderErr) { setBtnLoading(btn, false); return setError('payment-error', orderErr.message); }
 
-    // 2. Order items
-    const items = posState.cart.map(item => ({
-      order_id: order.id,
-      product_id: item.product_id,
-      quantity: item.qty,
-      unit_price: item.price,
-    }));
-    const { error: itemsErr } = await sb.from('order_items').insert(items);
-    if (itemsErr) { setBtnLoading(btn, false); return setError('payment-error', itemsErr.message); }
-
-    // 3. Payment record
+    // 2. Create payment record
     await sb.from('payments').insert({
       business_id: membership.business_id,
-      order_id: order.id,
-      customer_id: posState.customerId,
+      order_id: orderId,
+      customer_id: order.customer_id,
       amount: finalTotal,
       method,
       direction: 'in',
       created_by: currentUser.id,
     });
 
+    // 3. Free table
+    if (order.table_id) {
+      await sb.from('restaurant_tables').update({ status: 'available', current_order_id: null }).eq('id', order.table_id).eq('business_id', membership.business_id);
+    }
+
     setBtnLoading(btn, false);
     closeModal('payment-modal');
-    
-    // Show receipt
-    await posShowReceipt(order.id);
-    posReset();
+
+    await posShowReceipt(orderId);
+    posState.orderId = null;
+    posState.tableId = null;
     await loadSales();
     renderDashboard();
   }
@@ -2304,7 +2499,7 @@
     const biz = business || membership.businesses || {};
     const cashierName = membership.full_name || currentUser.email;
     const receiptNum = order.receipt_number ? `#${order.receipt_number}` : `#${order.id.slice(0,8).toUpperCase()}`;
-    const settings = JSON.parse(localStorage.getItem('thole:settings') || '{}');
+    const settings = getSettings();
     const receiptFooter = settings.receipt_footer || 'Thank you!';
     const content = document.getElementById('receipt-content');
     content.innerHTML = `
@@ -2478,7 +2673,11 @@
     const type = document.getElementById('waste-type').value;
     const prodSel = document.getElementById('waste-product');
     const matSel = document.getElementById('waste-material');
-    prodSel.innerHTML = cache.products.map(p => `<option value="${p.id}">${escapeHtml(p.name)} (stock: ${p.stock_qty})</option>`).join('');
+    prodSel.innerHTML = cache.products.map(p => {
+      const isMfg = p.product_type === 'manufactured';
+      const stockLabel = isMfg ? `made: ${p.total_sold ?? 0}` : `stock: ${p.stock_qty ?? '—'}`;
+      return `<option value="${p.id}">${escapeHtml(p.name)} (${stockLabel})</option>`;
+    }).join('');
     matSel.innerHTML = cache.materials.map(m => `<option value="${m.id}">${escapeHtml(m.name)} (stock: ${m.stock_qty})</option>`).join('');
     document.getElementById('waste-qty').value = '';
     document.getElementById('waste-cost').value = '';
@@ -2532,8 +2731,14 @@
     if (type === 'product') {
       const prodId = document.getElementById('waste-product').value;
       payload.product_id = prodId;
-      await adjustStock('products', prodId, -qty, membership.business_id);
-      await logStockMovement({ itemType: 'product', productId: prodId, qtyChange: -qty, reason: 'waste', refType: 'waste', refId: null });
+      const prod = cache.products.find(p => p.id === prodId);
+      if (prod && prod.product_type === 'manufactured') {
+        const newSold = Math.max(0, Number(prod.total_sold || 0) - qty);
+        await sb.from('products').update({ total_sold: newSold }).eq('id', prodId).eq('business_id', membership.business_id);
+      } else {
+        await adjustStock('products', prodId, -qty, membership.business_id);
+        await logStockMovement({ itemType: 'product', productId: prodId, qtyChange: -qty, reason: 'waste', refType: 'waste', refId: null });
+      }
     } else {
       const matId = document.getElementById('waste-material').value;
       payload.raw_material_id = matId;
@@ -2600,11 +2805,11 @@
   // ========== EFFICIENCY METRICS ==========
   async function renderEfficiency() {
     try {
-      const { data: allSales } = await sb.from('orders').select('total_amount, status').eq('business_id', membership.business_id);
-    const revenue = (allSales || []).filter(o => o.status !== 'voided').reduce((s, o) => s + Number(o.total_amount || 0), 0);
+      const { data: allSales } = await sb.from('orders').select('total_amount, status, created_at').eq('business_id', membership.business_id);
+    const revenue = (allSales || []).filter(o => o.status === 'completed').reduce((s, o) => s + Number(o.total_amount || 0), 0);
     const todayStr = new Date().toISOString().slice(0, 10);
-    const todaySales = (allSales || []).filter(o => o.status !== 'voided' && o.created_at && o.created_at.slice(0, 10) === todayStr).reduce((s, o) => s + Number(o.total_amount || 0), 0);
-    const todayOrders = (allSales || []).filter(o => o.status !== 'voided' && o.created_at && o.created_at.slice(0, 10) === todayStr).length;
+    const todaySales = (allSales || []).filter(o => o.status === 'completed' && o.created_at && o.created_at.slice(0, 10) === todayStr).reduce((s, o) => s + Number(o.total_amount || 0), 0);
+    const todayOrders = (allSales || []).filter(o => o.status === 'completed' && o.created_at && o.created_at.slice(0, 10) === todayStr).length;
       const materialCost = cache.materials.reduce((s, m) => s + (Number(m.stock_qty) * Number(m.cost_per_unit || 0)), 0);
       const foodCostPct = revenue > 0 ? ((materialCost / revenue) * 100).toFixed(1) : '—';
       document.getElementById('eff-food-cost').textContent = foodCostPct === '—' ? '—' : foodCostPct + '%';
@@ -2684,6 +2889,9 @@
       document.getElementById('setting-phone').value = b.phone || '';
       document.getElementById('setting-tax-id').value = b.tax_id || '';
     }
+    loadTablesSettings();
+    loadActiveShift();
+    loadActiveRegister();
   }
 
   function getSettings() {
@@ -2692,6 +2900,515 @@
       const localSettings = JSON.parse(localStorage.getItem('thole:settings')) || {};
       return { ...localSettings, ...dbSettings };
     } catch(e) { return {}; }
+  }
+
+  // ========== TABLE SETTINGS (Settings tab) ==========
+  let editingTableId = null;
+
+  async function loadTablesSettings() {
+    const { data } = await sb.from('restaurant_tables').select('*').eq('business_id', membership.business_id).order('table_number');
+    const el = document.getElementById('settings-tables-list');
+    if (!el) return;
+    if (!data || data.length === 0) {
+      el.innerHTML = '<div style="padding:12px 0; color:var(--ink-faint); font-size:13px;">No tables yet.</div>';
+      return;
+    }
+    el.innerHTML = data.map(t => {
+      const statusLabel = t.status === 'occupied' ? 'Occupied' : t.status === 'reserved' ? 'Reserved' : 'Available';
+      return `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--line);">
+        <div>
+          <strong>Table ${escapeHtml(t.table_number)}</strong>
+          ${t.name ? `<span style="color:var(--ink-faint); font-size:12px;"> — ${escapeHtml(t.name)}</span>` : ''}
+          ${t.capacity ? `<span style="color:var(--ink-faint); font-size:12px;"> (${t.capacity} seats)</span>` : ''}
+          <br><span style="font-size:11px; color:${t.status === 'occupied' ? 'var(--danger)' : t.status === 'reserved' ? 'var(--amber)' : 'var(--ink-faint)'};">${statusLabel}</span>
+        </div>
+        <button class="btn-ghost" style="font-size:12px; padding:4px 10px;" onclick="editTableSettings('${t.id}')" data-i18n="settings.edit_table">Edit</button>
+      </div>`;
+    }).join('');
+  }
+
+  function openTableSettingsModal() {
+    editingTableId = null;
+    document.getElementById('table-settings-modal-title').textContent = 'Add Table';
+    document.getElementById('ts-table-number').value = '';
+    document.getElementById('ts-table-name').value = '';
+    document.getElementById('ts-table-capacity').value = '';
+    document.getElementById('table-settings-delete-btn').style.display = 'none';
+    document.getElementById('table-settings-error').classList.add('hidden');
+    openModal('table-settings-modal');
+  }
+
+  function editTableSettings(tableId) {
+    editingTableId = tableId;
+    const tables = document.querySelectorAll('#settings-tables-list > div');
+    // Refetch to get the record
+    sb.from('restaurant_tables').select('*').eq('id', tableId).eq('business_id', membership.business_id).single().then(({ data, error }) => {
+      if (error || !data) return showToast('Table not found', 'error');
+      document.getElementById('table-settings-modal-title').textContent = 'Edit Table';
+      document.getElementById('ts-table-number').value = data.table_number;
+      document.getElementById('ts-table-name').value = data.name || '';
+      document.getElementById('ts-table-capacity').value = data.capacity || '';
+      document.getElementById('table-settings-delete-btn').style.display = 'block';
+      document.getElementById('table-settings-error').classList.add('hidden');
+      openModal('table-settings-modal');
+    });
+  }
+
+  async function saveTableSettings() {
+    const number = document.getElementById('ts-table-number').value.trim();
+    if (!number) return showToast('Table number is required', 'error');
+    const name = document.getElementById('ts-table-name').value.trim() || null;
+    const capacity = parseInt(document.getElementById('ts-table-capacity').value) || null;
+
+    const payload = { business_id: membership.business_id, table_number: number, name, capacity };
+
+    if (editingTableId) {
+      const { error } = await sb.from('restaurant_tables').update(payload).eq('id', editingTableId).eq('business_id', membership.business_id);
+      if (error) return showToast(error.message, 'error');
+    } else {
+      payload.status = 'available';
+      const { error } = await sb.from('restaurant_tables').insert(payload);
+      if (error) return showToast(error.message, 'error');
+    }
+
+    closeModal('table-settings-modal');
+    showToast(editingTableId ? 'Table updated' : 'Table added', 'success');
+    loadTablesSettings();
+  }
+
+  async function deleteTableSettings() {
+    if (!editingTableId) return;
+    if (!confirm('Delete this table? This cannot be undone.')) return;
+    const { error } = await sb.from('restaurant_tables').delete().eq('id', editingTableId).eq('business_id', membership.business_id);
+    if (error) return showToast(error.message, 'error');
+    closeModal('table-settings-modal');
+    showToast('Table deleted', 'success');
+    loadTablesSettings();
+  }
+
+  // ========== SHIFT MANAGEMENT (Clock In/Out) ==========
+  let activeShift = null;
+  let shiftTimerInterval = null;
+
+  function updateShiftDisplay() {
+    const btn = document.getElementById('shift-btn');
+    const label = document.getElementById('shift-label');
+    const icon = document.getElementById('shift-icon');
+    if (!btn) return;
+    if (activeShift) {
+      btn.style.display = 'flex';
+      btn.classList.add('is-active');
+      icon.textContent = '⏱️';
+      const elapsed = Date.now() - new Date(activeShift.clock_in).getTime();
+      const hours = Math.floor(elapsed / 3600000);
+      const mins = Math.floor((elapsed % 3600000) / 60000);
+      label.textContent = `${hours}h ${mins.toString().padStart(2, '0')}m`;
+    } else {
+      btn.style.display = 'flex';
+      btn.classList.remove('is-active');
+      icon.textContent = '⏰';
+      label.textContent = t('shift.clock_in');
+    }
+  }
+
+  async function loadActiveShift() {
+    if (!currentUser || !membership) { document.getElementById('shift-btn').style.display = 'none'; return; }
+    const { data } = await sb.from('labor_shifts')
+      .select('*')
+      .eq('business_id', membership.business_id)
+      .eq('user_id', currentUser.id)
+      .is('clock_out', null)
+      .order('clock_in', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    activeShift = data || null;
+    if (shiftTimerInterval) { clearInterval(shiftTimerInterval); shiftTimerInterval = null; }
+    updateShiftDisplay();
+    if (activeShift) {
+      shiftTimerInterval = setInterval(updateShiftDisplay, 10000);
+    }
+  }
+
+  async function toggleShift() {
+    if (activeShift) {
+      // Clock out
+      if (!confirm('Clock out now?')) return;
+      const { error } = await sb.from('labor_shifts').update({ clock_out: new Date().toISOString() })
+        .eq('id', activeShift.id).eq('business_id', membership.business_id);
+      if (error) return showToast(error.message, 'error');
+      activeShift = null;
+      if (shiftTimerInterval) { clearInterval(shiftTimerInterval); shiftTimerInterval = null; }
+      showToast('Clocked out', 'success');
+      updateShiftDisplay();
+    } else {
+      // Clock in
+      const { error } = await sb.from('labor_shifts').insert({
+        business_id: membership.business_id,
+        user_id: currentUser.id,
+        role: membership.role || 'staff',
+        hourly_rate: 0,
+        clock_in: new Date().toISOString(),
+      }).select().single();
+      if (error) return showToast(error.message, 'error');
+      await loadActiveShift();
+      showToast('Clocked in', 'success');
+    }
+  }
+
+  // ========== CUSTOMER PICKER (POS) ==========
+  function updateCustomerDisplay() {
+    const label = document.getElementById('pos-customer-label');
+    const tableInfo = document.getElementById('pos-customer-table');
+    if (!label) return;
+    if (posState.customerId && posState.customerName) {
+      label.textContent = posState.customerName;
+    } else {
+      label.textContent = 'Walk-in';
+    }
+    if (posState.tableNumber) {
+      tableInfo.textContent = ` — Table ${posState.tableNumber}`;
+    } else {
+      tableInfo.textContent = '';
+    }
+  }
+
+  async function openCustomerPicker() {
+    const { data } = await sb.from('customers').select('id, name, phone').eq('business_id', membership.business_id).order('name').limit(50);
+    const list = document.getElementById('cust-picker-list');
+    if (!data || data.length === 0) {
+      list.innerHTML = '<div style="padding:12px; color:var(--ink-faint); font-size:13px;">No customers yet.</div>';
+    } else {
+      list.innerHTML = data.map(c => `<div class="ledger-row" style="cursor:pointer;" onclick="selectCustomer('${c.id}', '${escapeAttr(c.name)}')">
+        <div><strong>${escapeHtml(c.name)}</strong>${c.phone ? `<br><span style="font-size:11px; color:var(--ink-faint);">${escapeHtml(c.phone)}</span>` : ''}</div>
+      </div>`).join('');
+    }
+    document.getElementById('cust-picker-search').value = '';
+    document.getElementById('cust-picker-new-form').style.display = 'none';
+    openModal('customer-picker-modal');
+  }
+
+  function searchCustomers(q) {
+    const items = document.querySelectorAll('#cust-picker-list .ledger-row');
+    const search = q.toLowerCase();
+    items.forEach(el => {
+      const text = el.textContent.toLowerCase();
+      el.style.display = text.includes(search) ? 'flex' : 'none';
+    });
+  }
+
+  function selectCustomer(id, name) {
+    posState.customerId = id;
+    posState.customerName = name || null;
+    closeModal('customer-picker-modal');
+    updateCustomerDisplay();
+  }
+
+  function showAddCustomerForm() {
+    const form = document.getElementById('cust-picker-new-form');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    if (form.style.display === 'block') document.getElementById('cust-picker-new-name').focus();
+  }
+
+  async function createAndSelectCustomer() {
+    const name = document.getElementById('cust-picker-new-name').value.trim();
+    if (!name) return showToast('Name is required', 'error');
+    const phone = document.getElementById('cust-picker-new-phone').value.trim() || null;
+    const { data, error } = await sb.from('customers').insert({
+      business_id: membership.business_id, name, phone
+    }).select().single();
+    if (error) return showToast(error.message, 'error');
+    selectCustomer(data.id, data.name);
+    showToast('Customer created', 'success');
+  }
+
+  // ========== SPLIT BILL ==========
+  function posSplitBill() {
+    if (posState.cart.length === 0) return showToast('Cart is empty', 'error');
+    document.getElementById('split-count').value = Math.min(2, posState.cart.length);
+    renderSplitItems();
+    openModal('split-modal');
+  }
+
+  function renderSplitItems() {
+    const count = parseInt(document.getElementById('split-count').value) || 2;
+    const el = document.getElementById('split-items');
+    el.innerHTML = posState.cart.map((item, idx) => {
+      const currentGroup = item.splitGroup || 1;
+      const group = Math.min(currentGroup, count);
+      return `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--line);">
+        <div style="flex:1;">
+          <div style="font-weight:600;">${escapeHtml(item.name)}</div>
+          <div style="font-size:12px; color:var(--ink-faint);">x${item.qty} — ${money(item.line_total)}</div>
+        </div>
+        <select data-idx="${idx}" onchange="updateSplitGroup(this)">
+          ${Array.from({length: count}, (_, i) => `<option value="${i+1}" ${group === i+1 ? 'selected' : ''}>Split ${i+1}</option>`).join('')}
+        </select>
+      </div>`;
+    }).join('');
+    updateSplitTotals(count);
+  }
+
+  function updateSplitGroup(sel) {
+    const idx = parseInt(sel.dataset.idx);
+    posState.cart[idx].splitGroup = parseInt(sel.value);
+    const count = parseInt(document.getElementById('split-count').value) || 2;
+    updateSplitTotals(count);
+  }
+
+  function updateSplitTotals(count) {
+    const totals = {};
+    for (let i = 1; i <= count; i++) totals[i] = 0;
+    posState.cart.forEach(item => {
+      const g = item.splitGroup || 1;
+      totals[g] = (totals[g] || 0) + item.line_total;
+    });
+    document.getElementById('split-totals').innerHTML = Object.entries(totals).map(([g, t]) =>
+      `<div style="display:flex; justify-content:space-between;"><span>Split ${g}</span><span>${money(t)}</span></div>`
+    ).join('');
+  }
+
+  function confirmSplit() {
+    const count = parseInt(document.getElementById('split-count').value) || 2;
+    posState.cart.forEach(item => {
+      if (!item.splitGroup || item.splitGroup > count) item.splitGroup = 1;
+    });
+    closeModal('split-modal');
+    posRenderCart();
+  }
+
+  // ========== HOLD / RESUME ORDERS ==========
+  function getHeldOrdersKey() { return `thole:held:${membership.business_id}`; }
+
+  function getHeldOrders() {
+    try { return JSON.parse(localStorage.getItem(getHeldOrdersKey())) || []; } catch(e) { return []; }
+  }
+
+  function saveHeldOrders(orders) {
+    localStorage.setItem(getHeldOrdersKey(), JSON.stringify(orders));
+  }
+
+  function updateHeldOrdersBar() {
+    const held = getHeldOrders();
+    const bar = document.getElementById('pos-held-bar');
+    const count = document.getElementById('pos-held-count');
+    if (!bar || !count) return;
+    if (held.length > 0) {
+      bar.style.display = 'flex';
+      count.textContent = held.length;
+    } else {
+      bar.style.display = 'none';
+    }
+  }
+
+  function posHoldOrder() {
+    if (posState.cart.length === 0) return showToast('Cart is empty', 'error');
+    const held = getHeldOrders();
+    held.push({
+      id: Date.now().toString(),
+      items: JSON.parse(JSON.stringify(posState.cart)),
+      tableId: posState.tableId,
+      tableNumber: posState.tableNumber,
+      customerId: posState.customerId,
+      customerName: posState.customerName,
+      createdAt: new Date().toISOString(),
+    });
+    saveHeldOrders(held);
+    posReset();
+    posRenderCart();
+    updateHeldOrdersBar();
+    showToast('Order held', 'success');
+  }
+
+  function showHeldOrders() {
+    const held = getHeldOrders();
+    const list = document.getElementById('held-orders-list');
+    if (held.length === 0) {
+      list.innerHTML = '<div style="padding:12px; color:var(--ink-faint);">No held orders.</div>';
+    } else {
+      list.innerHTML = held.map((o, idx) => {
+        const itemCount = o.items.reduce((s, i) => s + i.qty, 0);
+        const total = o.items.reduce((s, i) => s + i.line_total, 0);
+        const time = new Date(o.createdAt).toLocaleTimeString();
+        return `<div class="ledger-row" style="cursor:pointer;" onclick="posResumeOrder(${idx})">
+          <div>
+            <strong>${itemCount} item${itemCount === 1 ? '' : 's'}</strong> — ${money(total)}
+            <br><span style="font-size:11px; color:var(--ink-faint);">${o.tableNumber ? `Table ${o.tableNumber}` : 'Takeout'} @ ${time}</span>
+          </div>
+          <div style="color:var(--accent); font-size:12px;">Resume ▸</div>
+          <div><button class="btn-ghost" style="font-size:11px; padding:2px 8px; color:var(--danger);" onclick="event.stopPropagation(); deleteHeldOrder(${idx})">✕</button></div>
+        </div>`;
+      }).join('');
+    }
+    openModal('held-orders-modal');
+  }
+
+  function posResumeOrder(idx) {
+    const held = getHeldOrders();
+    const o = held[idx];
+    if (!o) return showToast('Order not found', 'error');
+    posState.cart = o.items || [];
+    posState.tableId = o.tableId || null;
+    posState.tableNumber = o.tableNumber || null;
+    posState.customerId = o.customerId || null;
+    posState.customerName = o.customerName || null;
+    held.splice(idx, 1);
+    saveHeldOrders(held);
+    closeModal('held-orders-modal');
+    posRenderCart();
+    updateCustomerDisplay();
+    updateHeldOrdersBar();
+    showToast('Order resumed', 'success');
+  }
+
+  function deleteHeldOrder(idx) {
+    const held = getHeldOrders();
+    held.splice(idx, 1);
+    saveHeldOrders(held);
+    showHeldOrders();
+    updateHeldOrdersBar();
+  }
+
+  // ========== REGISTER MANAGEMENT (Open/Close) ==========
+  let activeRegister = null;
+
+  function updateRegisterDisplay() {
+    const btn = document.getElementById('register-btn');
+    const label = document.getElementById('register-label');
+    const icon = document.getElementById('register-icon');
+    if (!btn) return;
+    if (activeRegister) {
+      btn.classList.add('is-active');
+      icon.textContent = '🪙';
+      label.textContent = 'Close Register';
+      btn.style.display = 'flex';
+    } else {
+      btn.classList.remove('is-active');
+      icon.textContent = '🔒';
+      label.textContent = 'Open Register';
+      btn.style.display = 'flex';
+    }
+  }
+
+  async function loadActiveRegister() {
+    if (!currentUser || !membership) { document.getElementById('register-btn').style.display = 'none'; return; }
+    const { data } = await sb.from('pos_sessions')
+      .select('*')
+      .eq('business_id', membership.business_id)
+      .eq('status', 'open')
+      .order('opened_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    activeRegister = data || null;
+    posState.posSessionId = activeRegister?.id || null;
+    updateRegisterDisplay();
+  }
+
+  async function toggleRegister() {
+    if (activeRegister) {
+      // Close register - show summary
+      document.getElementById('register-modal-title').textContent = 'Close Register';
+      document.getElementById('register-open-fields').style.display = 'none';
+      document.getElementById('register-close-fields').style.display = 'block';
+
+      // Calculate expected cash
+      const openingFloat = Number(activeRegister.opening_float || 0);
+      const { data: cashPayments } = await sb.from('orders')
+        .select('total_amount')
+        .eq('business_id', membership.business_id)
+        .eq('status', 'completed')
+        .gte('created_at', activeRegister.opened_at)
+        .is('payment_method', null)
+        .or('payment_method.eq.cash');
+      // Actually get cash payments properly
+      const { data: cashSales } = await sb.from('payments')
+        .select('amount')
+        .eq('business_id', membership.business_id)
+        .eq('method', 'cash')
+        .eq('direction', 'in')
+        .gte('created_at', activeRegister.opened_at);
+      const cashTotal = (cashSales || []).reduce((s, p) => s + Number(p.amount || 0), 0);
+      const expectedCash = openingFloat + cashTotal;
+
+      document.getElementById('register-summary').innerHTML = `
+        <div style="display:flex; justify-content:space-between;"><span>Opening float</span><span>${money(openingFloat)}</span></div>
+        <div style="display:flex; justify-content:space-between;"><span>Cash sales since ${new Date(activeRegister.opened_at).toLocaleTimeString()}</span><span>${money(cashTotal)}</span></div>
+        <hr style="border:none; border-top:1px solid var(--line); margin:8px 0;">
+        <div style="display:flex; justify-content:space-between; font-weight:700;"><span>Expected cash</span><span>${money(expectedCash)}</span></div>
+      `;
+      document.getElementById('register-expected-cash').textContent = money(expectedCash);
+      document.getElementById('register-actual-cash').value = '';
+      document.getElementById('register-diff').textContent = money(0);
+
+      document.getElementById('register-actual-cash').oninput = () => {
+        const actual = parseFloat(document.getElementById('register-actual-cash').value) || 0;
+        document.getElementById('register-diff').textContent = money(actual - expectedCash);
+      };
+
+      document.getElementById('register-save-btn').textContent = 'Close Register';
+      document.getElementById('register-error').classList.add('hidden');
+      openModal('register-modal');
+    } else {
+      // Open register
+      document.getElementById('register-modal-title').textContent = 'Open Register';
+      document.getElementById('register-open-fields').style.display = 'block';
+      document.getElementById('register-close-fields').style.display = 'none';
+      document.getElementById('register-float').value = '0';
+      document.getElementById('register-save-btn').textContent = 'Open Register';
+      document.getElementById('register-error').classList.add('hidden');
+      openModal('register-modal');
+    }
+  }
+
+  async function saveRegister() {
+    const btn = document.getElementById('register-save-btn');
+    setBtnLoading(btn, true);
+    clearError('register-error');
+
+    if (activeRegister) {
+      // Close register
+      const actualCash = parseFloat(document.getElementById('register-actual-cash').value) || 0;
+      const openingFloat = Number(activeRegister.opening_float || 0);
+      const { data: cashSales } = await sb.from('payments')
+        .select('amount')
+        .eq('business_id', membership.business_id)
+        .eq('method', 'cash')
+        .eq('direction', 'in')
+        .gte('created_at', activeRegister.opened_at);
+      const cashTotal = (cashSales || []).reduce((s, p) => s + Number(p.amount || 0), 0);
+      const expectedCash = openingFloat + cashTotal;
+
+      const { error } = await sb.from('pos_sessions').update({
+        status: 'closed',
+        closed_by: currentUser.id,
+        actual_cash: actualCash,
+        expected_cash: expectedCash,
+        closed_at: new Date().toISOString(),
+      }).eq('id', activeRegister.id).eq('business_id', membership.business_id);
+      setBtnLoading(btn, false);
+      if (error) { return setError('register-error', error.message); }
+      activeRegister = null;
+      posState.posSessionId = null;
+      closeModal('register-modal');
+      showToast('Register closed', 'success');
+      updateRegisterDisplay();
+    } else {
+      // Open register
+      const float = parseFloat(document.getElementById('register-float').value) || 0;
+      const { data, error } = await sb.from('pos_sessions').insert({
+        business_id: membership.business_id,
+        opened_by: currentUser.id,
+        opening_float: float,
+        status: 'open',
+        opened_at: new Date().toISOString(),
+      }).select().single();
+      setBtnLoading(btn, false);
+      if (error) { return setError('register-error', error.message); }
+      activeRegister = data;
+      posState.posSessionId = data.id;
+      closeModal('register-modal');
+      showToast('Register opened', 'success');
+      updateRegisterDisplay();
+    }
   }
 
   // ========== POS BUTTON IN TOOLBAR ==========
@@ -2774,6 +3491,8 @@
       updateProfileAvatar(userName);
       applyRolePermissions(data.role);
       applyBusinessTypeVisibility(data.businesses.business_types?.type_key);
+      loadActiveShift();
+      loadActiveRegister();
       hide("auth-screen"); hide("onboarding-screen"); show("app-screen");
       setDefaultDateFilters();
       await loadEverything();
@@ -3146,10 +3865,10 @@
       sb.from('expenses').select('amount').eq('business_id', bid),
       sb.from('purchase_orders').select('total_amount, status').eq('business_id', bid),
     ]);
-    const revenue = (allSales || []).filter(o => o.status !== 'voided').reduce((s, o) => s + Number(o.total_amount || 0), 0);
+    const revenue = (allSales || []).filter(o => o.status === 'completed').reduce((s, o) => s + Number(o.total_amount || 0), 0);
     const todayStr = new Date().toISOString().slice(0, 10);
-    const todaySales = (allSales || []).filter(o => o.status !== 'voided' && o.created_at && o.created_at.slice(0, 10) === todayStr).reduce((s, o) => s + Number(o.total_amount || 0), 0);
-    const todayOrders = (allSales || []).filter(o => o.status !== 'voided' && o.created_at && o.created_at.slice(0, 10) === todayStr).length;
+    const todaySales = (allSales || []).filter(o => o.status === 'completed' && o.created_at && o.created_at.slice(0, 10) === todayStr).reduce((s, o) => s + Number(o.total_amount || 0), 0);
+    const todayOrders = (allSales || []).filter(o => o.status === 'completed' && o.created_at && o.created_at.slice(0, 10) === todayStr).length;
     const expenseTotal = (allExpenses || []).reduce((s, e) => s + Number(e.amount || 0), 0);
     const purchaseTotal = (allPurchases || []).filter(p => p.status !== 'voided').reduce((s, p) => s + Number(p.total_amount || 0), 0);
 
@@ -3163,13 +3882,13 @@
     const materialValue = cache.materials.reduce((s, m) => s + (Number(m.stock_qty) * Number(m.cost_per_unit || 0)), 0);
 
     const lowStockProducts = cache.products.filter(
-      (p) => p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold)
+      (p) => p.product_type !== 'manufactured' && p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold)
     );
     const lowStockMaterials = cache.materials.filter(
       (m) => m.stock_qty !== null && m.low_stock_threshold !== null && Number(m.stock_qty) <= Number(m.low_stock_threshold)
     );
     const lowStockCount = lowStockProducts.length + lowStockMaterials.length;
-    const salesCount = allSales ? allSales.filter(o => o.status !== 'voided').length : 0;
+    const salesCount = allSales ? allSales.filter(o => o.status === 'completed').length : 0;
     const averageSale = salesCount ? revenue / salesCount : 0;
     const worstStockItems = [...lowStockProducts.map(p => ({ name: p.name, qty: Number(p.stock_qty) })), ...lowStockMaterials.map(m => ({ name: m.name + ' (material)', qty: Number(m.stock_qty) }))];
     worstStockItems.sort((a, b) => a.qty - b.qty);
@@ -3260,19 +3979,24 @@
     const el = document.getElementById("products-ledger");
     if (list.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">📦</div>No products yet.<br><span style="font-size:12px;">Add your first product to start tracking stock.</span></div>`; return; }
 
+    const hasStock = businessUsesRawMaterials();
+
     el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Product</div><div>Stock</div><div style="text-align:right">Price</div></div>` +
+      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Product</div><div>${hasStock ? 'Stock / Made' : 'Stock'}</div><div style="text-align:right">Price</div></div>` +
       list.map((p) => {
-        const isLow = p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold);
         const isManufactured = businessUsesRawMaterials() && p.product_type === 'manufactured';
         const isResale = !businessUsesRawMaterials() || !p.product_type || p.product_type === 'resale';
+        const isLow = !isManufactured && p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold);
+        const stockDisplay = isManufactured
+          ? (p.total_sold != null ? p.total_sold + ' made' : '0 made')
+          : (p.stock_qty !== null ? p.stock_qty + ' ' + escapeHtml(p.unit) : '—');
         return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr; cursor:pointer;" onclick="openEditProduct('${escapeAttr(p.id)}')">
           <div>
             <div>${escapeHtml(p.name)} ${isManufactured ? '<span style="font-size:10px; padding:1px 5px; border-radius:4px; background:var(--accent-soft); color:var(--accent); font-weight:600;">MADE</span>' : ''}${isResale && businessUsesRawMaterials() ? '<span style="font-size:10px; padding:1px 5px; border-radius:4px; background:var(--sky-soft); color:var(--sky); font-weight:600;">BUY</span>' : ''}</div>
             ${p.category ? `<span class="cat-badge">${escapeHtml(p.category)}</span>` : ""}
             ${isManufactured ? `<span style="color:var(--accent); font-size:11px; text-decoration:underline; margin-left:8px;" onclick="event.stopPropagation(); openRecipeModal('${escapeAttr(p.id)}')">Recipe</span>` : ""}
           </div>
-          <div class="${isLow ? "low-tag" : "num"}">${p.stock_qty !== null ? p.stock_qty + " " + escapeHtml(p.unit) : "—"}</div>
+          <div class="${isLow ? "low-tag" : "num"}">${stockDisplay}</div>
           <div class="num" style="text-align:right">${money(p.price)}</div>
         </div>`;
       }).join("");
@@ -3291,6 +4015,12 @@
     else sel.value = '';
   }
 
+  function toggleProductTypeFields() {
+    const isManufactured = document.getElementById("p-type").value === "manufactured";
+    document.getElementById("p-stock-row").style.display = isManufactured ? "none" : "";
+    document.getElementById("p-threshold-row").style.display = isManufactured ? "none" : "";
+  }
+
   function openAddProduct() {
     editingRecord = null;
     document.getElementById("product-modal-title").textContent = "Add product";
@@ -3305,6 +4035,7 @@
     document.getElementById("p-threshold").value = "";
     document.getElementById("p-type-row").style.display = businessUsesRawMaterials() ? "" : "none";
     document.getElementById("p-type").value = "resale";
+    toggleProductTypeFields();
     openModal("product-modal");
   }
 
@@ -3324,6 +4055,7 @@
     document.getElementById("p-threshold").value = p.low_stock_threshold ?? "";
     document.getElementById("p-type-row").style.display = businessUsesRawMaterials() ? "" : "none";
     document.getElementById("p-type").value = p.product_type || "resale";
+    toggleProductTypeFields();
     openModal("product-modal");
   }
 
@@ -3333,7 +4065,7 @@
     if (!p) return;
     const { error } = await sb.from("products").insert({
       business_id: membership.business_id, name: `${p.name} (copy)`, category: p.category,
-      price: p.price, unit: p.unit, stock_qty: 0, low_stock_threshold: p.low_stock_threshold, product_type: p.product_type || 'resale',
+      price: p.price, unit: p.unit, stock_qty: 0, total_sold: 0, low_stock_threshold: p.low_stock_threshold, product_type: p.product_type || 'resale',
     });
     if (error) return setError("product-error", error.message);
     closeModal("product-modal");
@@ -3357,7 +4089,7 @@
     if (stock < 0) return setError("product-error", "Stock cannot be negative.");
     if (threshold !== null && threshold < 0) return setError("product-error", "Threshold cannot be negative.");
 
-    const payload = { name, category, price, unit, stock_qty: stock, low_stock_threshold: threshold, product_type: productType };
+    const payload = { name, category, price, unit, stock_qty: productType === 'manufactured' ? 0 : stock, low_stock_threshold: threshold, product_type: productType };
     setBtnLoading(btn, true);
 
     if (editingRecord) {
@@ -3366,7 +4098,7 @@
       setBtnLoading(btn, false);
       if (error) return setError("product-error", error.message);
     } else {
-      const { error } = await sb.from("products").insert({ business_id: membership.business_id, ...payload });
+      const { error } = await sb.from("products").insert({ business_id: membership.business_id, ...payload, total_sold: 0 });
       setBtnLoading(btn, false);
       if (error) return setError("product-error", error.message);
     }
@@ -3524,13 +4256,23 @@
     if (!confirm("Void this sale? This can't be undone.")) return;
     if (membership.role === "staff") { showToast("Staff cannot void sales.", "error"); return; }
 
-    // Only restore stock if the order was served (stock was already deducted)
-    const { data: order } = await sb.from("orders").select("status").eq("id", orderId).single();
-    if (order && order.status === "completed") {
-      const { data: items } = await sb.from("order_items").select("*").eq("order_id", orderId);
+    // Only restore stock if the order was served or completed (stock was already deducted)
+    const { data: order } = await sb.from("orders").select("status, table_id").eq("id", orderId).single();
+    if (order && ['completed', 'served'].includes(order.status)) {
+      const { data: items } = await sb.from("order_items").select("*, products(product_type, total_sold)").eq("order_id", orderId);
       for (const item of items ?? []) {
-        await adjustStock('products', item.product_id, Number(item.quantity), membership.business_id);
-        await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: Number(item.quantity), reason: 'sale void', refType: 'order', refId: orderId });
+        const prod = item.products;
+        if (prod && prod.product_type === 'manufactured') {
+          const newSold = Math.max(0, Number(prod.total_sold || 0) - Number(item.quantity));
+          await sb.from('products').update({ total_sold: newSold }).eq('id', item.product_id).eq('business_id', membership.business_id);
+        } else {
+          await adjustStock('products', item.product_id, Number(item.quantity), membership.business_id);
+          await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: Number(item.quantity), reason: 'sale void', refType: 'order', refId: orderId });
+        }
+      }
+      // Free table if it was still occupied
+      if (order.table_id) {
+        await sb.from('restaurant_tables').update({ status: 'available', current_order_id: null }).eq('id', order.table_id).eq('business_id', membership.business_id);
       }
     }
     await sb.from("orders").update({ status: "voided" }).eq("id", orderId).eq("business_id", membership.business_id);
@@ -3832,7 +4574,7 @@
   // PURCHASE ORDERS
   // ============================================================
   function openPurchaseModal() {
-    document.getElementById("po-product").innerHTML = cache.products.map((p) => `<option value="${p.id}">${escapeHtml(p.name)} (stock: ${p.stock_qty ?? "—"})</option>`).join("");
+    document.getElementById("po-product").innerHTML = cache.products.filter(p => p.product_type !== 'manufactured').map((p) => `<option value="${p.id}">${escapeHtml(p.name)} (stock: ${p.stock_qty ?? "—"})</option>`).join("");
     if (businessUsesRawMaterials()) {
       document.getElementById("po-type-toggle").style.display = "";
       document.getElementById("po-material").innerHTML = cache.materials.map((m) => `<option value="${m.id}">${escapeHtml(m.name)} (${escapeHtml(m.unit)}, stock: ${m.stock_qty ?? "—"})</option>`).join("");
@@ -4164,7 +4906,7 @@
     const totalRevenue = sales.filter(o => o.status !== 'voided').reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
     const salesCount = sales.filter(o => o.status !== 'voided').length;
     const avgSale = salesCount ? totalRevenue / salesCount : 0;
-    const lowStockCount = cache.products.filter((p) => p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold)).length;
+    const lowStockCount = cache.products.filter((p) => p.product_type !== 'manufactured' && p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold)).length;
 
     const productRevenue = {};
     for (const item of orderItems) {
@@ -4266,7 +5008,7 @@
   function renderLowStockReport() {
     const el = document.getElementById("low-stock-ledger");
     if (!el) return;
-    const low = cache.products.filter((p) => p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold));
+    const low = cache.products.filter((p) => p.product_type !== 'manufactured' && p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold));
     if (low.length === 0) { el.innerHTML = `<div class="empty-state">Nothing low right now.</div>`; return; }
     el.innerHTML =
       `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Product</div><div>Stock left</div><div style="text-align:right">Reorder</div></div>` +
@@ -4508,10 +5250,6 @@
       if (result.error) { setBtnLoading(btn, false); return setError("produce-error", `Stock changed for ${matName} — please try again.`); }
       await logStockMovement({ itemType: 'raw_material', materialId: ri.raw_material_id, qtyChange: -needed, reason: 'production', refType: 'production', refId: batch.id });
     }
-
-    // Add product stock (use actual yield)
-    await adjustStock('products', productId, actualYield, membership.business_id);
-    await logStockMovement({ itemType: 'product', productId, qtyChange: actualYield, reason: 'production', refType: 'production', refId: batch.id });
 
     setBtnLoading(btn, false);
     closeModal("produce-modal");

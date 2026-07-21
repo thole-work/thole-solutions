@@ -336,7 +336,27 @@
     "receipt_footer": "የደብዳቤ ማጠቃለያ",
     "receipt_footer_placeholder": "ለንግድዎ አመሰግናለሁ!",
     "save": "ማስተካከያ ያስቀምጡ",
-    "saved": "ማስተካከያ ተቀምጧል።"
+    "saved": "ማስተካከያ ተቀምጧል።",
+    "tables_title": "ወፍራ",
+    "tables_desc": "ወፍራ ውስጥ ለማዘዝ የሬስቶራንት ወፍራ ያስተዳድሩ።",
+    "add_table": "ወፍራ ያክሉ",
+    "edit_table": "አስተካክል",
+    "save_table": "ወፍራ ያስቀምጡ",
+    "delete_table": "ወፍራ ይሰርዙ",
+    "table_number": "የወፍራ ቁጥር",
+    "table_name": "ስም (አማራጭ)",
+    "table_capacity": "አቅም (አማራጭ)"
+  },
+  "shift": {
+    "clock_in": "ግባ",
+    "clock_out": "ውጣ"
+  },
+  "register": {
+    "opening_float": "የመክፈቻ ገንዘብ",
+    "actual_cash": "በመሳቢያ ውስጥ ያለው ትክክለኛ ገንዘብ",
+    "expected": "የሚጠበቅ:",
+    "difference": "ልዩነት:",
+    "confirm": "አረጋግጥ"
   },
   "modal": {
     "close": "ዝጋ",
@@ -468,7 +488,17 @@
     "no_tables": "ምንም ወፍራ የለም። ማስተካከያ > ወፍራ ይሂዙ።",
     "occupied": "የተያዘ",
     "walk_in": "መግቢያ (ወፍራ የለም)",
-    "select_table": "ወፍራ ይምረጡ"
+    "select_table": "ወፍራ ይምረጡ",
+    "send_kitchen": "ማብሰያ ላክ",
+    "select_customer": "ደንበኛ ይምረጡ",
+    "change": "ለውጥ",
+    "split_bill": "ሂሳብ መክፈል",
+    "num_splits": "የመካፈል ብዛት",
+    "apply_split": "መነጠልን ይተግብሩ",
+    "held_orders": "የተያዙ ትዕዛዞች",
+    "place_order": "ትዕዛዝ ያስቀምጡ",
+    "ready_to_pay": "ክፍያ ዝግጁ",
+    "order_placed": "ትዕዛዝ ተቀምጧል — በማብሰያ ላይ ይጠብቃል"
   },
   "payment_screen": {
     "title": "ክፍያ",
@@ -501,6 +531,7 @@
   },
   "kds": {
     "title": "የኩሽና ማሳያ",
+    "subtitle": "ለኩሽና ቡድን ትዕዛዞች በእውነተኛ ጊዜ።",
     "no_orders": "ምንም ትዕዛዝ የለም",
     "start": "ይጀምሩ",
     "ready": "ዝግጁ",
@@ -633,5 +664,9 @@
     "none_yet": "ገና የለም",
     "load_more": "ተጨማሪ ያንብብ",
     "copy": "ቅዳ"
+  },
+  "profile": {
+    "darkMode": "ጥላ ገጽታ",
+    "signOut": "ውጣ"
   }
 }

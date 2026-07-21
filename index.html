@@ -2232,17 +2232,17 @@
       grid.innerHTML = `<div class="pos-empty">${t('pos.no_tables')}</div>`;
       return;
     }
-    grid.innerHTML = data.map(t => {
-      const orderStatus = t.orders?.status;
-      const orderId = t.orders?.id;
+    grid.innerHTML = data.map(tb => {
+      const orderStatus = tb.orders?.status;
+      const orderId = tb.orders?.id;
       const isServed = orderStatus === 'served';
       const isActive = orderStatus && ['pending','preparing','ready'].includes(orderStatus);
       return `
         <button class="table-btn ${isServed ? 'served' : isActive ? 'occupied' : ''}" 
-          onclick="${isServed ? `payTableOrder('${escapeAttr(orderId)}')` : isActive ? '' : `posSelectTable('${escapeAttr(t.id)}', '${escapeAttr(t.table_number)}')`}"
+          onclick="${isServed ? `payTableOrder('${escapeAttr(orderId)}')` : isActive ? '' : `posSelectTable('${escapeAttr(tb.id)}', '${escapeAttr(tb.table_number)}')`}"
           ${isActive ? 'disabled' : ''}>
-          <span class="table-num">${escapeHtml(t.table_number)}</span>
-          ${t.name ? `<span class="table-name">${escapeHtml(t.name)}</span>` : ''}
+          <span class="table-num">${escapeHtml(tb.table_number)}</span>
+          ${tb.name ? `<span class="table-name">${escapeHtml(tb.name)}</span>` : ''}
           ${isServed ? `<span class="table-status served-status">${t('pos.ready_to_pay')}</span>` : isActive ? `<span class="table-status">${t('pos.occupied')}</span>` : ''}
         </button>
       `;
@@ -4146,7 +4146,7 @@
         <div>${o.customers ? escapeHtml(o.customers.name) : "Walk-in"}</div>
         <div style="color:var(--ink-faint); font-size:12px;">${new Date(o.created_at).toLocaleTimeString()}</div>
         <div class="num" style="text-align:right">${money(o.total_amount)}</div>
-        <div style="text-align:right;"><span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="posShowReceipt('${escapeAttr(o.id)}')">Receipt</span></div>
+        <div style="text-align:right;">${o.status === 'served' ? `<span style="color:#16a34a; font-size:12px; text-decoration:underline; cursor:pointer; font-weight:600;" onclick="payTableOrder('${escapeAttr(o.id)}')">Pay</span>` : `<span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="posShowReceipt('${escapeAttr(o.id)}')">Receipt</span>`}</div>
         <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidSale('${escapeAttr(o.id)}')">Void</span></div>
       </div>`).join("");
       el.innerHTML = backBtn + head + rows;
@@ -4191,7 +4191,7 @@
         <div>${o.customers ? escapeHtml(o.customers.name) : "Walk-in"}${o.status !== 'completed' ? ` <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:${o.status === 'voided' ? 'var(--danger-soft)' : 'var(--amber-soft)'}; color:${o.status === 'voided' ? 'var(--danger)' : 'var(--amber)'}; font-weight:600;">${o.status.toUpperCase()}</span>` : ''}</div>
         <div style="color:var(--ink-faint); font-size:12px;">${new Date(o.created_at).toLocaleDateString()}</div>
         <div class="num" style="text-align:right">${money(o.total_amount)}</div>
-        <div style="text-align:right;"><span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="posShowReceipt('${escapeAttr(o.id)}')">Receipt</span></div>
+        <div style="text-align:right;">${o.status === 'served' ? `<span style="color:#16a34a; font-size:12px; text-decoration:underline; cursor:pointer; font-weight:600;" onclick="payTableOrder('${escapeAttr(o.id)}')">Pay</span>` : `<span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="posShowReceipt('${escapeAttr(o.id)}')">Receipt</span>`}</div>
         <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidSale('${escapeAttr(o.id)}')">Void</span></div>
       </div>`).join("");
     appendPaginated(el, head + rows, "sales", append);

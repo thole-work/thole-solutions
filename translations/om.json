@@ -336,7 +336,27 @@
     "receipt_footer": "Mudana Raseeti",
     "receipt_footer_placeholder": "Daldalaa kee galatoomaa!",
     "save": "Qindoomina galmaa'i",
-    "saved": "Qindoomina galmaa'eera."
+    "saved": "Qindoomina galmaa'eera.",
+    "tables_title": "Gabatee",
+    "tables_desc": "Gabatee mana nyaataa qindeessi ajajjii keessa nyaachuuf.",
+    "add_table": "Gabatee ida'uu",
+    "edit_table": "Qindeessi",
+    "save_table": "Gabatee galmaa'i",
+    "delete_table": "Gabatee haquu",
+    "table_number": "Lakkoofsa Gabatee",
+    "table_name": "Maqaa (filannoo)",
+    "table_capacity": "Handa (filannoo)"
+  },
+  "shift": {
+    "clock_in": "Seeni",
+    "clock_out": "Ba'i"
+  },
+  "register": {
+    "opening_float": "Maallaqa bantuu",
+    "actual_cash": "Maallaqa dhugaa wadii keessaa",
+    "expected": "Hamma:",
+    "difference": "Gar-tokkumma:",
+    "confirm": "Mirkaneessi"
   },
   "modal": {
     "close": "Cufi",
@@ -468,7 +488,17 @@
     "no_tables": "Gabatee hin jiru. Qindoomina > Gabatee.",
     "occupied": "Qabameera",
     "walk_in": "Dorgomii (gabatee hin jiru)",
-    "select_table": "Gabatee filadhu"
+    "select_table": "Gabatee filadhu",
+    "send_kitchen": "Dabarsii fiqaa",
+    "select_customer": "Maamullaa filadhu",
+    "change": "Jijjiiri",
+    "split_bill": "Bilicha qooduu",
+    "num_splits": "Lakkoofsa karaa",
+    "apply_split": "Qooduu raawwachiisi",
+    "held_orders": "ajajjiiwwan qabaman",
+    "place_order": "Ajajjii kaa'i",
+    "ready_to_pay": "Kaffaluuf qophaa'eera",
+    "order_placed": "Ajajjii kaa'ame — dabarsii fiqaa keessa eegamaa"
   },
   "payment_screen": {
     "title": "Kaffaluu",

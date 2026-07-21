@@ -843,13 +843,20 @@
     </section>
 
     <section id="tab-products" class="tab-panel hidden">
-      <div class="page-header"><h2 data-i18n="products.title">Products & Stock</h2><p data-i18n="products.subtitle">Your catalog and current stock on hand.</p></div>
+      <div class="page-header"><h2 data-i18n="products.title">Inventory</h2><p data-i18n="products.subtitle">All stock, raw materials, and products.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:8px; flex:1;">
-          <input type="text" id="product-search" data-i18n-placeholder="products.search" placeholder="Search products…" oninput="renderProducts()" style="max-width:220px;" />
-          <select id="cat-filter" onchange="renderProducts()"><option value="" data-i18n="products.all_categories">All categories</option></select>
+          <input type="text" id="product-search" data-i18n-placeholder="products.search" placeholder="Search inventory…" oninput="renderProducts()" style="max-width:220px;" />
+          <select id="cat-filter" onchange="renderProducts()"><option value="" data-i18n="products.all_categories">All items</option></select>
+          <select id="inv-type-filter" onchange="renderProducts()" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+            <option value="">All types</option>
+            <option value="product">Resale</option>
+            <option value="manufactured">Recipe</option>
+            <option value="material">Raw Material</option>
+          </select>
         </div>
         <button class="btn-small" onclick="openAddProduct()" data-i18n="products.add">+ Add product</button>
+        <button class="btn-small" onclick="openPurchaseModal()" data-i18n="products.purchase">🛒 Purchase</button>
       </div>
       <div class="ledger" id="products-ledger"></div>
     </section>
@@ -1017,6 +1024,7 @@
       <div class="toolbar">
         <button class="btn-small" onclick="exportMaterialsCSV()" data-i18n="materials.csv">📥 CSV</button>
         <button class="btn-small" onclick="openProduceModal()" data-i18n="materials.produce">Produce</button>
+        <button class="btn-small" onclick="openPurchaseModal()" data-i18n="materials.purchase">🛒 Purchase</button>
         <button class="btn-small" onclick="openModal('material-modal')" data-i18n="materials.add">+ Add raw material</button>
       </div>
       <div class="ledger" id="materials-ledger"></div>
@@ -2103,12 +2111,19 @@
   async function kdsUpdateStatus(orderId, newStatus) {
     if (newStatus === 'served') {
       const { data: order } = await sb.from('orders')
-        .select('*, order_items(*)')
+        .select('*, order_items(*, products(product_type, total_sold))')
         .eq('id', orderId).eq('business_id', membership.business_id).single();
       if (order) {
         for (const item of (order.order_items || [])) {
-          await adjustStock('products', item.product_id, -item.quantity, membership.business_id);
-          await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: -item.quantity, reason: 'sale', refType: 'order', refId: order.id });
+          const prod = item.products;
+          if (prod && prod.product_type === 'manufactured') {
+            const newSold = Math.max(0, Number(prod.total_sold || 0) - Number(item.quantity));
+            await sb.from('products').update({ total_sold: newSold }).eq('id', item.product_id).eq('business_id', membership.business_id);
+            await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: -item.quantity, reason: 'sale', refType: 'order', refId: order.id });
+          } else {
+            await adjustStock('products', item.product_id, -item.quantity, membership.business_id);
+            await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: -item.quantity, reason: 'sale', refType: 'order', refId: order.id });
+          }
         }
       }
       await sb.from('orders').update({ status: 'served' }).eq('id', orderId).eq('business_id', membership.business_id);
@@ -3960,41 +3975,71 @@
   // ============================================================
   async function loadProducts(append = false) {
     await pagedLoad('products', { table: 'products', orderBy: 'category', extraFilters: [['is_active', true]], append });
+    if (businessUsesRawMaterials()) {
+      await pagedLoad('materials', { table: 'raw_materials', orderBy: 'name', append: false });
+    }
     const cats = [...new Set(cache.products.map((p) => p.category).filter(Boolean))];
     document.getElementById("cat-filter").innerHTML =
-      `<option value="">All categories</option>` + cats.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+      `<option value="">All items</option>` + cats.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
     renderProducts();
   }
 
   function renderProducts() {
-    const filter = document.getElementById("cat-filter").value;
+    const typeFilter = document.getElementById('inv-type-filter')?.value || '';
+    const categoryFilter = document.getElementById("cat-filter").value;
     const search = (document.getElementById("product-search")?.value ?? "").trim().toLowerCase();
-    let list = filter ? cache.products.filter((p) => p.category === filter) : cache.products;
-    if (search) {
-      list = list.filter((p) => p.name.toLowerCase().includes(search));
+
+    let items = [];
+    for (const p of cache.products) {
+      if (typeFilter === 'material') continue;
+      if (typeFilter === 'manufactured' && p.product_type !== 'manufactured') continue;
+      if (typeFilter === 'product' && (p.product_type === 'manufactured')) continue;
+      if (categoryFilter && p.category !== categoryFilter) continue;
+      if (search && !p.name.toLowerCase().includes(search)) continue;
+      items.push({ type: p.product_type === 'manufactured' ? 'manufactured' : 'resale', data: p });
     }
+    if (businessUsesRawMaterials() && typeFilter !== 'manufactured' && typeFilter !== 'product') {
+      for (const m of cache.materials) {
+        if (search && !m.name.toLowerCase().includes(search)) continue;
+        items.push({ type: 'material', data: m });
+      }
+    }
+
     const el = document.getElementById("products-ledger");
-    if (list.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">📦</div>No products yet.<br><span style="font-size:12px;">Add your first product to start tracking stock.</span></div>`; return; }
+    if (items.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">📦</div>No items found.</div>`; return; }
 
-    const hasStock = businessUsesRawMaterials();
-
+    const hasMulti = businessUsesRawMaterials() && items.some(i => i.type !== 'resale');
     el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Product</div><div>${hasStock ? 'Stock / Made' : 'Stock'}</div><div style="text-align:right">Price</div></div>` +
-      list.map((p) => {
-        const isManufactured = businessUsesRawMaterials() && p.product_type === 'manufactured';
-        const isResale = !businessUsesRawMaterials() || !p.product_type || p.product_type === 'resale';
+      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;"><div>Item</div><div>Status</div><div style="text-align:right">Value</div><div style="text-align:right">${hasMulti ? '' : ''}</div></div>` +
+      items.map((item) => {
+        if (item.type === 'material') {
+          const m = item.data;
+          const isLow = m.low_stock_threshold !== null && Number(m.stock_qty) <= Number(m.low_stock_threshold);
+          return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 0.6fr; cursor:pointer;" onclick="openEditMaterial('${escapeAttr(m.id)}')">
+            <div>
+              <div>${escapeHtml(m.name)} <span style="font-size:10px; padding:1px 5px; border-radius:4px; background:var(--amber-soft); color:var(--amber); font-weight:600;">MATERIAL</span></div>
+              <span class="cat-badge">${escapeHtml(m.unit)}</span>
+            </div>
+            <div class="${isLow ? 'low-tag' : 'num'}">${m.stock_qty ?? 0} ${escapeHtml(m.unit)}${isLow ? ` <span style="color:var(--danger);">↓ reorder</span>` : ''}</div>
+            <div class="num" style="text-align:right">${m.cost_per_unit ? money(m.cost_per_unit) + '/unit' : '—'}</div>
+            <div style="text-align:right"><span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="event.stopPropagation(); openPurchaseModal()">Buy</span></div>
+          </div>`;
+        }
+        const p = item.data;
+        const isManufactured = item.type === 'manufactured';
         const isLow = !isManufactured && p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold);
         const stockDisplay = isManufactured
-          ? (p.total_sold != null ? p.total_sold + ' made' : '0 made')
+          ? (p.total_sold != null ? p.total_sold + ' sold' : '0 sold')
           : (p.stock_qty !== null ? p.stock_qty + ' ' + escapeHtml(p.unit) : '—');
-        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr; cursor:pointer;" onclick="openEditProduct('${escapeAttr(p.id)}')">
+        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 0.6fr; cursor:pointer;" onclick="openEditProduct('${escapeAttr(p.id)}')">
           <div>
-            <div>${escapeHtml(p.name)} ${isManufactured ? '<span style="font-size:10px; padding:1px 5px; border-radius:4px; background:var(--accent-soft); color:var(--accent); font-weight:600;">MADE</span>' : ''}${isResale && businessUsesRawMaterials() ? '<span style="font-size:10px; padding:1px 5px; border-radius:4px; background:var(--sky-soft); color:var(--sky); font-weight:600;">BUY</span>' : ''}</div>
+            <div>${escapeHtml(p.name)} ${isManufactured ? '<span style="font-size:10px; padding:1px 5px; border-radius:4px; background:var(--accent-soft); color:var(--accent); font-weight:600;">RECIPE</span>' : ''}${!isManufactured && businessUsesRawMaterials() ? '<span style="font-size:10px; padding:1px 5px; border-radius:4px; background:var(--sky-soft); color:var(--sky); font-weight:600;">RESALE</span>' : ''}</div>
             ${p.category ? `<span class="cat-badge">${escapeHtml(p.category)}</span>` : ""}
             ${isManufactured ? `<span style="color:var(--accent); font-size:11px; text-decoration:underline; margin-left:8px;" onclick="event.stopPropagation(); openRecipeModal('${escapeAttr(p.id)}')">Recipe</span>` : ""}
           </div>
-          <div class="${isLow ? "low-tag" : "num"}">${stockDisplay}</div>
+          <div class="${isLow ? 'low-tag' : 'num'}">${stockDisplay}${isLow ? ` <span style="color:var(--danger);">↓ reorder</span>` : ''}</div>
           <div class="num" style="text-align:right">${money(p.price)}</div>
+          <div style="text-align:right">${!isManufactured ? `<span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="event.stopPropagation(); openPurchaseModal()">Buy</span>` : `<span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="event.stopPropagation(); openProduceModal()">Make</span>`}</div>
         </div>`;
       }).join("");
   }
@@ -4260,7 +4305,7 @@
       for (const item of items ?? []) {
         const prod = item.products;
         if (prod && prod.product_type === 'manufactured') {
-          const newSold = Math.max(0, Number(prod.total_sold || 0) - Number(item.quantity));
+          const newSold = Number(prod.total_sold || 0) + Number(item.quantity);
           await sb.from('products').update({ total_sold: newSold }).eq('id', item.product_id).eq('business_id', membership.business_id);
         } else {
           await adjustStock('products', item.product_id, Number(item.quantity), membership.business_id);
@@ -5241,6 +5286,13 @@
       const result = await adjustStock('raw_materials', ri.raw_material_id, -needed, membership.business_id);
       if (result.error) { setBtnLoading(btn, false); return setError("produce-error", `Stock changed for ${matName} — please try again.`); }
       await logStockMovement({ itemType: 'raw_material', materialId: ri.raw_material_id, qtyChange: -needed, reason: 'production', refType: 'production', refId: batch.id });
+    }
+
+    // Increment total_sold for the manufactured product
+    const { data: currentProd } = await sb.from('products').select('total_sold').eq('id', productId).eq('business_id', membership.business_id).single();
+    if (currentProd) {
+      const newSold = Number(currentProd.total_sold || 0) + actualYield;
+      await sb.from('products').update({ total_sold: newSold }).eq('id', productId).eq('business_id', membership.business_id);
     }
 
     setBtnLoading(btn, false);

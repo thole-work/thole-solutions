@@ -839,8 +839,9 @@
           <select id="cat-filter" onchange="renderProducts()"><option value="" data-i18n="products.all_categories">All categories</option></select>
           <select id="inv-type-filter" onchange="renderProducts()" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
             <option value="">All</option>
-            <option value="product">Resale</option>
-            <option value="manufactured">Recipe</option>
+            <option value="resale">Resale</option>
+            <option value="recipe">Recipe</option>
+            <option value="manufactured">Manufactured</option>
           </select>
         </div>
         <button class="btn-small" onclick="openAddProduct()" data-i18n="products.add">+ Add product</button>
@@ -1131,6 +1132,7 @@
       <div><label data-i18n="product_modal.type">Type</label>
         <select id="p-type" onchange="toggleProductTypeFields()">
           <option value="resale" data-i18n="product_modal.resale">Buy & Sell</option>
+          <option value="recipe">Recipe</option>
           <option value="manufactured" data-i18n="product_modal.manufactured">Manufactured</option>
         </select>
       </div>
@@ -1158,6 +1160,7 @@
       <div id="p-stock-row"><label data-i18n="product_modal.stock">Starting stock</label><input type="number" id="p-stock" placeholder="0" min="0" /></div>
     </div>
     <div id="p-threshold-row"><label data-i18n="product_modal.threshold">Low stock alert below</label><input type="number" id="p-threshold" placeholder="optional" min="0" /></div>
+    <div id="p-limit-row" class="hidden"><label data-i18n="products.stock_limit">Stock Limit (covers)</label><input type="number" id="p-stock-limit" placeholder="optional — max covers available" min="0" /></div>
     <button class="btn-primary" id="product-submit-btn" onclick="submitProduct()" data-i18n="product_modal.save">Save product</button>
     <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('product-modal')" data-i18n="modal.cancel">Cancel</button>
     <button class="btn-ghost" id="product-duplicate-btn" style="width:100%; margin-top:10px;" onclick="duplicateProduct()" data-i18n="product_modal.duplicate">Duplicate this product</button>
@@ -1809,7 +1812,7 @@
   };
 
   function posReset() {
-    posState = { cart: [], tableId: null, tableNumber: null, orderId: null, orderType: 'dine_in', customerId: null, customerName: null, appliedDiscount: 0, discountType: 'amount', posSessionId: activeRegister?.id || null };
+    posState = { cart: [], tableId: null, tableNumber: null, orderId: null, orderType: 'dine_in', customerId: null, customerName: null, appliedDiscount: 0, discountType: 'amount', posSessionId: null };
   }
 
   // ============================================================
@@ -1838,6 +1841,27 @@
     if (itemType === "product") payload.product_id = productId;
     else if (itemType === "raw_material") payload.raw_material_id = materialId;
     await sb.from("stock_movements").insert(payload);
+  }
+
+  function getDerivedAvailability(productId) {
+    const product = (cache.products || []).find(p => p.id === productId);
+    if (!product) return 0;
+    if (product.product_type !== 'recipe') return Number(product.stock_qty) || 0;
+    const recipe = (cache.recipeItems || []).filter(r => r.product_id === productId);
+    if (!recipe.length) return 0;
+    let minAvail = Infinity;
+    for (const r of recipe) {
+      const mat = (cache.materials || []).find(m => m.id === r.raw_material_id);
+      const matStock = mat ? Number(mat.stock_qty) : 0;
+      const perUnit = Number(r.quantity_required) || 0;
+      if (perUnit <= 0) continue;
+      const avail = Math.floor(matStock / perUnit);
+      if (avail < minAvail) minAvail = avail;
+    }
+    if (product.stock_limit != null && product.stock_limit !== '') {
+      minAvail = Math.min(minAvail, Number(product.stock_limit));
+    }
+    return minAvail === Infinity ? 0 : minAvail;
   }
 
   // ============================================================
@@ -2094,15 +2118,19 @@
   async function kdsUpdateStatus(orderId, newStatus) {
     if (newStatus === 'served') {
       const { data: order } = await sb.from('orders')
-        .select('*, order_items(*, products(product_type, total_sold))')
+        .select('*, order_items(*, products(product_type))')
         .eq('id', orderId).eq('business_id', membership.business_id).single();
       if (order) {
         for (const item of (order.order_items || [])) {
           const prod = item.products;
-          if (prod && prod.product_type === 'manufactured') {
-            const newSold = Math.max(0, Number(prod.total_sold || 0) - Number(item.quantity));
-            await sb.from('products').update({ total_sold: newSold }).eq('id', item.product_id).eq('business_id', membership.business_id);
-            await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: -item.quantity, reason: 'sale', refType: 'order', refId: order.id });
+          if (!prod) continue;
+          if (prod.product_type === 'recipe') {
+            const recipeItems = (cache.recipeItems || []).filter(r => r.product_id === prod.id);
+            for (const ri of recipeItems) {
+              const needed = Number(ri.quantity_required) * Number(item.quantity);
+              await adjustStock('raw_materials', ri.raw_material_id, -needed, membership.business_id);
+              await logStockMovement({ itemType: 'raw_material', materialId: ri.raw_material_id, qtyChange: -needed, reason: 'sale_consumption', refType: 'order', refId: order.id });
+            }
           } else {
             await adjustStock('products', item.product_id, -item.quantity, membership.business_id);
             await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: -item.quantity, reason: 'sale', refType: 'order', refId: order.id });
@@ -2177,6 +2205,10 @@
   function posAddProduct(productId) {
     const product = cache.products.find(p => p.id === productId);
     if (!product) return;
+    if (product.product_type === 'recipe') {
+      const avail = getDerivedAvailability(product.id);
+      if (avail <= 0) { showToast('Currently unavailable — ingredients out of stock', 'error'); return; }
+    }
     const existing = posState.cart.find(i => i.product_id === product.id);
     if (existing) {
       existing.qty += 1;
@@ -2672,8 +2704,8 @@
     const prodSel = document.getElementById('waste-product');
     const matSel = document.getElementById('waste-material');
     prodSel.innerHTML = cache.products.map(p => {
-      const isMfg = p.product_type === 'manufactured';
-      const stockLabel = isMfg ? `made: ${p.total_sold ?? 0}` : `stock: ${p.stock_qty ?? '—'}`;
+      const isRecipe = p.product_type === 'recipe';
+      const stockLabel = isRecipe ? `avail: ${getDerivedAvailability(p.id)}` : `stock: ${p.stock_qty ?? '—'}`;
       return `<option value="${p.id}">${escapeHtml(p.name)} (${stockLabel})</option>`;
     }).join('');
     matSel.innerHTML = cache.materials.map(m => `<option value="${m.id}">${escapeHtml(m.name)} (stock: ${m.stock_qty})</option>`).join('');
@@ -2730,9 +2762,13 @@
       const prodId = document.getElementById('waste-product').value;
       payload.product_id = prodId;
       const prod = cache.products.find(p => p.id === prodId);
-      if (prod && prod.product_type === 'manufactured') {
-        const newSold = Math.max(0, Number(prod.total_sold || 0) - qty);
-        await sb.from('products').update({ total_sold: newSold }).eq('id', prodId).eq('business_id', membership.business_id);
+      if (prod && prod.product_type === 'recipe') {
+        const recipeItems = (cache.recipeItems || []).filter(r => r.product_id === prodId);
+        for (const ri of recipeItems) {
+          const needed = Number(ri.quantity_required) * qty;
+          await adjustStock('raw_materials', ri.raw_material_id, -needed, membership.business_id);
+          await logStockMovement({ itemType: 'raw_material', materialId: ri.raw_material_id, qtyChange: -needed, reason: 'waste', refType: 'waste', refId: null });
+        }
       } else {
         await adjustStock('products', prodId, -qty, membership.business_id);
         await logStockMovement({ itemType: 'product', productId: prodId, qtyChange: -qty, reason: 'waste', refType: 'waste', refId: null });
@@ -3195,149 +3231,6 @@
     updateHeldOrdersBar();
   }
 
-  // ========== REGISTER MANAGEMENT (Open/Close) ==========
-  let activeRegister = null;
-
-  function updateRegisterDisplay() {
-    const btn = document.getElementById('register-btn');
-    const label = document.getElementById('register-label');
-    const icon = document.getElementById('register-icon');
-    if (!btn) return;
-    if (activeRegister) {
-      btn.classList.add('is-active');
-      icon.textContent = '🪙';
-      label.textContent = 'Close Register';
-      btn.style.display = 'flex';
-    } else {
-      btn.classList.remove('is-active');
-      icon.textContent = '🔒';
-      label.textContent = 'Open Register';
-      btn.style.display = 'flex';
-    }
-  }
-
-  async function loadActiveRegister() {
-    if (!currentUser || !membership) { document.getElementById('register-btn').style.display = 'none'; return; }
-    const { data } = await sb.from('pos_sessions')
-      .select('*')
-      .eq('business_id', membership.business_id)
-      .eq('status', 'open')
-      .order('opened_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    activeRegister = data || null;
-    posState.posSessionId = activeRegister?.id || null;
-    updateRegisterDisplay();
-  }
-
-  async function toggleRegister() {
-    if (activeRegister) {
-      // Close register - show summary
-      document.getElementById('register-modal-title').textContent = 'Close Register';
-      document.getElementById('register-open-fields').style.display = 'none';
-      document.getElementById('register-close-fields').style.display = 'block';
-
-      // Calculate expected cash
-      const openingFloat = Number(activeRegister.opening_float || 0);
-      const { data: cashPayments } = await sb.from('orders')
-        .select('total_amount')
-        .eq('business_id', membership.business_id)
-        .eq('status', 'completed')
-        .gte('created_at', activeRegister.opened_at)
-        .is('payment_method', null)
-        .or('payment_method.eq.cash');
-      // Actually get cash payments properly
-      const { data: cashSales } = await sb.from('payments')
-        .select('amount')
-        .eq('business_id', membership.business_id)
-        .eq('method', 'cash')
-        .eq('direction', 'in')
-        .gte('created_at', activeRegister.opened_at);
-      const cashTotal = (cashSales || []).reduce((s, p) => s + Number(p.amount || 0), 0);
-      const expectedCash = openingFloat + cashTotal;
-
-      document.getElementById('register-summary').innerHTML = `
-        <div style="display:flex; justify-content:space-between;"><span>Opening float</span><span>${money(openingFloat)}</span></div>
-        <div style="display:flex; justify-content:space-between;"><span>Cash sales since ${new Date(activeRegister.opened_at).toLocaleTimeString()}</span><span>${money(cashTotal)}</span></div>
-        <hr style="border:none; border-top:1px solid var(--line); margin:8px 0;">
-        <div style="display:flex; justify-content:space-between; font-weight:700;"><span>Expected cash</span><span>${money(expectedCash)}</span></div>
-      `;
-      document.getElementById('register-expected-cash').textContent = money(expectedCash);
-      document.getElementById('register-actual-cash').value = '';
-      document.getElementById('register-diff').textContent = money(0);
-
-      document.getElementById('register-actual-cash').oninput = () => {
-        const actual = parseFloat(document.getElementById('register-actual-cash').value) || 0;
-        document.getElementById('register-diff').textContent = money(actual - expectedCash);
-      };
-
-      document.getElementById('register-save-btn').textContent = 'Close Register';
-      document.getElementById('register-error').classList.add('hidden');
-      openModal('register-modal');
-    } else {
-      // Open register
-      document.getElementById('register-modal-title').textContent = 'Open Register';
-      document.getElementById('register-open-fields').style.display = 'block';
-      document.getElementById('register-close-fields').style.display = 'none';
-      document.getElementById('register-float').value = '0';
-      document.getElementById('register-save-btn').textContent = 'Open Register';
-      document.getElementById('register-error').classList.add('hidden');
-      openModal('register-modal');
-    }
-  }
-
-  async function saveRegister() {
-    const btn = document.getElementById('register-save-btn');
-    setBtnLoading(btn, true);
-    clearError('register-error');
-
-    if (activeRegister) {
-      // Close register
-      const actualCash = parseFloat(document.getElementById('register-actual-cash').value) || 0;
-      const openingFloat = Number(activeRegister.opening_float || 0);
-      const { data: cashSales } = await sb.from('payments')
-        .select('amount')
-        .eq('business_id', membership.business_id)
-        .eq('method', 'cash')
-        .eq('direction', 'in')
-        .gte('created_at', activeRegister.opened_at);
-      const cashTotal = (cashSales || []).reduce((s, p) => s + Number(p.amount || 0), 0);
-      const expectedCash = openingFloat + cashTotal;
-
-      const { error } = await sb.from('pos_sessions').update({
-        status: 'closed',
-        closed_by: currentUser.id,
-        actual_cash: actualCash,
-        expected_cash: expectedCash,
-        closed_at: new Date().toISOString(),
-      }).eq('id', activeRegister.id).eq('business_id', membership.business_id);
-      setBtnLoading(btn, false);
-      if (error) { return setError('register-error', error.message); }
-      activeRegister = null;
-      posState.posSessionId = null;
-      closeModal('register-modal');
-      showToast('Register closed', 'success');
-      updateRegisterDisplay();
-    } else {
-      // Open register
-      const float = parseFloat(document.getElementById('register-float').value) || 0;
-      const { data, error } = await sb.from('pos_sessions').insert({
-        business_id: membership.business_id,
-        opened_by: currentUser.id,
-        opening_float: float,
-        status: 'open',
-        opened_at: new Date().toISOString(),
-      }).select().single();
-      setBtnLoading(btn, false);
-      if (error) { return setError('register-error', error.message); }
-      activeRegister = data;
-      posState.posSessionId = data.id;
-      closeModal('register-modal');
-      showToast('Register opened', 'success');
-      updateRegisterDisplay();
-    }
-  }
-
   // ========== POS BUTTON IN TOOLBAR ==========
   // Add POS button to products tab toolbar
   document.addEventListener('DOMContentLoaded', () => {
@@ -3737,6 +3630,7 @@
   async function loadEverything() {
     try {
       await Promise.all([loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses(), loadPurchases(), loadMaterials(), loadSuppliers()]);
+      { const { data: ri } = await sb.from('recipe_items').select('*').eq('business_id', membership.business_id); cache.recipeItems = ri || []; }
       if (membership.role === "owner") await loadTeam();
       if (membership.role === "owner" || membership.role === "manager") await loadReports();
       await Promise.all([loadWaste(), loadShifts(), loadProduceBatches()]);
@@ -3753,7 +3647,7 @@
   function setupRealtimeSubscriptions() {
     if (realtimeChannel) { sb.removeChannel(realtimeChannel); }
     realtimeChannel = sb.channel("business-realtime");
-    const tables = ["products", "orders", "order_items", "customers", "payments", "expenses", "purchase_orders", "raw_materials", "recipe_items", "waste_log", "labor_shifts", "produce_batches"];
+    const tables = ["products", "orders", "order_items", "customers", "payments", "expenses", "purchase_orders", "raw_materials", "recipe_items", "waste_log", "labor_shifts", "produce_batches", "stock_movements"];
     tables.forEach((table) => {
       realtimeChannel.on("postgres_changes", { event: "*", schema: "public", table }, (payload) => {
         handleRealtimeEvent(table);
@@ -3773,7 +3667,7 @@
     if (table === "payments") { loadPayments(); }
     if (table === "expenses") { loadExpenses(); }
     if (table === "purchase_orders") { loadPurchases(); }
-    if (table === "raw_materials" || table === "recipe_items") { loadMaterials(); }
+    if (table === "raw_materials" || table === "recipe_items") { loadMaterials(); { const { data: ri } = await sb.from('recipe_items').select('*').eq('business_id', membership.business_id); cache.recipeItems = ri || []; } }
     if (table === "waste_log" && activeTab === "efficiency") { loadWaste(); renderEfficiency(); }
     if (table === "labor_shifts" && activeTab === "efficiency") { loadShifts(); renderEfficiency(); }
     if (table === "produce_batches" && activeTab === "efficiency") { loadProduceBatches(); renderEfficiency(); }
@@ -3804,12 +3698,19 @@
     const materialValue = cache.materials.reduce((s, m) => s + (Number(m.stock_qty) * Number(m.cost_per_unit || 0)), 0);
 
     const lowStockProducts = cache.products.filter(
-      (p) => p.product_type !== 'manufactured' && p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold)
+      (p) => p.product_type !== 'recipe' && p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold)
     );
     const lowStockMaterials = cache.materials.filter(
       (m) => m.stock_qty !== null && m.low_stock_threshold !== null && Number(m.stock_qty) <= Number(m.low_stock_threshold)
     );
-    const lowStockCount = lowStockProducts.length + lowStockMaterials.length;
+    const constrainedRecipes = cache.products
+      .filter(p => p.product_type === 'recipe')
+      .map(p => {
+        const avail = getDerivedAvailability(p.id);
+        return { ...p, derivedAvail: avail };
+      })
+      .filter(p => p.derivedAvail <= 0);
+    const lowStockCount = lowStockProducts.length + lowStockMaterials.length + constrainedRecipes.length;
     const salesCount = allSales ? allSales.filter(o => o.status === 'completed').length : 0;
     const worstStockItems = [...lowStockProducts.map(p => ({ name: p.name, qty: Number(p.stock_qty) })), ...lowStockMaterials.map(m => ({ name: m.name + ' (material)', qty: Number(m.stock_qty) }))];
     worstStockItems.sort((a, b) => a.qty - b.qty);
@@ -3841,6 +3742,7 @@
     const alerts = [];
     if (lowStockCount > 0) alerts.push(`${lowStockCount} low-stock item${lowStockCount === 1 ? '' : 's'} need attention.`);
     if (lowStockMaterials.length > 0 && businessUsesRawMaterials()) alerts.push(`${lowStockMaterials.length} raw material${lowStockMaterials.length === 1 ? '' : 's'} running low.`);
+    if (constrainedRecipes.length > 0) alerts.push(`${constrainedRecipes.length} recipe product${constrainedRecipes.length === 1 ? '' : 's'} unavailable — ingredients out.`);
     if (wasteCost > 0) alerts.push(`${money(wasteCost)} in waste logged.`);
     if (revenue > 0 && totalCosts > revenue) alerts.push("Costs exceed revenue — review spending.");
     if (purchaseTotal === 0 && cache.materials.length > 0) alerts.push("No purchase orders recorded — costs may be incomplete.");
@@ -3894,8 +3796,7 @@
     const search = (document.getElementById("product-search")?.value ?? "").trim().toLowerCase();
 
     let list = cache.products;
-    if (typeFilter === 'manufactured') list = list.filter(p => p.product_type === 'manufactured');
-    else if (typeFilter === 'product') list = list.filter(p => p.product_type !== 'manufactured');
+    if (typeFilter) list = list.filter(p => p.product_type === typeFilter);
     if (categoryFilter) list = list.filter(p => p.category === categoryFilter);
     if (search) list = list.filter(p => p.name.toLowerCase().includes(search));
 
@@ -3903,14 +3804,18 @@
     if (list.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">📦</div>No products yet.<br><span style="font-size:12px;">Add your first product.</span></div>`; return; }
 
     el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;"><div>Product</div><div>${businessUsesRawMaterials() ? 'Stock / Sold' : 'Stock'}</div><div style="text-align:right">Price</div><div></div></div>` +
+      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;"><div>Product</div><div>Stock</div><div style="text-align:right">Price</div><div></div></div>` +
       list.map((p) => {
+        const isRecipe = p.product_type === 'recipe';
         const isManufactured = p.product_type === 'manufactured';
+        const isResale = p.product_type === 'resale';
         let stockDisplay, statusClass, statusLabel;
-        if (isManufactured) {
-          stockDisplay = p.total_sold != null ? p.total_sold + ' sold' : '0 sold';
-          statusClass = '';
-          statusLabel = '';
+        if (isRecipe) {
+          const avail = getDerivedAvailability(p.id);
+          const limitStr = p.stock_limit != null ? ` / ${p.stock_limit}` : '';
+          stockDisplay = `${avail}${limitStr}`;
+          if (avail <= 0) { statusClass = 'low-tag'; statusLabel = 'Unavailable'; }
+          else { statusClass = ''; statusLabel = ''; }
         } else {
           const qty = p.stock_qty !== null ? Number(p.stock_qty) : null;
           const threshold = p.low_stock_threshold !== null ? Number(p.low_stock_threshold) : null;
@@ -3919,15 +3824,24 @@
           else if (threshold !== null && qty <= threshold) { statusClass = 'low-tag'; statusLabel = 'Low Stock'; }
           else { statusClass = ''; statusLabel = 'In Stock'; }
         }
+        const typeBadge = isRecipe
+          ? '<span style="font-size:10px; padding:1px 5px; border-radius:4px; background:var(--accent-soft); color:var(--accent); font-weight:600;">RECIPE</span>'
+          : isManufactured
+            ? '<span style="font-size:10px; padding:1px 5px; border-radius:4px; background:#8b5cf620; color:#8b5cf6; font-weight:600;">MANUFACTURED</span>'
+            : '<span style="font-size:10px; padding:1px 5px; border-radius:4px; background:var(--sky-soft); color:var(--sky); font-weight:600;">RESALE</span>';
+        const actionBtn = isResale
+          ? `<span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="event.stopPropagation(); openPurchaseModal()">Buy</span>`
+          : isRecipe
+            ? `<span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="event.stopPropagation(); openRecipeModal('${escapeAttr(p.id)}')">Recipe</span>`
+            : `<span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="event.stopPropagation(); openProduceModal()">Make</span>`;
         return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 0.6fr; cursor:pointer;" onclick="openEditProduct('${escapeAttr(p.id)}')">
           <div>
-            <div>${escapeHtml(p.name)} ${isManufactured ? '<span style="font-size:10px; padding:1px 5px; border-radius:4px; background:var(--accent-soft); color:var(--accent); font-weight:600;">RECIPE</span>' : '<span style="font-size:10px; padding:1px 5px; border-radius:4px; background:var(--sky-soft); color:var(--sky); font-weight:600;">RESALE</span>'}</div>
+            <div>${escapeHtml(p.name)} ${typeBadge}</div>
             ${p.category ? `<span class="cat-badge">${escapeHtml(p.category)}</span>` : ""}
-            ${isManufactured ? `<span style="color:var(--accent); font-size:11px; text-decoration:underline; margin-left:8px;" onclick="event.stopPropagation(); openRecipeModal('${escapeAttr(p.id)}')">Recipe</span>` : ""}
           </div>
-          <div class="${statusClass || 'num'}">${stockDisplay}${statusLabel ? ` <span style="${statusLabel === 'Out of Stock' ? 'color:var(--danger);font-weight:600' : statusLabel === 'Low Stock' ? 'color:var(--amber);font-weight:600' : 'color:var(--accent)'}">${statusLabel}</span>` : ''}</div>
+          <div class="${statusClass || 'num'}">${stockDisplay}${statusLabel ? ` <span style="${statusLabel === 'Out of Stock' || statusLabel === 'Unavailable' ? 'color:var(--danger);font-weight:600' : statusLabel === 'Low Stock' ? 'color:var(--amber);font-weight:600' : 'color:var(--accent)'}">${statusLabel}</span>` : ''}</div>
           <div class="num" style="text-align:right">${money(p.price)}</div>
-          <div style="text-align:right">${!isManufactured ? `<span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="event.stopPropagation(); openPurchaseModal()">Buy</span>` : `<span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="event.stopPropagation(); openProduceModal()">Make</span>`}</div>
+          <div style="text-align:right">${actionBtn}</div>
         </div>`;
       }).join("");
   }
@@ -3946,9 +3860,12 @@
   }
 
   function toggleProductTypeFields() {
-    const isManufactured = document.getElementById("p-type").value === "manufactured";
-    document.getElementById("p-stock-row").style.display = isManufactured ? "none" : "";
-    document.getElementById("p-threshold-row").style.display = isManufactured ? "none" : "";
+    const type = document.getElementById("p-type").value;
+    const isRecipe = type === "recipe";
+    const isResale = type === "resale";
+    document.getElementById("p-stock-row").style.display = isRecipe ? "none" : "";
+    document.getElementById("p-threshold-row").style.display = isRecipe ? "none" : "";
+    document.getElementById("p-limit-row").classList.toggle("hidden", !isRecipe);
   }
 
   function openAddProduct() {
@@ -3963,6 +3880,7 @@
     document.getElementById("p-unit").value = "";
     document.getElementById("p-stock").value = "";
     document.getElementById("p-threshold").value = "";
+    document.getElementById("p-stock-limit").value = "";
     document.getElementById("p-type-row").style.display = "";
     document.getElementById("p-type").value = "resale";
     toggleProductTypeFields();
@@ -3986,6 +3904,7 @@
     document.getElementById("p-threshold").value = p.low_stock_threshold ?? "";
     document.getElementById("p-type-row").style.display = "";
     document.getElementById("p-type").value = p.product_type || "resale";
+    document.getElementById("p-stock-limit").value = p.stock_limit ?? "";
     toggleProductTypeFields();
     openModal("product-modal");
   }
@@ -3996,7 +3915,7 @@
     if (!p) return;
     const { error } = await sb.from("products").insert({
       business_id: membership.business_id, name: `${p.name} (copy)`, category: p.category,
-      price: p.price, unit: p.unit, stock_qty: 0, total_sold: 0, low_stock_threshold: p.low_stock_threshold, product_type: p.product_type || 'resale',
+      price: p.price, unit: p.unit, stock_qty: p.product_type === 'recipe' ? 0 : (p.stock_qty || 0), low_stock_threshold: p.low_stock_threshold, product_type: p.product_type || 'resale', stock_limit: p.stock_limit || null,
     });
     if (error) return setError("product-error", error.message);
     closeModal("product-modal");
@@ -4014,13 +3933,15 @@
     const stock = document.getElementById("p-stock").value === "" ? 0 : parseFloat(document.getElementById("p-stock").value);
     const threshold = document.getElementById("p-threshold").value === "" ? null : parseFloat(document.getElementById("p-threshold").value);
     const productType = businessUsesRawMaterials() ? (document.getElementById("p-type").value || 'resale') : 'resale';
+    const isRecipe = productType === 'recipe';
+    const stockLimit = isRecipe ? (document.getElementById("p-stock-limit").value === "" ? null : parseFloat(document.getElementById("p-stock-limit").value)) : null;
 
     if (!name || isNaN(price)) return setError("product-error", "Name and price are required.");
     if (price < 0) return setError("product-error", "Price cannot be negative.");
-    if (stock < 0) return setError("product-error", "Stock cannot be negative.");
+    if (!isRecipe && stock < 0) return setError("product-error", "Stock cannot be negative.");
     if (threshold !== null && threshold < 0) return setError("product-error", "Threshold cannot be negative.");
 
-    const payload = { name, category, price, unit, stock_qty: productType === 'manufactured' ? 0 : stock, low_stock_threshold: threshold, product_type: productType };
+    const payload = { name, category, price, unit, stock_qty: productType === 'recipe' ? 0 : stock, low_stock_threshold: isRecipe ? null : threshold, product_type: productType, stock_limit: stockLimit };
     setBtnLoading(btn, true);
 
     if (editingRecord) {
@@ -4029,7 +3950,7 @@
       setBtnLoading(btn, false);
       if (error) return setError("product-error", error.message);
     } else {
-      const { error } = await sb.from("products").insert({ business_id: membership.business_id, ...payload, total_sold: 0 });
+      const { error } = await sb.from("products").insert({ business_id: membership.business_id, ...payload });
       setBtnLoading(btn, false);
       if (error) return setError("product-error", error.message);
     }
@@ -4190,12 +4111,17 @@
     // Only restore stock if the order was served or completed (stock was already deducted)
     const { data: order } = await sb.from("orders").select("status, table_id").eq("id", orderId).single();
     if (order && ['completed', 'served'].includes(order.status)) {
-      const { data: items } = await sb.from("order_items").select("*, products(product_type, total_sold)").eq("order_id", orderId);
+      const { data: items } = await sb.from("order_items").select("*, products(product_type)").eq("order_id", orderId);
       for (const item of items ?? []) {
         const prod = item.products;
-        if (prod && prod.product_type === 'manufactured') {
-          const newSold = Number(prod.total_sold || 0) + Number(item.quantity);
-          await sb.from('products').update({ total_sold: newSold }).eq('id', item.product_id).eq('business_id', membership.business_id);
+        if (!prod) continue;
+        if (prod.product_type === 'recipe') {
+          const recipeItems = (cache.recipeItems || []).filter(r => r.product_id === prod.id);
+          for (const ri of recipeItems) {
+            const needed = Number(ri.quantity_required) * Number(item.quantity);
+            await adjustStock('raw_materials', ri.raw_material_id, needed, membership.business_id);
+            await logStockMovement({ itemType: 'raw_material', materialId: ri.raw_material_id, qtyChange: needed, reason: 'sale void', refType: 'order', refId: orderId });
+          }
         } else {
           await adjustStock('products', item.product_id, Number(item.quantity), membership.business_id);
           await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: Number(item.quantity), reason: 'sale void', refType: 'order', refId: orderId });
@@ -4934,15 +4860,34 @@
   function renderLowStockReport() {
     const el = document.getElementById("low-stock-ledger");
     if (!el) return;
-    const low = cache.products.filter((p) => p.product_type !== 'manufactured' && p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold));
-    if (low.length === 0) { el.innerHTML = `<div class="empty-state">Nothing low right now.</div>`; return; }
-    el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Product</div><div>Stock left</div><div style="text-align:right">Reorder</div></div>` +
-      low.map((p) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr;">
+    const lowProducts = cache.products.filter(p => p.product_type !== 'recipe' && p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold));
+    const constrainedRecipes = cache.products
+      .filter(p => p.product_type === 'recipe')
+      .map(p => {
+        const avail = getDerivedAvailability(p.id);
+        return { ...p, derivedAvail: avail };
+      })
+      .filter(p => p.derivedAvail <= 0);
+    if (lowProducts.length === 0 && constrainedRecipes.length === 0) { el.innerHTML = `<div class="empty-state">Nothing low right now.</div>`; return; }
+    let html = '';
+    if (lowProducts.length > 0) {
+      html += `<div style="font-size:12px; font-weight:600; color:var(--ink-faint); margin-bottom:6px; text-transform:uppercase;">Low Stock — Resale & Manufactured</div>`;
+      html += `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Product</div><div>Stock left</div><div style="text-align:right">Reorder</div></div>`;
+      html += lowProducts.map((p) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr;">
         <div>${escapeHtml(p.name)}</div>
         <div class="low-tag">${p.stock_qty} ${escapeHtml(p.unit)}</div>
         <div style="text-align:right">${p.low_stock_threshold}</div>
       </div>`).join("");
+    }
+    if (constrainedRecipes.length > 0) {
+      html += `<div style="font-size:12px; font-weight:600; color:var(--ink-faint); margin:12px 0 6px; text-transform:uppercase;">Recipe Products — Unavailable</div>`;
+      html += `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Product</div><div>Status</div></div>`;
+      html += constrainedRecipes.map((p) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr;">
+        <div>${escapeHtml(p.name)}</div>
+        <div class="low-tag">Unavailable — ingredients out</div>
+      </div>`).join("");
+    }
+    el.innerHTML = html;
   }
 
   function copyInviteCode(evt) {
@@ -5193,11 +5138,12 @@
       await logStockMovement({ itemType: 'raw_material', materialId: ri.raw_material_id, qtyChange: -needed, reason: 'production', refType: 'production', refId: batch.id });
     }
 
-    // Increment total_sold for the manufactured product
-    const { data: currentProd } = await sb.from('products').select('total_sold').eq('id', productId).eq('business_id', membership.business_id).single();
-    if (currentProd) {
-      const newSold = Number(currentProd.total_sold || 0) + actualYield;
-      await sb.from('products').update({ total_sold: newSold }).eq('id', productId).eq('business_id', membership.business_id);
+    // Increment stock_qty for the manufactured product
+    const { data: currentProd } = await sb.from('products').select('stock_qty, product_type').eq('id', productId).eq('business_id', membership.business_id).single();
+    if (currentProd && currentProd.product_type === 'manufactured') {
+      const newStock = Number(currentProd.stock_qty || 0) + actualYield;
+      await sb.from('products').update({ stock_qty: newStock }).eq('id', productId).eq('business_id', membership.business_id);
+      await logStockMovement({ itemType: 'product', productId: productId, qtyChange: actualYield, reason: 'production', refType: 'produce_batch', refId: batch.id });
     }
 
     setBtnLoading(btn, false);

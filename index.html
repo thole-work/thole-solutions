@@ -4134,16 +4134,16 @@
   async function loadSales(append = false) {
     updateSalesGroupBtn();
     if (salesExpandedDay && !append) {
-      const { data } = await sb.from('orders').select('*, customers(name)').eq('business_id', membership.business_id).eq('status', 'completed').gte('created_at', salesExpandedDay + 'T00:00:00').lte('created_at', salesExpandedDay + 'T23:59:59').order('created_at', { ascending: false });
+      const { data } = await sb.from('orders').select('*, customers(name)').eq('business_id', membership.business_id).neq('status', 'voided').gte('created_at', salesExpandedDay + 'T00:00:00').lte('created_at', salesExpandedDay + 'T23:59:59').order('created_at', { ascending: false });
       const el = document.getElementById("sales-ledger");
       if (!el) return;
       const label = new Date(salesExpandedDay + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
       const dayTotal = (data || []).reduce((s, o) => s + Number(o.total_amount || 0), 0);
       const backBtn = `<div style="padding:8px 0 12px;"><button class="btn-ghost" onclick="salesGoBack()" style="font-size:13px;">← Back to summary</button> <span style="color:var(--ink-faint); font-size:13px; margin-left:8px;">${escapeHtml(label)} — ${money(dayTotal)}</span></div>`;
-      if (!data || data.length === 0) { el.innerHTML = backBtn + `<div class="empty-state">No completed sales for this day.</div>`; return; }
+      if (!data || data.length === 0) { el.innerHTML = backBtn + `<div class="empty-state">No orders for this day.</div>`; return; }
       const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;"><div>Customer</div><div>Time</div><div style="text-align:right">Total</div><div></div><div></div></div>`;
       const rows = data.map(o => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;">
-        <div>${o.customers ? escapeHtml(o.customers.name) : "Walk-in"}</div>
+        <div>${o.customers ? escapeHtml(o.customers.name) : "Walk-in"}${o.status !== 'completed' ? ` <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:var(--amber-soft); color:var(--amber); font-weight:600;">${o.status.toUpperCase()}</span>` : ''}</div>
         <div style="color:var(--ink-faint); font-size:12px;">${new Date(o.created_at).toLocaleTimeString()}</div>
         <div class="num" style="text-align:right">${money(o.total_amount)}</div>
         <div style="text-align:right;">${o.status === 'served' ? `<span style="color:#16a34a; font-size:12px; text-decoration:underline; cursor:pointer; font-weight:600;" onclick="payTableOrder('${escapeAttr(o.id)}')">Pay</span>` : `<span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="posShowReceipt('${escapeAttr(o.id)}')">Receipt</span>`}</div>

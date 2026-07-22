@@ -837,12 +837,7 @@
         <div style="display:flex; gap:8px; flex:1;">
           <input type="text" id="product-search" data-i18n-placeholder="products.search" placeholder="Search products…" oninput="renderProducts()" style="max-width:220px;" />
           <select id="cat-filter" onchange="renderProducts()"><option value="" data-i18n="products.all_categories">All categories</option></select>
-          <select id="inv-type-filter" onchange="renderProducts()" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="">All</option>
-            <option value="resale">Resale</option>
-            <option value="recipe">Recipe</option>
-            <option value="manufactured">Manufactured</option>
-          </select>
+           <select id="inv-type-filter" onchange="renderProducts()" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);"></select>
         </div>
         <button class="btn-small" onclick="openAddProduct()" data-i18n="products.add">+ Add product</button>
       </div>
@@ -1130,11 +1125,7 @@
     <input type="text" id="p-category-new" class="hidden" placeholder="Type new category name" style="margin-top:4px;" />
     <div id="p-type-row" class="field-row">
       <div><label data-i18n="product_modal.type">Type</label>
-        <select id="p-type" onchange="toggleProductTypeFields()">
-          <option value="resale" data-i18n="product_modal.resale">Buy & Sell</option>
-          <option value="recipe">Recipe</option>
-          <option value="manufactured" data-i18n="product_modal.manufactured">Manufactured</option>
-        </select>
+        <select id="p-type" onchange="toggleProductTypeFields()"></select>
       </div>
     </div>
     <div class="field-row">
@@ -3787,6 +3778,14 @@
     const cats = [...new Set(cache.products.map((p) => p.category).filter(Boolean))];
     document.getElementById("cat-filter").innerHTML =
       `<option value="">All categories</option>` + cats.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+    const tf = document.getElementById("inv-type-filter");
+    if (tf) {
+      tf.innerHTML = `<option value="">All</option><option value="resale">Resale</option>`;
+      if (businessUsesRawMaterials()) {
+        tf.innerHTML += `<option value="recipe">Recipe</option>`;
+        if (businessTypeKey === "factory") tf.innerHTML += `<option value="manufactured">Manufactured</option>`;
+      }
+    }
     renderProducts();
   }
 
@@ -3859,6 +3858,19 @@
     else sel.value = '';
   }
 
+  function populateProductTypeOptions() {
+    const sel = document.getElementById("p-type");
+    if (!sel) return;
+    sel.innerHTML = "";
+    sel.innerHTML += `<option value="resale" data-i18n="product_modal.resale">Buy & Sell</option>`;
+    if (businessUsesRawMaterials()) {
+      sel.innerHTML += `<option value="recipe">Recipe</option>`;
+      if (businessTypeKey === "factory") {
+        sel.innerHTML += `<option value="manufactured" data-i18n="product_modal.manufactured">Manufactured</option>`;
+      }
+    }
+  }
+
   function toggleProductTypeFields() {
     const type = document.getElementById("p-type").value;
     const isRecipe = type === "recipe";
@@ -3882,6 +3894,7 @@
     document.getElementById("p-threshold").value = "";
     document.getElementById("p-stock-limit").value = "";
     document.getElementById("p-type-row").style.display = "";
+    populateProductTypeOptions();
     document.getElementById("p-type").value = "resale";
     toggleProductTypeFields();
     openModal("product-modal");
@@ -3903,6 +3916,7 @@
     document.getElementById("p-stock").value = p.stock_qty ?? "";
     document.getElementById("p-threshold").value = p.low_stock_threshold ?? "";
     document.getElementById("p-type-row").style.display = "";
+    populateProductTypeOptions();
     document.getElementById("p-type").value = p.product_type || "resale";
     document.getElementById("p-stock-limit").value = p.stock_limit ?? "";
     toggleProductTypeFields();

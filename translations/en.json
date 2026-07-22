@@ -2,7 +2,7 @@
   "app_name": "Thole Solutions",
   "nav": {
     "dashboard": "Dashboard",
-    "stock": "Stock",
+    "products": "Products",
     "sales": "Sales",
     "customers": "Customers",
     "payments": "Payments",
@@ -11,7 +11,7 @@
     "purchase_orders": "Purchase Orders",
     "team": "Team",
     "reports": "Reports",
-    "materials": "Raw Materials",
+    "store": "Store",
     "stock_movements": "Stock Movements",
     "efficiency": "Efficiency",
     "settings": "Settings",
@@ -69,8 +69,8 @@
     "no_purchases_alert": "No purchase orders recorded — costs may be incomplete."
   },
   "products": {
-    "title": "Products & Stock",
-    "subtitle": "Your catalog and current stock on hand.",
+    "title": "Products",
+    "subtitle": "Resale, recipe, and manufactured products.",
     "search": "Search products...",
     "all_categories": "All categories",
     "new_category": "+ New category",
@@ -78,11 +78,19 @@
     "col_product": "Product",
     "col_stock": "Stock",
     "col_price": "Price",
+    "col_availability": "Availability",
     "empty": "No products yet.",
     "empty_sub": "Add your first product to start tracking stock.",
-    "made": "MADE",
-    "buy": "BUY",
-    "recipe": "Recipe"
+    "type_resale": "RESALE",
+    "type_recipe": "RECIPE",
+    "type_manufactured": "MANUFACTURED",
+    "recipe": "Recipe",
+    "stock_limit": "Stock Limit (covers)",
+    "derived_avail": "Available",
+    "availability_unavailable": "Unavailable — ingredients out of stock",
+    "availability_low": "Only {avail} left (limited by ingredients)",
+    "availability_bottleneck": "Limited by: {material}",
+    "availability_stock_limit": "Stock limit reached"
   },
   "sales": {
     "title": "Sales",
@@ -254,14 +262,22 @@
     "col_reorder": "Reorder",
     "no_data": "No category data available.",
     "no_sales": "No sales yet.",
-    "nothing_low": "Nothing low right now."
+    "nothing_low": "Nothing low right now.",
+    "low_stock_resale_manufactured": "Low Stock — Resale & Manufactured",
+    "low_stock_recipe": "Recipe Products — Unavailable",
+    "low_stock_recipe_constrained": "Recipe Products — Constrained",
+    "recipe_detail": "Available: {avail} | Bottleneck: {material}",
+    "col_bottleneck": "Bottleneck"
   },
   "materials": {
     "title": "Raw Materials",
-    "subtitle": "Ingredients or components used to make your products.",
-    "csv": "📥 CSV",
-    "produce": "Produce",
-    "add": "+ Add raw material",
+    "subtitle": "Raw material inventory, purchasing, and stock alerts."
+  },
+  "store": {
+    "purchase": "Purchase",
+    "add": "+ Add item",
+    "csv": "CSV",
+    "low_stock_alerts": "Low stock alerts",
     "col_name": "Name",
     "col_stock": "Stock",
     "empty": "No raw materials yet.",
@@ -499,7 +515,10 @@
     "place_order": "Place Order",
     "ready_to_pay": "Ready to Pay",
     "order_placed": "Order placed — pending at kitchen",
-    "takeout": "Takeout"
+    "takeout": "Takeout",
+    "stock_insufficient": "Not enough stock. Available: {avail}",
+    "stock_warning": "Low stock warning — only {avail} available",
+    "recipe_not_allowed": "Recipe products cannot be produced in batches. Use Make for Manufactured products."
   },
   "payment_screen": {
     "title": "Payment",

@@ -1040,6 +1040,7 @@
       <div class="toolbar">
         <button class="btn-small" onclick="openKDS()" data-i18n="sales.kds">🍳 Kitchen Display</button>
       </div>
+      <div id="kitchen-low-stock" style="margin-bottom:16px;"></div>
       <div class="ledger" id="kitchen-stock-ledger"></div>
     </section>
 
@@ -1882,26 +1883,7 @@
     const product = (cache.products || []).find(p => p.id === productId);
     if (!product) return 0;
     if (product.product_type !== 'recipe') return Number(product.stock_qty) || 0;
-    if (!recipeConsumesMaterials()) {
-      // Recipes aren't linked to raw materials yet — treat as always available
-      // unless a manual per-item stock limit has been set on the product.
-      return (product.stock_limit != null && product.stock_limit !== '') ? Number(product.stock_limit) : Infinity;
-    }
-    const recipe = (cache.recipeItems || []).filter(r => r.product_id === productId);
-    if (!recipe.length) return 0;
-    let minAvail = Infinity;
-    for (const r of recipe) {
-      const mat = (cache.materials || []).find(m => m.id === r.raw_material_id);
-      const matStock = mat ? Number(mat.kitchen_stock_qty) : 0;
-      const perUnit = Number(r.quantity_required) || 0;
-      if (perUnit <= 0) continue;
-      const avail = Math.floor(matStock / perUnit);
-      if (avail < minAvail) minAvail = avail;
-    }
-    if (product.stock_limit != null && product.stock_limit !== '') {
-      minAvail = Math.min(minAvail, Number(product.stock_limit));
-    }
-    return minAvail === Infinity ? 0 : minAvail;
+    return (product.stock_limit != null && product.stock_limit !== '') ? Number(product.stock_limit) : Infinity;
   }
 
   // ============================================================
@@ -2164,20 +2146,9 @@
         for (const item of (order.order_items || [])) {
           const prod = item.products;
           if (!prod) continue;
-          if (prod.product_type === 'recipe') {
-            if (recipeConsumesMaterials()) {
-              const recipeItems = (cache.recipeItems || []).filter(r => r.product_id === prod.id);
-              for (const ri of recipeItems) {
-                const needed = Number(ri.quantity_required) * Number(item.quantity);
-                await adjustStockColumn('raw_materials', ri.raw_material_id, 'kitchen_stock_qty', -needed, membership.business_id);
-                await logStockMovement({ itemType: 'raw_material', materialId: ri.raw_material_id, qtyChange: -needed, reason: 'sale_consumption', refType: 'order', refId: order.id, location: 'kitchen' });
-              }
-            }
-            // Recipe items are sale-count only until raw-material linkage is reconnected.
-          } else {
-            await adjustStock('products', item.product_id, -item.quantity, membership.business_id);
-            await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: -item.quantity, reason: 'sale', refType: 'order', refId: order.id });
-          }
+          if (prod.product_type === 'recipe') continue; // sale-count only, no per-order stock deduction
+          await adjustStock('products', item.product_id, -item.quantity, membership.business_id);
+          await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: -item.quantity, reason: 'sale', refType: 'order', refId: order.id });
         }
       }
       await sb.from('orders').update({ status: 'served' }).eq('id', orderId).eq('business_id', membership.business_id);
@@ -2900,14 +2871,7 @@
       payload.product_id = prodId;
       const prod = cache.products.find(p => p.id === prodId);
       if (prod && prod.product_type === 'recipe') {
-        if (recipeConsumesMaterials()) {
-          const recipeItems = (cache.recipeItems || []).filter(r => r.product_id === prodId);
-          for (const ri of recipeItems) {
-            const needed = Number(ri.quantity_required) * qty;
-            await adjustStockColumn('raw_materials', ri.raw_material_id, 'kitchen_stock_qty', -needed, membership.business_id);
-            await logStockMovement({ itemType: 'raw_material', materialId: ri.raw_material_id, qtyChange: -needed, reason: 'waste', refType: 'waste', refId: null, location: 'kitchen' });
-          }
-        }
+        // Recipe waste: sale-count only, no kitchen stock deduction
       } else {
         await adjustStock('products', prodId, -qty, membership.business_id);
         await logStockMovement({ itemType: 'product', productId: prodId, qtyChange: -qty, reason: 'waste', refType: 'waste', refId: null });
@@ -3071,10 +3035,6 @@
       const localSettings = JSON.parse(localStorage.getItem('thole:settings')) || {};
       return { ...localSettings, ...dbSettings };
     } catch(e) { return {}; }
-  }
-
-  function recipeConsumesMaterials() {
-    return getSettings().recipe_consumes_materials === true;
   }
 
   // ========== TABLE SETTINGS (Settings tab) ==========
@@ -4259,19 +4219,9 @@
       for (const item of items ?? []) {
         const prod = item.products;
         if (!prod) continue;
-        if (prod.product_type === 'recipe') {
-          if (recipeConsumesMaterials()) {
-            const recipeItems = (cache.recipeItems || []).filter(r => r.product_id === prod.id);
-            for (const ri of recipeItems) {
-              const needed = Number(ri.quantity_required) * Number(item.quantity);
-              await adjustStockColumn('raw_materials', ri.raw_material_id, 'kitchen_stock_qty', needed, membership.business_id);
-              await logStockMovement({ itemType: 'raw_material', materialId: ri.raw_material_id, qtyChange: needed, reason: 'sale void', refType: 'order', refId: orderId, location: 'kitchen' });
-            }
-          }
-        } else {
-          await adjustStock('products', item.product_id, Number(item.quantity), membership.business_id);
-          await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: Number(item.quantity), reason: 'sale void', refType: 'order', refId: orderId });
-        }
+        if (prod.product_type === 'recipe') continue; // sale-count only, no stock to restore
+        await adjustStock('products', item.product_id, Number(item.quantity), membership.business_id);
+        await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: Number(item.quantity), reason: 'sale void', refType: 'order', refId: orderId });
       }
       // Free table if it was still occupied
       if (order.table_id) {
@@ -5082,10 +5032,29 @@
 
   // ========== KITCHEN ==========
   async function loadKitchenStock() {
-    // Reuses the materials cache (already loaded) — no separate query needed.
     const el = document.getElementById("kitchen-stock-ledger");
     if (!el) return;
     const items = (cache.materials || []).filter(m => Number(m.kitchen_stock_qty || 0) > 0 || Number(m.stock_qty || 0) > 0);
+
+    const lowStockEl = document.getElementById("kitchen-low-stock");
+    if (lowStockEl) {
+      const lowStockItems = (cache.materials || []).filter(m => {
+        const threshold = Number(m.low_stock_threshold) || 10;
+        return Number(m.kitchen_stock_qty || 0) > 0 && Number(m.kitchen_stock_qty || 0) <= threshold;
+      });
+      if (lowStockItems.length > 0) {
+        lowStockEl.innerHTML = `<div style="background: rgba(212,175,55,0.08); border:1px solid rgba(212,175,55,0.3); border-radius:8px; padding:12px;">
+          <strong style="color:var(--amber);">⚠ Kitchen Low Stock</strong>
+          ${lowStockItems.map(m => `<div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid rgba(212,175,55,0.1);">
+            <span>${escapeHtml(m.name)} — ${m.kitchen_stock_qty || 0} ${escapeHtml(m.unit)} remaining</span>
+            <button class="btn-small" onclick="openStoreTab(); openSendToKitchenModal('${m.id}')">Send more</button>
+          </div>`).join('')}
+        </div>`;
+      } else {
+        lowStockEl.innerHTML = '';
+      }
+    }
+
     if (items.length === 0) {
       el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">🍳</div>No stock in the kitchen yet.<br><span style="font-size:12px;">Send items from the Store to get started.</span></div>`;
       return;

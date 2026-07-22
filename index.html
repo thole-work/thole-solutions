@@ -268,6 +268,18 @@
   .cat-badge { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 20px; background: var(--sky-soft); color: var(--accent); text-transform: uppercase; letter-spacing: 0.03em; }
   .low-tag { color: var(--danger); font-size: 12px; font-weight: 500; }
   .empty-state { text-align: center; padding: 50px 20px; color: var(--ink-faint); font-size: 14px; }
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+  .item-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s; }
+  .item-card:hover { border-color: var(--accent); box-shadow: 0 4px 16px rgba(15,23,42,0.08); }
+  .item-card .card-name { font-weight: 600; font-size: 14px; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item-card .card-meta { font-size: 12px; color: var(--ink-faint); margin-bottom: 4px; }
+  .item-card .card-stock { font-size: 13px; font-weight: 500; margin-bottom: 8px; }
+  .item-card .card-stock.ok { color: var(--accent); }
+  .item-card .card-stock.low { color: var(--amber); }
+  .item-card .card-stock.out { color: var(--danger); }
+  .item-card .card-bottom { display: flex; justify-content: space-between; align-items: center; }
+  .item-card .card-price { font-weight: 600; font-size: 14px; }
+  .item-card .card-action { font-size: 12px; color: var(--accent); text-decoration: underline; cursor: pointer; border: none; background: none; padding: 0; }
 
   /* modal */
   .modal-backdrop { position: fixed; inset: 0; background: rgba(28,28,30,0.55); display: flex; align-items: center; justify-content: center; z-index: 20; padding: 20px; }
@@ -860,7 +872,7 @@
         </div>
         <button class="btn-small" onclick="openAddProduct()" data-i18n="products.add">+ Add product</button>
       </div>
-      <div class="ledger" id="products-ledger"></div>
+      <div id="products-ledger"></div>
     </section>
 
     <section id="tab-sales" class="tab-panel hidden">
@@ -1027,7 +1039,7 @@
         <button class="btn-small" onclick="openModal('material-modal')" data-i18n="store.add">+ Add item</button>
         <button class="btn-small" onclick="exportMaterialsCSV()" data-i18n="store.csv">📥 CSV</button>
       </div>
-      <div class="ledger" id="materials-ledger"></div>
+      <div id="materials-ledger"></div>
       <div class="report-card" style="margin-top:16px;">
         <h3 data-i18n="store.low_stock_alerts">Low stock alerts</h3>
         <div id="store-low-stock"></div>
@@ -3907,47 +3919,46 @@
     const el = document.getElementById("products-ledger");
     if (list.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">📦</div>No products yet.<br><span style="font-size:12px;">Add your first product.</span></div>`; return; }
 
-    el.innerHTML =
-      `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;"><div>Product</div><div>Stock</div><div style="text-align:right">Price</div><div></div></div>` +
+    el.innerHTML = `<div class="card-grid">` +
       list.map((p) => {
         const isRecipe = p.product_type === 'recipe';
         const isManufactured = p.product_type === 'manufactured';
         const isResale = p.product_type === 'resale';
-        let stockDisplay, statusClass, statusLabel;
+        const typeBadge = isRecipe
+          ? '<span style="font-size:9px; padding:1px 5px; border-radius:4px; background:var(--accent-soft); color:var(--accent); font-weight:600;">RECIPE</span>'
+          : isManufactured
+            ? '<span style="font-size:9px; padding:1px 5px; border-radius:4px; background:#8b5cf620; color:#8b5cf6; font-weight:600;">MANUFACTURED</span>'
+            : '<span style="font-size:9px; padding:1px 5px; border-radius:4px; background:var(--sky-soft); color:var(--sky); font-weight:600;">RESALE</span>';
+        let stockHtml;
         if (isRecipe) {
           const avail = getDerivedAvailability(p.id);
           const limitStr = p.stock_limit != null ? ` / ${p.stock_limit}` : '';
-          stockDisplay = `${isFinite(avail) ? avail : '∞'}${limitStr}`;
-          if (avail <= 0) { statusClass = 'low-tag'; statusLabel = 'Unavailable'; }
-          else { statusClass = ''; statusLabel = ''; }
+          const display = `${isFinite(avail) ? avail : '∞'}${limitStr}`;
+          const cls = avail <= 0 ? 'out' : '';
+          stockHtml = `<div class="card-stock ${cls}">${display}</div>`;
         } else {
           const qty = p.stock_qty !== null ? Number(p.stock_qty) : null;
           const threshold = p.low_stock_threshold !== null ? Number(p.low_stock_threshold) : null;
-          stockDisplay = qty !== null ? qty + ' ' + escapeHtml(p.unit) : '—';
-          if (qty === null || qty === 0) { statusClass = 'low-tag'; statusLabel = 'Out of Stock'; }
-          else if (threshold !== null && qty <= threshold) { statusClass = 'low-tag'; statusLabel = 'Low Stock'; }
-          else { statusClass = ''; statusLabel = 'In Stock'; }
+          if (qty === null || qty === 0) stockHtml = `<div class="card-stock out">Out of Stock</div>`;
+          else if (threshold !== null && qty <= threshold) stockHtml = `<div class="card-stock low">${qty} ${escapeHtml(p.unit)} — Low</div>`;
+          else stockHtml = `<div class="card-stock ok">${qty} ${escapeHtml(p.unit)}</div>`;
         }
-        const typeBadge = isRecipe
-          ? '<span style="font-size:10px; padding:1px 5px; border-radius:4px; background:var(--accent-soft); color:var(--accent); font-weight:600;">RECIPE</span>'
-          : isManufactured
-            ? '<span style="font-size:10px; padding:1px 5px; border-radius:4px; background:#8b5cf620; color:#8b5cf6; font-weight:600;">MANUFACTURED</span>'
-            : '<span style="font-size:10px; padding:1px 5px; border-radius:4px; background:var(--sky-soft); color:var(--sky); font-weight:600;">RESALE</span>';
         const actionBtn = isResale
-          ? `<span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="event.stopPropagation(); openPurchaseModal()">Buy</span>`
+          ? `<button class="card-action" onclick="event.stopPropagation(); openPurchaseModal()">Buy</button>`
           : isRecipe
-            ? `<span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="event.stopPropagation(); openRecipeModal('${escapeAttr(p.id)}')">Recipe</span>`
-            : `<span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="event.stopPropagation(); openProduceModal()">Make</span>`;
-        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 0.6fr; cursor:pointer;" onclick="openEditProduct('${escapeAttr(p.id)}')">
-          <div>
-            <div>${escapeHtml(p.name)} ${typeBadge}</div>
-            ${p.category ? `<span class="cat-badge">${escapeHtml(p.category)}</span>` : ""}
+            ? `<button class="card-action" onclick="event.stopPropagation(); openRecipeModal('${escapeAttr(p.id)}')">Recipe</button>`
+            : `<button class="card-action" onclick="event.stopPropagation(); openProduceModal()">Make</button>`;
+        return `<div class="item-card" onclick="openEditProduct('${escapeAttr(p.id)}')">
+          <div class="card-name">${escapeHtml(p.name)} ${typeBadge}</div>
+          ${p.category ? `<div class="card-meta">${escapeHtml(p.category)}</div>` : ''}
+          ${stockHtml}
+          <div class="card-bottom">
+            <span class="card-price">${money(p.price)}</span>
+            ${actionBtn}
           </div>
-          <div class="${statusClass || 'num'}">${stockDisplay}${statusLabel ? ` <span style="${statusLabel === 'Out of Stock' || statusLabel === 'Unavailable' ? 'color:var(--danger);font-weight:600' : statusLabel === 'Low Stock' ? 'color:var(--amber);font-weight:600' : 'color:var(--accent)'}">${statusLabel}</span>` : ''}</div>
-          <div class="num" style="text-align:right">${money(p.price)}</div>
-          <div style="text-align:right">${actionBtn}</div>
         </div>`;
-      }).join("");
+      }).join("") +
+      `</div>`;
   }
 
   function populateCategorySelect(selectId, currentVal) {
@@ -5002,16 +5013,28 @@
     const el = document.getElementById("materials-ledger");
     if (!el) return;
     if (cache.materials.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">🧱</div>No raw materials yet.<br><span style="font-size:12px;">Add ingredients or components for your recipes.</span></div>`; return; }
-    const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Name</div><div>Stock</div><div></div></div>`;
-    const rows = cache.materials.map((m) => {
+    const cards = cache.materials.map((m) => {
         const isLow = m.low_stock_threshold !== null && Number(m.stock_qty) <= Number(m.low_stock_threshold);
-        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr;">
-          <div style="cursor:pointer;" onclick="openEditMaterial('${escapeAttr(m.id)}')">${escapeHtml(m.name)}</div>
-          <div class="${isLow ? "low-tag" : "num"}" style="cursor:pointer;" onclick="openEditMaterial('${escapeAttr(m.id)}')">${m.stock_qty} ${escapeHtml(m.unit)}</div>
-          <div style="text-align:right;"><button class="btn-ghost btn-sm" onclick="event.stopPropagation(); openSendToKitchenModal('${escapeAttr(m.id)}')" data-i18n="kitchen.send">Send to Kitchen</button></div>
+        const stockCls = isLow ? 'out' : Number(m.stock_qty) === 0 ? 'out' : 'ok';
+        return `<div class="item-card" onclick="openEditMaterial('${escapeAttr(m.id)}')">
+          <div class="card-name">${escapeHtml(m.name)}</div>
+          <div class="card-stock ${stockCls}">${m.stock_qty} ${escapeHtml(m.unit)}</div>
+          <div class="card-bottom">
+            <span class="card-meta">${escapeHtml(m.unit)}</span>
+            <button class="card-action" onclick="event.stopPropagation(); openSendToKitchenModal('${escapeAttr(m.id)}')" data-i18n="kitchen.send">Send to Kitchen</button>
+          </div>
         </div>`;
       }).join("");
-    appendPaginated(el, head + rows, "materials", append);
+    if (!append) {
+      el.innerHTML = `<div class="card-grid">${cards}</div>`;
+      if (pagination.materials > 0) el.insertAdjacentHTML("beforeend", `<div style="text-align:center; padding:12px;"><button class="btn-ghost load-more-btn" onclick="loadMore('materials')">Load more</button></div>`);
+    } else {
+      const grid = el.querySelector('.card-grid');
+      if (grid) grid.insertAdjacentHTML("beforeend", cards);
+      const loadMoreBtn = el.querySelector(".load-more-btn");
+      if (loadMoreBtn) loadMoreBtn.remove();
+      if (pagination.materials > 0) el.insertAdjacentHTML("beforeend", `<div style="text-align:center; padding:12px;"><button class="btn-ghost load-more-btn" onclick="loadMore('materials')">Load more</button></div>`);
+    }
 
     // Low stock alerts
     const lowEl = document.getElementById("store-low-stock");

@@ -11,6 +11,7 @@
     "purchase_orders": "Ajajjii Kooftu",
     "team": "Garee",
     "reports": "Gabaasa",
+    "store": "Iddoo",
     "materials": "Rakkoo Abbaa Daldalaa",
     "stock_movements": "Jijjiirama Iddoo",
     "efficiency": "Walqixa",
@@ -78,11 +79,19 @@
     "col_product": "Abbaa Daldalaa",
     "col_stock": "Iddoo",
     "col_price": "Qarshii",
+    "col_availability": "Argama",
     "empty": "Abbaa daldalaa hin jiru.",
     "empty_sub": "Iddoo fuudhachuuf abbaa daldalaa jalqabaa iddaa.",
-    "made": "ABSKALAA",
-    "buy": "KOOFUU",
-    "recipe": "Cunqarsuu"
+    "type_resale": "KOOFUU",
+    "type_recipe": "CUNQARSUU",
+    "type_manufactured": "ABSKALAA",
+    "recipe": "Cunqarsuu",
+    "stock_limit": "Iddoo Cunqii (herrega)",
+    "derived_avail": "Argama",
+    "availability_unavailable": "Hin argamu — rakkoo hin jiru",
+    "availability_low": "{avail} qofa hagaa (rakkoo keessaa)",
+    "availability_bottleneck": "Rakkoo: {material}",
+    "availability_stock_limit": "Iddoo cunqii ga'eera"
   },
   "sales": {
     "title": "Gurgii",
@@ -254,7 +263,12 @@
     "col_reorder": "Iddoo haaraa",
     "no_data": "Odeeffannoo ramaddii hin jiru.",
     "no_sales": "Gurgii hin jiru.",
-    "nothing_low": "Har'a gadi hin jiru."
+    "nothing_low": "Har'a gadi hin jiru.",
+    "low_stock_resale_manufactured": "Iddoo Gadi — Kooftu fi Abskalaa",
+    "low_stock_recipe": "Abbaa Daldalaa Cunqarsuu — Hin Argamu",
+    "low_stock_recipe_constrained": "Abbaa Daldalaa Cunqarsuu — Rakkoo Qabu",
+    "recipe_detail": "Argama: {avail} | Rakkoo: {material}",
+    "col_bottleneck": "Rakkoo"
   },
   "materials": {
     "title": "Rakkoo Abbaa Daldalaa",
@@ -498,7 +512,10 @@
     "held_orders": "ajajjiiwwan qabaman",
     "place_order": "Ajajjii kaa'i",
     "ready_to_pay": "Kaffaluuf qophaa'eera",
-    "order_placed": "Ajajjii kaa'ame — dabarsii fiqaa keessa eegamaa"
+    "order_placed": "Ajajjii kaa'ame — dabarsii fiqaa keessa eegamaa",
+    "stock_insufficient": "Iddoo guutuu hin jiru. Argama: {avail}",
+    "stock_warning": "Iddoo gadi — {avail} qofa hagaa",
+    "recipe_not_allowed": "Abbaa daldalaa cunqarsuu abbaa daldalaa keessa hin danda'amu. Abbaa daldalaa Abskalaa irratti fayyadami."
   },
   "payment_screen": {
     "title": "Kaffaluu",

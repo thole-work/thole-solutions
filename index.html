@@ -561,6 +561,19 @@
   .tip-btn.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
   #custom-tip { width: 100%; padding: 12px; margin-top: 8px; font-size: 16px; }
 
+  /* Split Payment Lines */
+  #payment-lines { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+  .payment-line { display: grid; grid-template-columns: 1fr 110px 28px; gap: 8px; align-items: center; }
+  .payment-line select { padding: 10px; font-size: 13px; }
+  .payment-line input.payment-line-amount { padding: 10px; font-size: 14px; font-family: 'JetBrains Mono', monospace; text-align: right; }
+  .payment-line-remove { width: 28px; height: 38px; border: none; background: var(--danger-soft); color: var(--danger); border-radius: 6px; font-size: 13px; cursor: pointer; }
+  .payment-line-spacer { width: 28px; display: inline-block; }
+  #add-payment-line-btn { width: 100%; margin-bottom: 14px; padding: 10px; font-size: 13px; }
+  .payment-remaining { text-align: right; font-size: 13px; font-weight: 600; padding: 8px 4px; margin-bottom: 6px; min-height: 18px; }
+  .payment-remaining.due { color: var(--danger); }
+  .payment-remaining.change { color: var(--accent); }
+  #complete-payment-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
   /* Receipt Modal */
   .receipt-modal .modal { max-width: 320px; padding: 24px; }
   .receipt-header { text-align: center; margin-bottom: 16px; border-bottom: 1px dashed var(--line); padding-bottom: 16px; }
@@ -710,6 +723,7 @@
       <div class="nav-item nav-primary active" data-tab="dashboard" onclick="switchTab('dashboard')"><span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span> <span data-i18n="nav.dashboard">Dashboard</span></div>
       <div class="nav-item nav-primary" data-tab="products" onclick="switchTab('products')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M16.5 9.4 7.55 4.24a1 1 0 0 0-1.1 0L3 6"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-5-2.88a2 2 0 0 0-2 0L7 6.27a2 2 0 0 0-1 1.73v8a2 2 0 0 0 1 1.73l5 2.88a2 2 0 0 0 2 0l5-2.88a2 2 0 0 0 1-1.73Z"/><path d="M3.29 7 12 12l8.71-5"/><path d="M12 22V12"/></svg></span> <span data-i18n="nav.products">Products</span></div>
       <div class="nav-item nav-primary" data-tab="materials" onclick="switchTab('materials')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span> <span data-i18n="nav.store">Store</span></div>
+      <div class="nav-item nav-primary" data-tab="kitchen" onclick="switchTab('kitchen')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M17 3a2.83 2.83 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="M15 5 19 9"/></svg></span> <span data-i18n="nav.kitchen">Kitchen</span></div>
       <div class="nav-item nav-primary" data-tab="sales" onclick="switchTab('sales')"><span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span> <span data-i18n="nav.sales">Sales</span></div>
       <div class="nav-item nav-secondary" data-tab="customers" onclick="switchTab('customers')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> <span data-i18n="nav.customers">Customers</span></div>
       <div class="nav-item nav-secondary" data-tab="payments" onclick="switchTab('payments')"><span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span> <span data-i18n="nav.payments">Payments</span></div>
@@ -837,7 +851,12 @@
         <div style="display:flex; gap:8px; flex:1;">
           <input type="text" id="product-search" data-i18n-placeholder="products.search" placeholder="Search products…" oninput="renderProducts()" style="max-width:220px;" />
           <select id="cat-filter" onchange="renderProducts()"><option value="" data-i18n="products.all_categories">All categories</option></select>
-           <select id="inv-type-filter" onchange="renderProducts()" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);"></select>
+          <select id="inv-type-filter" onchange="renderProducts()" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+            <option value="">All</option>
+            <option value="resale">Resale</option>
+            <option value="recipe">Recipe</option>
+            <option value="manufactured">Manufactured</option>
+          </select>
         </div>
         <button class="btn-small" onclick="openAddProduct()" data-i18n="products.add">+ Add product</button>
       </div>
@@ -855,7 +874,6 @@
         </div>
         <button class="btn-small" onclick="exportSalesCSV()" data-i18n="sales.csv">📥 CSV</button>
         <button class="btn-small" onclick="posOpenTableMap()" data-i18n="sales.new_sale">🛒 New Sale</button>
-        <button class="btn-small" onclick="openKDS()" data-i18n="sales.kds">🍳 Kitchen</button>
       </div>
       <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
         <button class="btn-small" id="sales-group-toggle" onclick="toggleSalesGroup()" style="background:var(--accent-soft); color:var(--accent); padding:6px 12px; font-size:12px;">📋 <span data-i18n="sales.list">List</span></button>
@@ -1016,6 +1034,15 @@
       </div>
     </section>
 
+    <!-- ========== KITCHEN TAB ========== -->
+    <section id="tab-kitchen" class="tab-panel hidden">
+      <div class="page-header"><h2 data-i18n="nav.kitchen">Kitchen</h2><p data-i18n="kitchen.subtitle">Stock sent from the Store, and live order tickets.</p></div>
+      <div class="toolbar">
+        <button class="btn-small" onclick="openKDS()" data-i18n="sales.kds">🍳 Kitchen Display</button>
+      </div>
+      <div class="ledger" id="kitchen-stock-ledger"></div>
+    </section>
+
     <!-- ========== STOCK MOVEMENTS TAB ========== -->
     <section id="tab-stock-movements" class="tab-panel hidden">
       <div class="page-header"><h2 data-i18n="nav.stock_movements">Stock Movements</h2><p data-i18n="movements.subtitle">Full audit trail of all stock changes.</p></div>
@@ -1125,7 +1152,11 @@
     <input type="text" id="p-category-new" class="hidden" placeholder="Type new category name" style="margin-top:4px;" />
     <div id="p-type-row" class="field-row">
       <div><label data-i18n="product_modal.type">Type</label>
-        <select id="p-type" onchange="toggleProductTypeFields()"></select>
+        <select id="p-type" onchange="toggleProductTypeFields()">
+          <option value="resale" data-i18n="product_modal.resale">Buy & Sell</option>
+          <option value="recipe">Recipe</option>
+          <option value="manufactured" data-i18n="product_modal.manufactured">Manufactured</option>
+        </select>
       </div>
     </div>
     <div class="field-row">
@@ -1376,17 +1407,10 @@
     <div class="payment-summary">
        <div><span data-i18n="payment_screen.total_due">Total Due:</span> <strong id="payment-total-due">ETB 0.00</strong></div>
     </div>
-    <label data-i18n="payment_screen.method">Payment Method</label>
-    <select id="pay-method" class="payment-method-select">
-      <option value="cash" data-i18n="payment_screen.cash">Cash</option>
-      <option value="card" data-i18n="payment_screen.card">Card</option>
-      <option value="mobile_money" data-i18n="payment_screen.mobile_money">Mobile Money</option>
-    </select>
-    <div class="payment-cash" id="payment-cash" style="display:none;">
-      <label data-i18n="payment_screen.cash_received">Cash Received</label>
-      <input type="number" id="cash-received" step="0.01" min="0" />
-       <div class="change-display"><span data-i18n="payment_screen.change">Change:</span> <strong id="cash-change">ETB 0.00</strong></div>
-    </div>
+    <label data-i18n="payment_screen.method">Payment</label>
+    <div id="payment-lines"></div>
+    <button type="button" class="btn-ghost" id="add-payment-line-btn" onclick="addPaymentLine()">+ <span data-i18n="payment_screen.add_method">Add payment method</span></button>
+    <div class="payment-remaining" id="payment-remaining-row"></div>
     <div class="payment-tip" id="payment-tip" style="display:none;">
       <label data-i18n="payment_screen.tip">Tip</label>
       <div class="tip-buttons" id="tip-buttons"></div>
@@ -1394,7 +1418,7 @@
     </div>
     <div class="payment-actions">
       <button class="btn-ghost" onclick="closeModal('payment-modal')" data-i18n="payment_screen.back">Back</button>
-      <button class="btn-primary" onclick="completePayment()" data-i18n="payment_screen.complete">Complete Payment</button>
+      <button class="btn-primary" id="complete-payment-btn" onclick="completePayment()" data-i18n="payment_screen.complete">Complete Payment</button>
     </div>
     <div id="payment-error" class="error hidden"></div>
   </div>
@@ -1517,6 +1541,21 @@
     <button class="btn-primary" id="waste-submit-btn" onclick="submitWaste()" data-i18n="efficiency.add_waste">Log Waste</button>
     <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('waste-modal')" data-i18n="modal.cancel">Cancel</button>
     <div id="waste-error" class="error hidden"></div>
+  </div>
+</div>
+
+<!-- ========== SEND TO KITCHEN MODAL ========== -->
+<div id="send-kitchen-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="close" onclick="closeModal('send-kitchen-modal')" data-i18n="modal.close">Close</div>
+    <h3 data-i18n="kitchen.send_title">Send to Kitchen</h3>
+    <p id="send-kitchen-material-name" style="color:var(--ink-soft); font-size:13px; margin-bottom:12px;"></p>
+    <label data-i18n="modal.quantity">Quantity</label>
+    <input type="number" id="send-kitchen-qty" min="0.01" step="any" />
+    <p id="send-kitchen-available" style="color:var(--ink-faint); font-size:12px; margin-top:6px;"></p>
+    <button class="btn-primary" id="send-kitchen-submit-btn" onclick="submitSendToKitchen()" data-i18n="kitchen.send_confirm" style="margin-top:14px;">Send to Kitchen</button>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('send-kitchen-modal')" data-i18n="modal.cancel">Cancel</button>
+    <div id="send-kitchen-error" class="error hidden"></div>
   </div>
 </div>
 
@@ -1810,16 +1849,20 @@
   // STOCK HELPERS
   // ============================================================
   async function adjustStock(table, id, qtyChange, businessId) {
-    const { data: fresh, error: freshErr } = await sb.from(table).select("stock_qty").eq("id", id).eq("business_id", businessId).single();
-    if (freshErr || !fresh || fresh.stock_qty === null) return { error: freshErr || new Error("No stock data") };
-    const current = Number(fresh.stock_qty);
+    return adjustStockColumn(table, id, 'stock_qty', qtyChange, businessId);
+  }
+
+  async function adjustStockColumn(table, id, column, qtyChange, businessId) {
+    const { data: fresh, error: freshErr } = await sb.from(table).select(column).eq("id", id).eq("business_id", businessId).single();
+    if (freshErr || !fresh || fresh[column] === null) return { error: freshErr || new Error("No stock data") };
+    const current = Number(fresh[column]);
     const newQty = current + qtyChange;
-    const { error } = await sb.from(table).update({ stock_qty: newQty }).eq("id", id).eq("stock_qty", current).eq("business_id", businessId);
+    const { error } = await sb.from(table).update({ [column]: newQty }).eq("id", id).eq(column, current).eq("business_id", businessId);
     if (error) return { error };
     return { oldQty: current, newQty };
   }
 
-  async function logStockMovement({ itemType, productId, materialId, qtyChange, reason, refType, refId }) {
+  async function logStockMovement({ itemType, productId, materialId, qtyChange, reason, refType, refId, location }) {
     const payload = {
       business_id: membership.business_id,
       item_type: itemType,
@@ -1828,6 +1871,7 @@
       reference_type: refType || null,
       reference_id: refId || null,
       created_by: currentUser.id,
+      location: location || 'store',
     };
     if (itemType === "product") payload.product_id = productId;
     else if (itemType === "raw_material") payload.raw_material_id = materialId;
@@ -1838,12 +1882,17 @@
     const product = (cache.products || []).find(p => p.id === productId);
     if (!product) return 0;
     if (product.product_type !== 'recipe') return Number(product.stock_qty) || 0;
+    if (!recipeConsumesMaterials()) {
+      // Recipes aren't linked to raw materials yet — treat as always available
+      // unless a manual per-item stock limit has been set on the product.
+      return (product.stock_limit != null && product.stock_limit !== '') ? Number(product.stock_limit) : Infinity;
+    }
     const recipe = (cache.recipeItems || []).filter(r => r.product_id === productId);
     if (!recipe.length) return 0;
     let minAvail = Infinity;
     for (const r of recipe) {
       const mat = (cache.materials || []).find(m => m.id === r.raw_material_id);
-      const matStock = mat ? Number(mat.stock_qty) : 0;
+      const matStock = mat ? Number(mat.kitchen_stock_qty) : 0;
       const perUnit = Number(r.quantity_required) || 0;
       if (perUnit <= 0) continue;
       const avail = Math.floor(matStock / perUnit);
@@ -2116,12 +2165,15 @@
           const prod = item.products;
           if (!prod) continue;
           if (prod.product_type === 'recipe') {
-            const recipeItems = (cache.recipeItems || []).filter(r => r.product_id === prod.id);
-            for (const ri of recipeItems) {
-              const needed = Number(ri.quantity_required) * Number(item.quantity);
-              await adjustStock('raw_materials', ri.raw_material_id, -needed, membership.business_id);
-              await logStockMovement({ itemType: 'raw_material', materialId: ri.raw_material_id, qtyChange: -needed, reason: 'sale_consumption', refType: 'order', refId: order.id });
+            if (recipeConsumesMaterials()) {
+              const recipeItems = (cache.recipeItems || []).filter(r => r.product_id === prod.id);
+              for (const ri of recipeItems) {
+                const needed = Number(ri.quantity_required) * Number(item.quantity);
+                await adjustStockColumn('raw_materials', ri.raw_material_id, 'kitchen_stock_qty', -needed, membership.business_id);
+                await logStockMovement({ itemType: 'raw_material', materialId: ri.raw_material_id, qtyChange: -needed, reason: 'sale_consumption', refType: 'order', refId: order.id, location: 'kitchen' });
+              }
             }
+            // Recipe items are sale-count only until raw-material linkage is reconnected.
           } else {
             await adjustStock('products', item.product_id, -item.quantity, membership.business_id);
             await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: -item.quantity, reason: 'sale', refType: 'order', refId: order.id });
@@ -2325,9 +2377,90 @@
 
   // --- POS Cart Modal Actions ---
 
+  // ========== SPLIT PAYMENTS ==========
+  let paymentState = { orderId: null, baseTotal: 0, tip: 0, lines: [] };
+
+  function paymentTotalDue() {
+    return paymentState.baseTotal + paymentState.tip;
+  }
+
+  function paymentSumLines() {
+    return paymentState.lines.reduce((s, l) => s + (parseFloat(l.amount) || 0), 0);
+  }
+
   function posUpdatePaymentTotal(newTotal) {
     const el = document.getElementById('payment-total-due');
     if (el) el.textContent = money(newTotal);
+  }
+
+  function renderPaymentSummary() {
+    posUpdatePaymentTotal(paymentTotalDue());
+    const remaining = paymentTotalDue() - paymentSumLines();
+    const row = document.getElementById('payment-remaining-row');
+    const completeBtn = document.getElementById('complete-payment-btn');
+    if (!row || !completeBtn) return;
+    if (remaining > 0.01) {
+      row.textContent = `${t('payment_screen.remaining') !== 'payment_screen.remaining' ? t('payment_screen.remaining') : 'Remaining'}: ${money(remaining)}`;
+      row.className = 'payment-remaining due';
+      completeBtn.disabled = true;
+    } else if (remaining < -0.01) {
+      row.textContent = `${t('payment_screen.change') !== 'payment_screen.change' ? t('payment_screen.change') : 'Change'}: ${money(-remaining)}`;
+      row.className = 'payment-remaining change';
+      completeBtn.disabled = false;
+    } else {
+      row.textContent = '';
+      row.className = 'payment-remaining';
+      completeBtn.disabled = false;
+    }
+  }
+
+  function paymentMethodOptions(selected) {
+    return ['cash', 'card', 'mobile_money'].map(m => {
+      const label = m === 'cash' ? 'Cash' : m === 'card' ? 'Card' : 'Mobile Money';
+      const i18nKey = m === 'cash' ? 'payment_screen.cash' : m === 'card' ? 'payment_screen.card' : 'payment_screen.mobile_money';
+      const text = t(i18nKey) !== i18nKey ? t(i18nKey) : label;
+      return `<option value="${m}" ${m === selected ? 'selected' : ''}>${escapeHtml(text)}</option>`;
+    }).join('');
+  }
+
+  function renderPaymentLines() {
+    const el = document.getElementById('payment-lines');
+    if (!el) return;
+    el.innerHTML = paymentState.lines.map((line, idx) => `
+      <div class="payment-line">
+        <select class="payment-line-method" onchange="updatePaymentLineMethod(${idx}, this.value)">
+          ${paymentMethodOptions(line.method)}
+        </select>
+        <input type="number" class="payment-line-amount num" step="0.01" min="0" value="${line.amount}" oninput="updatePaymentLineAmount(${idx}, this.value)" />
+        ${paymentState.lines.length > 1 ? `<button type="button" class="payment-line-remove" onclick="removePaymentLine(${idx})">✕</button>` : `<span class="payment-line-spacer"></span>`}
+      </div>
+    `).join('');
+    renderPaymentSummary();
+  }
+
+  function updatePaymentLineMethod(idx, val) {
+    if (!paymentState.lines[idx]) return;
+    paymentState.lines[idx].method = val;
+  }
+
+  function updatePaymentLineAmount(idx, val) {
+    if (!paymentState.lines[idx]) return;
+    paymentState.lines[idx].amount = parseFloat(val) || 0;
+    renderPaymentSummary();
+  }
+
+  function addPaymentLine() {
+    const remaining = Math.max(0, paymentTotalDue() - paymentSumLines());
+    const usedMethods = paymentState.lines.map(l => l.method);
+    const nextMethod = ['cash', 'card', 'mobile_money'].find(m => !usedMethods.includes(m)) || 'cash';
+    paymentState.lines.push({ method: nextMethod, amount: remaining });
+    renderPaymentLines();
+  }
+
+  function removePaymentLine(idx) {
+    if (paymentState.lines.length <= 1) return;
+    paymentState.lines.splice(idx, 1);
+    renderPaymentLines();
   }
 
   async function submitOrder() {
@@ -2410,27 +2543,18 @@
     posState.tableId = order.table_id;
 
     const total = order.total_amount || 0;
-    document.getElementById('payment-total-due').textContent = money(total);
+    paymentState = { orderId, baseTotal: total, tip: 0, lines: [{ method: 'cash', amount: total }] };
+    document.getElementById('payment-error')?.classList.add('hidden');
+    document.getElementById('custom-tip').value = '';
+    document.querySelectorAll('.tip-btn').forEach(b => b.classList.remove('active'));
+    renderPaymentLines();
 
-    const methodSelect = document.getElementById('pay-method');
-    methodSelect.value = 'cash';
-    methodSelect.onchange = () => {
-      const cashDiv = document.getElementById('payment-cash');
-      const tipDiv = document.getElementById('payment-tip');
-      if (methodSelect.value === 'cash') {
-        cashDiv.style.display = 'block';
-        tipDiv.style.display = 'block';
-        document.getElementById('cash-received').oninput = () => {
-          const received = parseFloat(document.getElementById('cash-received').value) || 0;
-          const change = received - total;
-          document.getElementById('cash-change').textContent = money(Math.max(0, change));
-        };
-      } else {
-        cashDiv.style.display = 'none';
-        tipDiv.style.display = 'block';
-      }
+    // Tip changes reset to a single line for the new total; user re-splits after if needed
+    const resetLinesToSingle = () => {
+      const method = paymentState.lines[0]?.method || 'cash';
+      paymentState.lines = [{ method, amount: paymentTotalDue() }];
+      renderPaymentLines();
     };
-    methodSelect.dispatchEvent(new Event('change'));
 
     const tipBtns = document.getElementById('tip-buttons');
     tipBtns.innerHTML = '';
@@ -2443,13 +2567,15 @@
         document.querySelectorAll('.tip-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById('custom-tip').value = '';
-        posUpdatePaymentTotal(total * (1 + pct / 100));
+        paymentState.tip = paymentState.baseTotal * (pct / 100);
+        resetLinesToSingle();
       };
       tipBtns.appendChild(btn);
     });
     document.getElementById('custom-tip').oninput = (e) => {
       document.querySelectorAll('.tip-btn').forEach(b => b.classList.remove('active'));
-      posUpdatePaymentTotal(total + parseFloat(e.target.value || 0));
+      paymentState.tip = parseFloat(e.target.value) || 0;
+      resetLinesToSingle();
     };
 
     closeModal('table-map-modal');
@@ -2457,42 +2583,54 @@
   }
 
   async function completePayment() {
-    const orderId = posState.orderId;
+    const orderId = paymentState.orderId;
     if (!orderId) return showToast('No order to pay', 'error');
 
-    const btn = document.querySelector('#payment-modal .btn-primary');
+    const finalTotal = paymentTotalDue();
+    const sumLines = paymentSumLines();
+    const remaining = finalTotal - sumLines;
+    if (remaining > 0.01) return; // guard — Complete button should already be disabled
+
+    const btn = document.getElementById('complete-payment-btn');
     setBtnLoading(btn, true);
     clearError('payment-error');
 
     const { data: order } = await sb.from('orders').select('*').eq('id', orderId).single();
     if (!order) { setBtnLoading(btn, false); return showToast('Order not found', 'error'); }
 
-    const baseTotal = order.total_amount || 0;
-    const tip = parseFloat(document.getElementById('custom-tip').value) || 0;
-    const finalTotal = baseTotal + tip;
-    const method = document.getElementById('pay-method').value;
-    const changeGiven = (method === 'cash') ? Math.max(0, (parseFloat(document.getElementById('cash-received').value) || 0) - finalTotal) : 0;
+    const changeGiven = Math.max(0, -remaining);
+    const linesUsed = paymentState.lines.filter(l => (parseFloat(l.amount) || 0) > 0);
+    const methodSummary = linesUsed.length > 1
+      ? 'split'
+      : (linesUsed[0]?.method || 'cash');
 
     // 1. Update order with tip, payment method, mark completed
     const { error: orderErr } = await sb.from('orders').update({
       status: 'completed',
-      tip,
+      tip: paymentState.tip,
       total_amount: finalTotal,
-      payment_method: method,
+      payment_method: methodSummary,
       change_given: changeGiven,
     }).eq('id', orderId).eq('business_id', membership.business_id);
     if (orderErr) { setBtnLoading(btn, false); return setError('payment-error', orderErr.message); }
 
-    // 2. Create payment record
-    await sb.from('payments').insert({
-      business_id: membership.business_id,
-      order_id: orderId,
-      customer_id: order.customer_id,
-      amount: finalTotal,
-      method,
-      direction: 'in',
-      created_by: currentUser.id,
-    });
+    // 2. Create one payment record per method used (capped so change isn't counted as revenue)
+    let remainingToAllocate = finalTotal;
+    for (const line of linesUsed) {
+      let amt = parseFloat(line.amount) || 0;
+      if (amt > remainingToAllocate) amt = remainingToAllocate; // trims the overpaid/change portion
+      if (amt <= 0) continue;
+      await sb.from('payments').insert({
+        business_id: membership.business_id,
+        order_id: orderId,
+        customer_id: order.customer_id,
+        amount: amt,
+        method: line.method,
+        direction: 'in',
+        created_by: currentUser.id,
+      });
+      remainingToAllocate -= amt;
+    }
 
     // 3. Free table
     if (order.table_id) {
@@ -2505,6 +2643,7 @@
     await posShowReceipt(orderId);
     posState.orderId = null;
     posState.tableId = null;
+    paymentState = { orderId: null, baseTotal: 0, tip: 0, lines: [] };
     await loadSales();
     renderDashboard();
   }
@@ -2514,6 +2653,10 @@
       .select('*, customers(name), order_items(*, products(name))')
       .eq('id', orderId).single();
     if (!order) return;
+    const { data: orderPayments } = await sb.from('payments')
+      .select('amount, method')
+      .eq('order_id', orderId)
+      .eq('direction', 'in');
     const { data: business } = await sb.from('businesses')
       .select('name, address, phone, tax_id')
       .eq('id', membership.business_id).single();
@@ -2549,7 +2692,9 @@
         ${order.tax > 0 ? `<div><span>Tax (${((order.tax_rate || 0) * 100).toFixed(0)}%)</span><span>${money(order.tax)}</span></div>` : ''}
         ${order.tip > 0 ? `<div><span>Tip</span><span>${money(order.tip)}</span></div>` : ''}
         <div class="receipt-total"><span>Total</span><span>${money(order.total_amount)}</span></div>
-        <div><span>Payment</span><span>${escapeHtml((order.payment_method || 'cash').replace('_',' '))}</span></div>
+        ${(orderPayments && orderPayments.length > 1)
+          ? orderPayments.map(p => `<div><span>${escapeHtml((p.method || 'cash').replace('_',' '))}</span><span>${money(p.amount)}</span></div>`).join('')
+          : `<div><span>Payment</span><span>${escapeHtml((order.payment_method || 'cash').replace('_',' '))}</span></div>`}
         ${order.change_given > 0 ? `<div><span>Change</span><span>${money(order.change_given)}</span></div>` : ''}
       </div>
       <div class="receipt-footer">${escapeHtml(receiptFooter)}</div>
@@ -2696,7 +2841,8 @@
     const matSel = document.getElementById('waste-material');
     prodSel.innerHTML = cache.products.map(p => {
       const isRecipe = p.product_type === 'recipe';
-      const stockLabel = isRecipe ? `avail: ${getDerivedAvailability(p.id)}` : `stock: ${p.stock_qty ?? '—'}`;
+      const avail = getDerivedAvailability(p.id);
+      const stockLabel = isRecipe ? `avail: ${isFinite(avail) ? avail : '∞'}` : `stock: ${p.stock_qty ?? '—'}`;
       return `<option value="${p.id}">${escapeHtml(p.name)} (${stockLabel})</option>`;
     }).join('');
     matSel.innerHTML = cache.materials.map(m => `<option value="${m.id}">${escapeHtml(m.name)} (stock: ${m.stock_qty})</option>`).join('');
@@ -2754,11 +2900,13 @@
       payload.product_id = prodId;
       const prod = cache.products.find(p => p.id === prodId);
       if (prod && prod.product_type === 'recipe') {
-        const recipeItems = (cache.recipeItems || []).filter(r => r.product_id === prodId);
-        for (const ri of recipeItems) {
-          const needed = Number(ri.quantity_required) * qty;
-          await adjustStock('raw_materials', ri.raw_material_id, -needed, membership.business_id);
-          await logStockMovement({ itemType: 'raw_material', materialId: ri.raw_material_id, qtyChange: -needed, reason: 'waste', refType: 'waste', refId: null });
+        if (recipeConsumesMaterials()) {
+          const recipeItems = (cache.recipeItems || []).filter(r => r.product_id === prodId);
+          for (const ri of recipeItems) {
+            const needed = Number(ri.quantity_required) * qty;
+            await adjustStockColumn('raw_materials', ri.raw_material_id, 'kitchen_stock_qty', -needed, membership.business_id);
+            await logStockMovement({ itemType: 'raw_material', materialId: ri.raw_material_id, qtyChange: -needed, reason: 'waste', refType: 'waste', refId: null, location: 'kitchen' });
+          }
         }
       } else {
         await adjustStock('products', prodId, -qty, membership.business_id);
@@ -2923,6 +3071,10 @@
       const localSettings = JSON.parse(localStorage.getItem('thole:settings')) || {};
       return { ...localSettings, ...dbSettings };
     } catch(e) { return {}; }
+  }
+
+  function recipeConsumesMaterials() {
+    return getSettings().recipe_consumes_materials === true;
   }
 
   // ========== TABLE SETTINGS (Settings tab) ==========
@@ -3514,6 +3666,7 @@
     if (tab === "efficiency") { renderEfficiency(); loadWaste(); loadShifts(); loadProduceBatches(); }
     if (tab === "suppliers") loadSuppliers();
     if (tab === "stock-movements") loadMovements();
+    if (tab === "kitchen") loadKitchenStock();
     if (tab === "settings") loadSettings();
   }
 
@@ -3778,14 +3931,6 @@
     const cats = [...new Set(cache.products.map((p) => p.category).filter(Boolean))];
     document.getElementById("cat-filter").innerHTML =
       `<option value="">All categories</option>` + cats.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
-    const tf = document.getElementById("inv-type-filter");
-    if (tf) {
-      tf.innerHTML = `<option value="">All</option><option value="resale">Resale</option>`;
-      if (businessUsesRawMaterials()) {
-        tf.innerHTML += `<option value="recipe">Recipe</option>`;
-        if (businessTypeKey === "factory") tf.innerHTML += `<option value="manufactured">Manufactured</option>`;
-      }
-    }
     renderProducts();
   }
 
@@ -3812,7 +3957,7 @@
         if (isRecipe) {
           const avail = getDerivedAvailability(p.id);
           const limitStr = p.stock_limit != null ? ` / ${p.stock_limit}` : '';
-          stockDisplay = `${avail}${limitStr}`;
+          stockDisplay = `${isFinite(avail) ? avail : '∞'}${limitStr}`;
           if (avail <= 0) { statusClass = 'low-tag'; statusLabel = 'Unavailable'; }
           else { statusClass = ''; statusLabel = ''; }
         } else {
@@ -3858,19 +4003,6 @@
     else sel.value = '';
   }
 
-  function populateProductTypeOptions() {
-    const sel = document.getElementById("p-type");
-    if (!sel) return;
-    sel.innerHTML = "";
-    sel.innerHTML += `<option value="resale" data-i18n="product_modal.resale">Buy & Sell</option>`;
-    if (businessUsesRawMaterials()) {
-      sel.innerHTML += `<option value="recipe">Recipe</option>`;
-      if (businessTypeKey === "factory") {
-        sel.innerHTML += `<option value="manufactured" data-i18n="product_modal.manufactured">Manufactured</option>`;
-      }
-    }
-  }
-
   function toggleProductTypeFields() {
     const type = document.getElementById("p-type").value;
     const isRecipe = type === "recipe";
@@ -3894,7 +4026,6 @@
     document.getElementById("p-threshold").value = "";
     document.getElementById("p-stock-limit").value = "";
     document.getElementById("p-type-row").style.display = "";
-    populateProductTypeOptions();
     document.getElementById("p-type").value = "resale";
     toggleProductTypeFields();
     openModal("product-modal");
@@ -3916,7 +4047,6 @@
     document.getElementById("p-stock").value = p.stock_qty ?? "";
     document.getElementById("p-threshold").value = p.low_stock_threshold ?? "";
     document.getElementById("p-type-row").style.display = "";
-    populateProductTypeOptions();
     document.getElementById("p-type").value = p.product_type || "resale";
     document.getElementById("p-stock-limit").value = p.stock_limit ?? "";
     toggleProductTypeFields();
@@ -4130,11 +4260,13 @@
         const prod = item.products;
         if (!prod) continue;
         if (prod.product_type === 'recipe') {
-          const recipeItems = (cache.recipeItems || []).filter(r => r.product_id === prod.id);
-          for (const ri of recipeItems) {
-            const needed = Number(ri.quantity_required) * Number(item.quantity);
-            await adjustStock('raw_materials', ri.raw_material_id, needed, membership.business_id);
-            await logStockMovement({ itemType: 'raw_material', materialId: ri.raw_material_id, qtyChange: needed, reason: 'sale void', refType: 'order', refId: orderId });
+          if (recipeConsumesMaterials()) {
+            const recipeItems = (cache.recipeItems || []).filter(r => r.product_id === prod.id);
+            for (const ri of recipeItems) {
+              const needed = Number(ri.quantity_required) * Number(item.quantity);
+              await adjustStockColumn('raw_materials', ri.raw_material_id, 'kitchen_stock_qty', needed, membership.business_id);
+              await logStockMovement({ itemType: 'raw_material', materialId: ri.raw_material_id, qtyChange: needed, reason: 'sale void', refType: 'order', refId: orderId, location: 'kitchen' });
+            }
           }
         } else {
           await adjustStock('products', item.product_id, Number(item.quantity), membership.business_id);
@@ -4920,12 +5052,13 @@
     const el = document.getElementById("materials-ledger");
     if (!el) return;
     if (cache.materials.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">🧱</div>No raw materials yet.<br><span style="font-size:12px;">Add ingredients or components for your recipes.</span></div>`; return; }
-    const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Name</div><div>Stock</div></div>`;
+    const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Name</div><div>Stock</div><div></div></div>`;
     const rows = cache.materials.map((m) => {
         const isLow = m.low_stock_threshold !== null && Number(m.stock_qty) <= Number(m.low_stock_threshold);
-        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr; cursor:pointer;" onclick="openEditMaterial('${escapeAttr(m.id)}')">
-          <div>${escapeHtml(m.name)}</div>
-          <div class="${isLow ? "low-tag" : "num"}">${m.stock_qty} ${escapeHtml(m.unit)}</div>
+        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr;">
+          <div style="cursor:pointer;" onclick="openEditMaterial('${escapeAttr(m.id)}')">${escapeHtml(m.name)}</div>
+          <div class="${isLow ? "low-tag" : "num"}" style="cursor:pointer;" onclick="openEditMaterial('${escapeAttr(m.id)}')">${m.stock_qty} ${escapeHtml(m.unit)}</div>
+          <div style="text-align:right;"><button class="btn-ghost btn-sm" onclick="event.stopPropagation(); openSendToKitchenModal('${escapeAttr(m.id)}')" data-i18n="kitchen.send">Send to Kitchen</button></div>
         </div>`;
       }).join("");
     appendPaginated(el, head + rows, "materials", append);
@@ -4945,6 +5078,76 @@
         }).join('');
       }
     }
+  }
+
+  // ========== KITCHEN ==========
+  async function loadKitchenStock() {
+    // Reuses the materials cache (already loaded) — no separate query needed.
+    const el = document.getElementById("kitchen-stock-ledger");
+    if (!el) return;
+    const items = (cache.materials || []).filter(m => Number(m.kitchen_stock_qty || 0) > 0 || Number(m.stock_qty || 0) > 0);
+    if (items.length === 0) {
+      el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">🍳</div>No stock in the kitchen yet.<br><span style="font-size:12px;">Send items from the Store to get started.</span></div>`;
+      return;
+    }
+    const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Name</div><div>In Kitchen</div></div>`;
+    const rows = items
+      .slice()
+      .sort((a, b) => Number(b.kitchen_stock_qty || 0) - Number(a.kitchen_stock_qty || 0))
+      .map((m) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr;">
+          <div>${escapeHtml(m.name)}</div>
+          <div class="num">${m.kitchen_stock_qty || 0} ${escapeHtml(m.unit)}</div>
+        </div>`)
+      .join("");
+    el.innerHTML = head + rows;
+  }
+
+  let sendToKitchenMaterialId = null;
+
+  function openSendToKitchenModal(materialId) {
+    const m = cache.materials.find(x => x.id === materialId);
+    if (!m) return;
+    sendToKitchenMaterialId = materialId;
+    document.getElementById('send-kitchen-material-name').textContent = `${m.name} — ${m.stock_qty} ${m.unit} in Store`;
+    document.getElementById('send-kitchen-available').textContent = `Max: ${m.stock_qty} ${m.unit}`;
+    const qtyInput = document.getElementById('send-kitchen-qty');
+    qtyInput.value = '';
+    qtyInput.max = m.stock_qty;
+    clearError('send-kitchen-error');
+    openModal('send-kitchen-modal');
+  }
+
+  async function submitSendToKitchen() {
+    const materialId = sendToKitchenMaterialId;
+    const m = cache.materials.find(x => x.id === materialId);
+    if (!m) return;
+    const qty = parseFloat(document.getElementById('send-kitchen-qty').value);
+    clearError('send-kitchen-error');
+    if (!qty || qty <= 0) return setError('send-kitchen-error', 'Enter a valid quantity.');
+    if (qty > Number(m.stock_qty)) return setError('send-kitchen-error', `Only ${m.stock_qty} ${m.unit} available in Store.`);
+
+    const btn = document.getElementById('send-kitchen-submit-btn');
+    setBtnLoading(btn, true);
+
+    const { error: storeErr } = await adjustStockColumn('raw_materials', materialId, 'stock_qty', -qty, membership.business_id);
+    if (storeErr) { setBtnLoading(btn, false); return setError('send-kitchen-error', storeErr.message); }
+
+    const { error: kitchenErr } = await adjustStockColumn('raw_materials', materialId, 'kitchen_stock_qty', qty, membership.business_id);
+    if (kitchenErr) {
+      // Roll back the store deduction so stock isn't lost if the kitchen-side update fails.
+      await adjustStockColumn('raw_materials', materialId, 'stock_qty', qty, membership.business_id);
+      setBtnLoading(btn, false);
+      return setError('send-kitchen-error', kitchenErr.message);
+    }
+
+    await logStockMovement({ itemType: 'raw_material', materialId, qtyChange: -qty, reason: 'sent_to_kitchen', refType: 'kitchen_transfer', location: 'store' });
+    await logStockMovement({ itemType: 'raw_material', materialId, qtyChange: qty, reason: 'sent_to_kitchen', refType: 'kitchen_transfer', location: 'kitchen' });
+
+    setBtnLoading(btn, false);
+    closeModal('send-kitchen-modal');
+    showToast(`Sent ${qty} ${m.unit} of ${m.name} to Kitchen`, 'success');
+    await loadMaterials();
+    await loadKitchenStock();
   }
 
   function openEditMaterial(materialId) {

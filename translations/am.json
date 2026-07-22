@@ -11,6 +11,7 @@
     "purchase_orders": "የግዢ ትዕዛዝ",
     "team": "ቡድን",
     "reports": "ሪፖርት",
+    "store": "ማከማቻ",
     "materials": "ጥሬ ዕቃ",
     "stock_movements": "የስቶክ ልውውጥ",
     "efficiency": "በቂነት",
@@ -78,11 +79,19 @@
     "col_product": "ምርት",
     "col_stock": "ስቶክ",
     "col_price": "ዋጋ",
+    "col_availability": "ተገልግቶ",
     "empty": "ምንም ምርት የለም።",
     "empty_sub": "ስቶክ ለመከታተል የመጀመሪያ ምርትዎን ያክሉ።",
-    "made": "የተሰራ",
-    "buy": "የሚገዛ",
-    "recipe": "አብነት"
+    "type_resale": "የሚገዛ",
+    "type_recipe": "የተሰራ",
+    "type_manufactured": "የተሰራ (ፋብሪካ)",
+    "recipe": "አብነት",
+    "stock_limit": "ስቶክ ገደማ (በስትራ)",
+    "derived_avail": "ተገልግቶ",
+    "availability_unavailable": "አይሰጥም — ዕቃ አልተፈጥረም",
+    "availability_low": "{avail} ብቻ ቀርቧል (በዕቃ የተገደደ)",
+    "availability_bottleneck": "የተገደደ በ: {material}",
+    "availability_stock_limit": "ስቶክ ገደማ ተReached"
   },
   "sales": {
     "title": "ሽያጭ",
@@ -254,7 +263,12 @@
     "col_reorder": "እንደገና ይጠይቅ",
     "no_data": "ምንም የምድር መረጃ የለም።",
     "no_sales": "ምንም ሽያጭ የለም።",
-    "nothing_low": "አሁን ምንም ዝቅተኛ የለም።"
+    "nothing_low": "አሁን ምንም ዝቅተኛ የለም።",
+    "low_stock_resale_manufactured": "ዝቅተኛ ስቶክ — የሚገዛ እና የተሰራ",
+    "low_stock_recipe": "የአብነት ምርቶች — አይሰጥም",
+    "low_stock_recipe_constrained": "የአብነት ምርቶች — የተገደደ",
+    "recipe_detail": "ተገልግቶ: {avail} | የተገደደ በ: {material}",
+    "col_bottleneck": "የተገደደ"
   },
   "materials": {
     "title": "ጥሬ ዕቃ",
@@ -498,7 +512,10 @@
     "held_orders": "የተያዙ ትዕዛዞች",
     "place_order": "ትዕዛዝ ያስቀምጡ",
     "ready_to_pay": "ክፍያ ዝግጁ",
-    "order_placed": "ትዕዛዝ ተቀምጧል — በማብሰያ ላይ ይጠብቃል"
+    "order_placed": "ትዕዛዝ ተቀምጧል — በማብሰያ ላይ ይጠብቃል",
+    "stock_insufficient": "በቂ ስቶክ የለም። ተገልግቶ: {avail}",
+    "stock_warning": "ዝቅተኛ ስቶክ — {avail} ብቻ ቀርቧል",
+    "recipe_not_allowed": "የአብነት ምርቶች በቅርብ መሰራት አይችሉም። ለተሰራ ምርቶች አድርግ ይጠቀሙ።"
   },
   "payment_screen": {
     "title": "ክፍያ",

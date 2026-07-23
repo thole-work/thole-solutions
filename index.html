@@ -3915,12 +3915,9 @@
     const tf = document.getElementById("inv-type-filter");
     if (tf) {
       const cur = tf.value;
-      const isRestaurant = businessTypeKey === "restaurant";
       const isFactory = businessTypeKey === "factory";
-      let opts = '<option value="">All</option><option value="resale">Resale</option>';
-      if (isRestaurant) opts += '<option value="recipe">Recipe</option>';
-      if (isFactory) opts += '<option value="manufactured">Manufactured</option>';
-      tf.innerHTML = opts;
+      tf.innerHTML = '<option value="">All</option><option value="resale">Resale</option><option value="recipe">Recipe</option>';
+      if (isFactory) tf.innerHTML += '<option value="manufactured">Manufactured</option>';
       if ([...tf.options].some(o => o.value === cur)) tf.value = cur;
     }
     renderProducts();
@@ -4005,14 +4002,13 @@
 
   function populateProductTypeOptions(selected) {
     const sel = document.getElementById("p-type");
-    const isRestaurant = businessTypeKey === "restaurant";
     const isFactory = businessTypeKey === "factory";
-    let opts = '<option value="resale" data-i18n="product_modal.resale">Buy & Sell</option>';
-    if (isRestaurant) opts += '<option value="recipe">Recipe</option>';
-    if (isFactory) opts += '<option value="manufactured" data-i18n="product_modal.manufactured">Manufactured</option>';
-    sel.innerHTML = opts;
+    sel.innerHTML =
+      '<option value="resale" data-i18n="product_modal.resale">Buy & Sell</option>' +
+      '<option value="recipe">Recipe</option>';
+    if (isFactory) sel.innerHTML += '<option value="manufactured" data-i18n="product_modal.manufactured">Manufactured</option>';
     if (selected && [...sel.options].some(o => o.value === selected)) sel.value = selected;
-    else sel.value = sel.options[0]?.value || 'resale';
+    else sel.value = 'resale';
   }
 
   function openAddProduct() {
@@ -4028,7 +4024,7 @@
     document.getElementById("p-stock").value = "";
     document.getElementById("p-threshold").value = "";
     document.getElementById("p-stock-limit").value = "";
-    document.getElementById("p-type-row").style.display = businessUsesRawMaterials() ? "" : "none";
+    document.getElementById("p-type-row").style.display = "";
     populateProductTypeOptions('resale');
     toggleProductTypeFields();
     openModal("product-modal");
@@ -4051,7 +4047,7 @@
     }
     document.getElementById("p-stock").value = p.stock_qty ?? "";
     document.getElementById("p-threshold").value = p.low_stock_threshold ?? "";
-    document.getElementById("p-type-row").style.display = businessUsesRawMaterials() ? "" : "none";
+    document.getElementById("p-type-row").style.display = "";
     populateProductTypeOptions(p.product_type || "resale");
     document.getElementById("p-stock-limit").value = p.stock_limit ?? "";
     toggleProductTypeFields();

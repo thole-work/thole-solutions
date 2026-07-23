@@ -1036,7 +1036,7 @@
       <div class="page-header"><h2 data-i18n="nav.store">Store</h2><p data-i18n="materials.subtitle">Raw material inventory, purchasing, and stock alerts.</p></div>
       <div class="toolbar">
         <button class="btn-small" onclick="openPurchaseModal()" data-i18n="store.purchase">🛒 Purchase</button>
-        <button class="btn-small" onclick="openModal('material-modal')" data-i18n="store.add">+ Add item</button>
+        <button class="btn-small" onclick="openAddMaterial()" data-i18n="store.add">+ Add item</button>
         <button class="btn-small" onclick="exportMaterialsCSV()" data-i18n="store.csv">📥 CSV</button>
       </div>
       <div id="materials-ledger"></div>
@@ -1178,18 +1178,7 @@
      <div class="field-row">
       <div><label data-i18n="product_modal.unit">Unit</label>
         <select id="p-unit">
-          <option value="pcs">pcs</option>
-          <option value="kg">kg</option>
-          <option value="g">g</option>
-          <option value="litre">litre</option>
-          <option value="ml">ml</option>
-          <option value="plate">plate</option>
-          <option value="cup">cup</option>
-          <option value="bowl">bowl</option>
-          <option value="pack">pack</option>
-          <option value="bottle">bottle</option>
-          <option value="box">box</option>
-          <option value="sack">sack</option>
+          <option value="">Select unit</option>
         </select>
       </div>
       <div id="p-stock-row"><label data-i18n="product_modal.stock">Starting stock</label><input type="number" id="p-stock" placeholder="0" min="0" /></div>
@@ -1307,7 +1296,7 @@
     <h3 id="material-modal-title" data-i18n="material_modal.add">Add raw material</h3>
     <label data-i18n="material_modal.name">Name</label><input type="text" id="m-name" />
     <div class="field-row">
-      <div><label data-i18n="material_modal.unit">Unit</label><input type="text" id="m-unit" placeholder="kg, litre, piece" /></div>
+      <div><label data-i18n="material_modal.unit">Unit</label><select id="m-unit"><option value="">Select unit</option></select></div>
       <div><label data-i18n="material_modal.cost_per_unit">Cost per unit</label><input type="number" id="m-cost" min="0" step="any" /></div>
     </div>
     <div class="field-row">
@@ -1636,6 +1625,26 @@
   const PAGE_SIZE = 25;
   let reqVersion = { products: 0, customers: 0, sales: 0, payments: 0, expenses: 0, purchases: 0, materials: 0, suppliers: 0, movements: 0 };
   let loading = { products: false, customers: false, sales: false, payments: false, expenses: false, purchases: false, materials: false, suppliers: false, movements: false };
+
+  const UNITS = [
+    { value: 'pcs', label: 'Piece (pcs)', category: 'quantity' },
+    { value: 'kg', label: 'Kilogram (kg)', category: 'weight' },
+    { value: 'g', label: 'Gram (g)', category: 'weight' },
+    { value: 'litre', label: 'Litre (litre)', category: 'volume' },
+    { value: 'ml', label: 'Millilitre (ml)', category: 'volume' },
+    { value: 'plate', label: 'Plate', category: 'serving' },
+    { value: 'cup', label: 'Cup', category: 'serving' },
+    { value: 'bowl', label: 'Bowl', category: 'serving' },
+    { value: 'pack', label: 'Pack', category: 'packaging' },
+    { value: 'bottle', label: 'Bottle', category: 'packaging' },
+    { value: 'box', label: 'Box', category: 'packaging' },
+    { value: 'sack', label: 'Sack', category: 'packaging' },
+    { value: 'dozen', label: 'Dozen', category: 'quantity' },
+    { value: 'pair', label: 'Pair', category: 'quantity' },
+  ];
+  function unitOptionsHtml(selected) {
+    return UNITS.map(u => `<option value="${u.value}"${u.value === selected ? ' selected' : ''}>${u.label}</option>`).join('');
+  }
 
   // ============================================================
   // i18n — INTERNATIONALIZATION
@@ -3465,7 +3474,7 @@
     }
     const addProductBtn = document.querySelector('button[onclick="openModal(\'product-modal\')"]');
     if (addProductBtn) addProductBtn.classList.toggle("hidden", isStaff);
-    const addMaterialBtn = document.querySelector('button[onclick="openModal(\'material-modal\')"]');
+    const addMaterialBtn = document.querySelector('button[onclick="openAddMaterial()"]');
     if (addMaterialBtn) addMaterialBtn.classList.toggle("hidden", isStaff);
   }
 
@@ -3903,6 +3912,17 @@
     const cats = [...new Set(cache.products.map((p) => p.category).filter(Boolean))];
     document.getElementById("cat-filter").innerHTML =
       `<option value="">All categories</option>` + cats.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+    const tf = document.getElementById("inv-type-filter");
+    if (tf) {
+      const cur = tf.value;
+      const isRestaurant = businessTypeKey === "restaurant";
+      const isFactory = businessTypeKey === "factory";
+      let opts = '<option value="">All</option><option value="resale">Resale</option>';
+      if (isRestaurant) opts += '<option value="recipe">Recipe</option>';
+      if (isFactory) opts += '<option value="manufactured">Manufactured</option>';
+      tf.innerHTML = opts;
+      if ([...tf.options].some(o => o.value === cur)) tf.value = cur;
+    }
     renderProducts();
   }
 
@@ -3983,6 +4003,18 @@
     document.getElementById("p-limit-row").classList.toggle("hidden", !isRecipe);
   }
 
+  function populateProductTypeOptions(selected) {
+    const sel = document.getElementById("p-type");
+    const isRestaurant = businessTypeKey === "restaurant";
+    const isFactory = businessTypeKey === "factory";
+    let opts = '<option value="resale" data-i18n="product_modal.resale">Buy & Sell</option>';
+    if (isRestaurant) opts += '<option value="recipe">Recipe</option>';
+    if (isFactory) opts += '<option value="manufactured" data-i18n="product_modal.manufactured">Manufactured</option>';
+    sel.innerHTML = opts;
+    if (selected && [...sel.options].some(o => o.value === selected)) sel.value = selected;
+    else sel.value = sel.options[0]?.value || 'resale';
+  }
+
   function openAddProduct() {
     editingRecord = null;
     document.getElementById("product-modal-title").textContent = "Add product";
@@ -3992,12 +4024,12 @@
     document.getElementById("p-name").value = "";
     populateCategorySelect('p-category', '');
     document.getElementById("p-price").value = "";
-    document.getElementById("p-unit").value = "";
+    document.getElementById("p-unit").innerHTML = '<option value="">Select unit</option>' + unitOptionsHtml('');
     document.getElementById("p-stock").value = "";
     document.getElementById("p-threshold").value = "";
     document.getElementById("p-stock-limit").value = "";
     document.getElementById("p-type-row").style.display = businessUsesRawMaterials() ? "" : "none";
-    document.getElementById("p-type").value = "resale";
+    populateProductTypeOptions('resale');
     toggleProductTypeFields();
     openModal("product-modal");
   }
@@ -4013,12 +4045,14 @@
     document.getElementById("p-name").value = p.name;
     populateCategorySelect('p-category', p.category);
     document.getElementById("p-price").value = p.price;
-    const unitSel = document.getElementById("p-unit");
-    if ([...unitSel.options].some(o => o.value === p.unit)) { unitSel.value = p.unit; } else { unitSel.value = 'pcs'; }
+    document.getElementById("p-unit").innerHTML = '<option value="">Select unit</option>' + unitOptionsHtml(p.unit);
+    if (!document.getElementById("p-unit").value && p.unit) {
+      document.getElementById("p-unit").innerHTML += `<option value="${escapeAttr(p.unit)}" selected>${escapeHtml(p.unit)} (custom)</option>`;
+    }
     document.getElementById("p-stock").value = p.stock_qty ?? "";
     document.getElementById("p-threshold").value = p.low_stock_threshold ?? "";
     document.getElementById("p-type-row").style.display = businessUsesRawMaterials() ? "" : "none";
-    document.getElementById("p-type").value = p.product_type || "resale";
+    populateProductTypeOptions(p.product_type || "resale");
     document.getElementById("p-stock-limit").value = p.stock_limit ?? "";
     toggleProductTypeFields();
     openModal("product-modal");
@@ -4044,7 +4078,7 @@
     const catVal = document.getElementById("p-category").value;
     const category = catVal === '__new__' ? (document.getElementById("p-category-new").value.trim() || null) : (catVal || null);
     const price = parseFloat(document.getElementById("p-price").value);
-    const unit = document.getElementById("p-unit").value.trim() || "item";
+    const unit = document.getElementById("p-unit").value || "pcs";
     const stock = document.getElementById("p-stock").value === "" ? 0 : parseFloat(document.getElementById("p-stock").value);
     const threshold = document.getElementById("p-threshold").value === "" ? null : parseFloat(document.getElementById("p-threshold").value);
     const productType = document.getElementById("p-type").value || 'resale';
@@ -5142,6 +5176,19 @@
     await loadKitchenStock();
   }
 
+  function openAddMaterial() {
+    editingRecord = null;
+    document.getElementById("material-modal-title").textContent = "Add raw material";
+    document.getElementById("material-submit-btn").textContent = "Save raw material";
+    document.getElementById("material-delete-btn").classList.add("hidden");
+    document.getElementById("m-name").value = "";
+    document.getElementById("m-unit").innerHTML = '<option value="">Select unit</option>' + unitOptionsHtml('');
+    document.getElementById("m-cost").value = "";
+    document.getElementById("m-stock").value = "";
+    document.getElementById("m-threshold").value = "";
+    openModal("material-modal");
+  }
+
   function openEditMaterial(materialId) {
     const m = cache.materials.find((x) => x.id === materialId);
     if (!m) return;
@@ -5150,7 +5197,10 @@
     document.getElementById("material-submit-btn").textContent = "Save changes";
     document.getElementById("material-delete-btn").classList.remove("hidden");
     document.getElementById("m-name").value = m.name;
-    document.getElementById("m-unit").value = m.unit;
+    document.getElementById("m-unit").innerHTML = '<option value="">Select unit</option>' + unitOptionsHtml(m.unit);
+    if (!document.getElementById("m-unit").value && m.unit) {
+      document.getElementById("m-unit").innerHTML += `<option value="${escapeAttr(m.unit)}" selected>${escapeHtml(m.unit)} (custom)</option>`;
+    }
     document.getElementById("m-cost").value = m.cost_per_unit ?? "";
     document.getElementById("m-stock").value = m.stock_qty ?? "";
     document.getElementById("m-threshold").value = m.low_stock_threshold ?? "";
@@ -5161,7 +5211,7 @@
     clearError("material-error");
     const btn = document.getElementById("material-submit-btn");
     const name = document.getElementById("m-name").value.trim();
-    const unit = document.getElementById("m-unit").value.trim() || "unit";
+    const unit = document.getElementById("m-unit").value || "pcs";
     const cost = document.getElementById("m-cost").value === "" ? 0 : parseFloat(document.getElementById("m-cost").value);
     const stock = document.getElementById("m-stock").value === "" ? 0 : parseFloat(document.getElementById("m-stock").value);
     const threshold = document.getElementById("m-threshold").value === "" ? null : parseFloat(document.getElementById("m-threshold").value);

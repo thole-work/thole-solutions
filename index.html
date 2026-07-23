@@ -3996,7 +3996,7 @@
     document.getElementById("p-stock").value = "";
     document.getElementById("p-threshold").value = "";
     document.getElementById("p-stock-limit").value = "";
-    document.getElementById("p-type-row").style.display = "";
+    document.getElementById("p-type-row").style.display = businessUsesRawMaterials() ? "" : "none";
     document.getElementById("p-type").value = "resale";
     toggleProductTypeFields();
     openModal("product-modal");
@@ -4017,7 +4017,7 @@
     if ([...unitSel.options].some(o => o.value === p.unit)) { unitSel.value = p.unit; } else { unitSel.value = 'pcs'; }
     document.getElementById("p-stock").value = p.stock_qty ?? "";
     document.getElementById("p-threshold").value = p.low_stock_threshold ?? "";
-    document.getElementById("p-type-row").style.display = "";
+    document.getElementById("p-type-row").style.display = businessUsesRawMaterials() ? "" : "none";
     document.getElementById("p-type").value = p.product_type || "resale";
     document.getElementById("p-stock-limit").value = p.stock_limit ?? "";
     toggleProductTypeFields();
@@ -4047,7 +4047,7 @@
     const unit = document.getElementById("p-unit").value.trim() || "item";
     const stock = document.getElementById("p-stock").value === "" ? 0 : parseFloat(document.getElementById("p-stock").value);
     const threshold = document.getElementById("p-threshold").value === "" ? null : parseFloat(document.getElementById("p-threshold").value);
-    const productType = businessUsesRawMaterials() ? (document.getElementById("p-type").value || 'resale') : 'resale';
+    const productType = document.getElementById("p-type").value || 'resale';
     const isRecipe = productType === 'recipe';
     const stockLimit = isRecipe ? (document.getElementById("p-stock-limit").value === "" ? null : parseFloat(document.getElementById("p-stock-limit").value)) : null;
 

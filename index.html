@@ -681,6 +681,10 @@
   .kds-name { flex: 1; font-size: 13px; }
   .kds-actions { display: flex; gap: 8px; padding-top: 8px; margin-top: auto; }
   .kds-actions button { flex: 1; padding: 12px 8px; font-size: 15px; font-weight: 700; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; border: none; }
+  .kds-new-badge { background: var(--danger); color: white; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.05em; animation: pulse-red 1.5s infinite; margin-right: 6px; }
+  .kds-item-new { background: var(--danger-soft); border-radius: 6px; padding: 6px 8px; margin: 0 -8px; }
+  .kds-item-added { background: var(--danger); color: white; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+  @keyframes pulse-red { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
   .kds-actions .kds-btn-start { background: var(--amber-soft); color: var(--amber); }
   .kds-actions .kds-btn-start:hover { background: var(--amber); color: #fff; }
   .kds-actions .kds-btn-ready { background: var(--accent-soft); color: var(--accent); }
@@ -2117,6 +2121,7 @@
 
   let kdsChannel = null;
   let kdsOrders = new Map(); // orderId -> order data
+  let kdsOrderItemCounts = new Map(); // orderId -> item count (for detecting new items)
   
   async function openKDS() {
     openModal('kds-modal');
@@ -2149,7 +2154,7 @@
   
   function handleKDSOrderChange(payload) {
     if (payload.eventType === 'DELETE') return;
-    if (payload.table === 'order_items') { loadKDSOrders(); return; }
+    if (payload.table === 'order_items') { playKDSSound('new'); loadKDSOrders(); return; }
     const order = payload.new;
     if (!order || order.business_id !== membership.business_id) return;
     if (['pending', 'preparing', 'ready'].includes(order.status)) {
@@ -2169,6 +2174,9 @@
     }
     el.innerHTML = orders.map(o => {
       const tableInfo = o.restaurant_tables ? `T${o.restaurant_tables.table_number}${o.restaurant_tables.name ? ' ' + o.restaurant_tables.name : ''}` : '';
+      const prevCount = kdsOrderItemCounts.get(o.id) || 0;
+      const currentCount = (o.order_items || []).length;
+      const hasNewItems = prevCount > 0 && currentCount > prevCount;
       return `
       <div class="kds-ticket ${o.status}">
         <div class="kds-ticket-header">
@@ -2177,15 +2185,17 @@
             ${tableInfo ? `<span class="kds-table">${escapeHtml(tableInfo)}</span>` : ''}
           </span>
           <span>
+            ${hasNewItems ? `<span class="kds-new-badge">NEW ITEMS</span>` : ''}
             <span class="kds-time">${new Date(o.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span>
             <span class="kds-status ${o.status}">${o.status.toUpperCase()}</span>
           </span>
         </div>
         <div class="kds-items">
-          ${(o.order_items || []).map(item => `
-            <div class="kds-item">
+          ${(o.order_items || []).map((item, idx) => `
+            <div class="kds-item ${idx >= prevCount && hasNewItems ? 'kds-item-new' : ''}">
               <span class="kds-qty">${item.quantity}x</span>
               <span class="kds-name">${escapeHtml(item.products?.name || 'Unknown')}</span>
+              ${idx >= prevCount && hasNewItems ? '<span class="kds-item-added">NEW</span>' : ''}
             </div>
           `).join('')}
         </div>
@@ -2196,6 +2206,8 @@
         </div>
       </div>`;
     }).join('');
+    // Update tracked counts
+    orders.forEach(o => kdsOrderItemCounts.set(o.id, (o.order_items || []).length));
   }
   
   async function kdsUpdateStatus(orderId, newStatus) {
@@ -2344,11 +2356,10 @@
       const isActive = orderStatus && ['pending','preparing','ready'].includes(orderStatus);
       return `
         <button class="table-btn ${isServed ? 'served' : isActive ? 'occupied' : ''}" 
-          onclick="${isServed ? `payTableOrder('${escapeAttr(orderId)}')` : isActive ? '' : `posSelectTable('${escapeAttr(tb.id)}', '${escapeAttr(tb.table_number)}')`}"
-          ${isActive ? 'disabled' : ''}>
+          onclick="${isServed ? `payTableOrder('${escapeAttr(orderId)}')` : isActive ? `addTableOrder('${escapeAttr(orderId)}', '${escapeAttr(tb.id)}', '${escapeAttr(tb.table_number)}')` : `posSelectTable('${escapeAttr(tb.id)}', '${escapeAttr(tb.table_number)}')`}">
           <span class="table-num">${escapeHtml(tb.table_number)}</span>
           ${tb.name ? `<span class="table-name">${escapeHtml(tb.name)}</span>` : ''}
-          ${isServed ? `<span class="table-status served-status">${t('pos.ready_to_pay')}</span>` : isActive ? `<span class="table-status">${t('pos.occupied')}</span>` : ''}
+          ${isServed ? `<span class="table-status served-status">${t('pos.ready_to_pay')}</span>` : isActive ? `<span class="table-status">${t('pos.occupied')} — Tap to add</span>` : ''}
         </button>
       `;
     }).join('');
@@ -2365,6 +2376,32 @@
     posState.orderType = 'takeout';
     closeModal('table-map-modal');
     posOpenCart();
+  }
+
+  async function addTableOrder(orderId, tableId, tableNumber) {
+    const { data: order, error } = await sb.from('orders')
+      .select('*, order_items(*, products(name, price, product_type))')
+      .eq('id', orderId)
+      .eq('business_id', membership.business_id)
+      .single();
+    if (error || !order) return showToast('Order not found', 'error');
+    posState.orderId = orderId;
+    posState.tableId = tableId;
+    posState.tableNumber = tableNumber;
+    posState.cart = (order.order_items || []).map(item => ({
+      product_id: item.product_id,
+      name: item.products?.name || 'Unknown',
+      price: item.unit_price,
+      qty: item.quantity,
+      modifiers: [],
+      discount: 0,
+      line_total: item.line_total || item.unit_price * item.quantity,
+    }));
+    posState.appliedDiscount = order.discount || 0;
+    posState.discountType = order.discount_type || 'amount';
+    closeModal('table-map-modal');
+    posOpenCart();
+    showToast(`Table ${tableNumber} — adding to existing order`, 'info');
   }
 
   function posOpenCart() {
@@ -2535,7 +2572,53 @@
 
     const { subtotal, discount, tax, total, taxRate } = posCalcTotals();
 
-    // Check if split — create separate orders per group
+    // APPENDING TO EXISTING TABLE ORDER
+    if (posState.orderId) {
+      const orderId = posState.orderId;
+      // Replace all order_items with the current cart
+      const { error: delErr } = await sb.from('order_items').delete().eq('order_id', orderId);
+      if (delErr) { setBtnLoading(btn, false); return showToast(delErr.message, 'error'); }
+
+      const newItems = posState.cart.map(item => ({
+        order_id: orderId,
+        product_id: item.product_id,
+        quantity: item.qty,
+        unit_price: item.price,
+      }));
+      const { error: insErr } = await sb.from('order_items').insert(newItems);
+      if (insErr) { setBtnLoading(btn, false); return showToast(insErr.message, 'error'); }
+
+      // Recalc totals on the order (keep current status — don't reset)
+      const orderSubtotal = posState.cart.reduce((s, i) => s + i.line_total, 0);
+      let orderDiscount = 0;
+      if (posState.discountType === 'percent') {
+        orderDiscount = orderSubtotal * (posState.appliedDiscount / 100);
+      } else {
+        orderDiscount = posState.appliedDiscount;
+      }
+      const orderTaxable = orderSubtotal - orderDiscount;
+      const orderTax = orderTaxable * taxRate;
+      const orderTotal = orderTaxable + orderTax;
+
+      await sb.from('orders').update({
+        subtotal: orderSubtotal,
+        discount: orderDiscount,
+        discount_type: posState.discountType || 'amount',
+        tax_rate: taxRate,
+        tax: orderTax,
+        total_amount: orderTotal,
+      }).eq('id', orderId).eq('business_id', membership.business_id);
+
+      showToast('Order updated — kitchen notified', 'success');
+      playKDSSound('new');
+      setBtnLoading(btn, false);
+      closeModal('pos-modal');
+      posReset();
+      await loadProducts();
+      return;
+    }
+
+    // NEW ORDER (no existing order)
     const hasSplit = posState.cart.some(i => i.splitGroup && i.splitGroup > 1);
     const groups = {};
     posState.cart.forEach(item => {

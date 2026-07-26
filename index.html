@@ -2441,21 +2441,26 @@
   async function posRenderProducts() {
     const catEl = document.getElementById('pos-categories');
     if (!catEl) return;
-    const cats = [...new Set(cache.products.map(p => p.category).filter(Boolean))];
-    catEl.innerHTML = cats.map(cat =>
-      `<button class="pos-cat-btn" onclick="posFilterCategory('${escapeAttr(cat)}')">${escapeHtml(cat)}</button>`
+    const types = [{ key: null, label: 'All' }, { key: 'resale', label: 'Buy & Sell' }, { key: 'recipe', label: 'Made to Order' }];
+    if (businessUsesRawMaterials()) types.push({ key: 'manufactured', label: 'Manufactured' });
+    catEl.innerHTML = types.map(t =>
+      `<button class="pos-cat-btn" onclick="posFilterType(${t.key ? `'${escapeAttr(t.key)}'` : 'null'})">${escapeHtml(t.label)}</button>`
     ).join('');
-    if (cats.length > 0) posFilterCategory(cats[0]);
-    else posRenderProductList(cache.products);
+    catEl.querySelector('.pos-cat-btn').classList.add('active');
+    posRenderProductList(cache.products);
   }
 
-  function posFilterCategory(cat) {
-    posActiveCategory = cat;
+  function posFilterType(type) {
+    posActiveCategory = type;
     posSearchQuery = '';
     const searchInput = document.getElementById('pos-search-input');
     if (searchInput) searchInput.value = '';
-    document.querySelectorAll('.pos-cat-btn').forEach(b => b.classList.toggle('active', b.textContent === cat));
-    posRenderProductList(cache.products.filter(p => p.category === cat));
+    document.querySelectorAll('.pos-cat-btn').forEach(b => {
+      const btnType = b.getAttribute('onclick')?.includes('null') ? null : b.getAttribute('onclick')?.match(/'(\w+)'/)?.[1];
+      b.classList.toggle('active', btnType === type);
+    });
+    const filtered = type ? cache.products.filter(p => p.product_type === type) : cache.products;
+    posRenderProductList(filtered);
   }
 
   function posSearchProducts(query) {
@@ -2465,7 +2470,7 @@
       posActiveCategory = null;
       posRenderProductList(cache.products.filter(p => p.name.toLowerCase().includes(posSearchQuery)));
     } else if (posActiveCategory) {
-      posFilterCategory(posActiveCategory);
+      posFilterType(posActiveCategory);
     } else {
       posRenderProductList(cache.products);
     }

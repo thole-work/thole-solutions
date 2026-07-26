@@ -4359,7 +4359,8 @@
         <div class="num" style="text-align:right">${money(o.total_amount)}</div>
         <div style="text-align:right;">${o.status === 'served' ? `<span style="color:#16a34a; font-size:12px; text-decoration:underline; cursor:pointer; font-weight:600;" onclick="payTableOrder('${escapeAttr(o.id)}')">Pay</span>` : `<span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="posShowReceipt('${escapeAttr(o.id)}')">Receipt</span>`}</div>
         <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidSale('${escapeAttr(o.id)}')">Void</span></div>
-      </div>`).join("");
+      </div>`;
+    }).join("");
       el.innerHTML = backBtn + head + rows;
       return;
     }

@@ -596,7 +596,7 @@
   /* Payment Modal */
   .payment-modal { max-width: 420px; }
   .payment-summary { padding: 16px; background: var(--accent-soft); border-radius: 10px; margin-bottom: 16px; text-align: center; }
-  .payment-methods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+  .payment-methods { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
   .payment-method-btn { padding: 14px; border: 2px solid var(--line); background: var(--card); color: var(--ink); border-radius: 10px; cursor: pointer; font-weight: 500; transition: all 0.2s; }
   .payment-method-btn.active, .payment-method-btn:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
   .payment-cash, .payment-tip { padding: 16px; background: var(--paper); border-radius: 10px; margin-bottom: 16px; }
@@ -659,38 +659,53 @@
   .costing-row:last-child { border-bottom: none; }
 
   /* KDS Styles */
-  .kds-modal { max-width: 100vw; width: 100%; max-height: 100vh; padding: 0; border-radius: 0; }
-  .kds-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: var(--accent); color: white; border-radius: 12px 12px 0 0; }
-  .kds-modal-header h3 { margin: 0; }
-  .kds-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; padding: 12px; height: calc(100vh - 80px); overflow-y: auto; }
-  .kds-ticket { background: var(--card); border: 2px solid var(--line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; }
-  .kds-ticket.pending { border-color: var(--amber); }
+  .kds-modal { max-width: 100vw; width: 100%; max-height: 100vh; padding: 0; border-radius: 0; overflow: hidden; display: flex; flex-direction: column; }
+  .kds-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: var(--accent); color: white; border-radius: 12px 12px 0 0; flex-shrink: 0; }
+  .kds-modal-header h3 { margin: 0; font-size: 18px; }
+  .kds-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; padding: 10px; flex: 1 1 0; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .kds-ticket { background: var(--card); border: 2px solid var(--line); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; min-height: 140px; }
+  .kds-ticket.pending { border-color: var(--amber); background: linear-gradient(135deg, var(--card) 0%, var(--amber-soft) 100%); }
   .kds-ticket.preparing { border-color: var(--amber); }
-  .kds-ticket.ready { border-color: var(--accent); }
-  .kds-ticket-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
-  .kds-order-id { font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+  .kds-ticket.ready { border-color: var(--accent); background: linear-gradient(135deg, var(--card) 0%, var(--accent-soft) 100%); }
+  .kds-ticket-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid var(--line); gap: 6px; }
+  .kds-order-id { font-weight: 700; font-family: 'JetBrains Mono', monospace; font-size: 14px; }
   .kds-table { font-size: 12px; color: var(--ink-soft); margin-left: 4px; }
-  .kds-time { font-size: 12px; color: var(--ink-soft); }
-  .kds-status { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; }
+  .kds-time { font-size: 11px; color: var(--ink-soft); }
+  .kds-status { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.05em; }
   .kds-status.pending { background: var(--amber-soft); color: var(--amber); }
   .kds-status.preparing { background: var(--amber-soft); color: var(--amber); }
   .kds-status.ready { background: var(--accent-soft); color: var(--accent); }
-  .kds-items { margin-bottom: 8px; }
-  .kds-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
-  .kds-qty { background: var(--accent); color: white; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; min-width: 28px; text-align: center; }
-  .kds-name { flex: 1; font-size: 13px; }
-  .kds-actions { display: flex; gap: 8px; padding-top: 8px; margin-top: auto; }
-  .kds-actions button { flex: 1; padding: 12px 8px; font-size: 15px; font-weight: 700; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; border: none; }
-  .kds-new-badge { background: var(--danger); color: white; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.05em; animation: pulse-red 1.5s infinite; margin-right: 6px; }
-  .kds-item-new { background: var(--danger-soft); border-radius: 6px; padding: 6px 8px; margin: 0 -8px; }
-  .kds-item-added { background: var(--danger); color: white; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .kds-items { flex: 1 1 0; margin-bottom: 6px; overflow-y: auto; }
+  .kds-item { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--line); }
+  .kds-item:last-child { border-bottom: none; }
+  .kds-qty { background: var(--accent); color: white; font-size: 12px; font-weight: 700; padding: 3px 7px; border-radius: 4px; min-width: 32px; text-align: center; flex-shrink: 0; }
+  .kds-name { flex: 1; font-size: 14px; font-weight: 500; }
+  .kds-actions { display: flex; gap: 6px; padding-top: 6px; margin-top: auto; flex-shrink: 0; }
+  .kds-actions button { flex: 1; padding: 14px 8px; font-size: 16px; font-weight: 700; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; border: none; min-height: 48px; touch-action: manipulation; }
+  .kds-new-badge { background: var(--danger); color: white; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.05em; animation: pulse-red 1.5s infinite; margin-right: 4px; }
+  .kds-item-new { background: var(--danger-soft); border-radius: 6px; padding: 5px 8px; margin: 0 -8px; }
+  .kds-item-added { background: var(--danger); color: white; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em; flex-shrink: 0; }
   @keyframes pulse-red { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
   .kds-actions .kds-btn-start { background: var(--amber-soft); color: var(--amber); }
-  .kds-actions .kds-btn-start:hover { background: var(--amber); color: #fff; }
+  .kds-actions .kds-btn-start:hover, .kds-actions .kds-btn-start:active { background: var(--amber); color: #fff; }
   .kds-actions .kds-btn-ready { background: var(--accent-soft); color: var(--accent); }
-  .kds-actions .kds-btn-ready:hover { background: var(--accent); color: #fff; }
+  .kds-actions .kds-btn-ready:hover, .kds-actions .kds-btn-ready:active { background: var(--accent); color: #fff; }
   .kds-actions .kds-btn-served { background: #16a34a20; color: #16a34a; border: 1px solid #16a34a; }
-  .kds-actions .kds-btn-served:hover { background: #16a34a; color: #fff; }
+  .kds-actions .kds-btn-served:hover, .kds-actions .kds-btn-served:active { background: #16a34a; color: #fff; }
+  .kds-empty { grid-column: 1 / -1; text-align: center; padding: 40px 20px; color: var(--ink-faint); font-size: 15px; }
+  @media (max-width: 720px) {
+    .kds-modal { border-radius: 0; }
+    .kds-modal-header { border-radius: 0; padding: 10px 12px; }
+    .kds-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; padding: 8px; }
+    .kds-ticket { padding: 8px; min-height: 120px; border-radius: 8px; }
+    .kds-order-id { font-size: 12px; }
+    .kds-name { font-size: 13px; }
+    .kds-qty { font-size: 11px; padding: 2px 5px; min-width: 26px; }
+    .kds-actions button { padding: 12px 6px; font-size: 14px; min-height: 44px; }
+  }
+  @media (min-width: 1200px) {
+    .kds-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+  }
   .nav-icon svg { width: 20px; height: 20px; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 </style>
 </head>
@@ -1256,8 +1271,7 @@
       <div><label data-i18n="payment_modal.method">Method</label>
         <select id="pay-crud-method">
           <option value="cash" data-i18n="payment_modal.cash">Cash</option>
-          <option value="bank_transfer" data-i18n="payment_modal.bank">Bank transfer</option>
-          <option value="mobile_money" data-i18n="payment_modal.mobile">Mobile money</option>
+          <option value="card" data-i18n="payment_modal.bank">Card / Bank Transfer</option>
         </select>
       </div>
     </div>
@@ -1640,7 +1654,7 @@
 <!-- ========== KDS MODAL ========== -->
 <div id="kds-modal" class="modal-backdrop hidden">
   <div class="modal kds-modal">
-    <div class="kds-header">
+    <div class="kds-modal-header">
       <div>
         <h3 data-i18n="kds.title">Kitchen Display</h3>
         <p style="margin:2px 0 0; font-size:12px; opacity:0.85;" data-i18n="kds.subtitle">Real-time order queue for the kitchen team.</p>
@@ -2104,24 +2118,27 @@
   // ========== KDS (KITCHEN DISPLAY) ==========
   function playKDSSound(type) {
     try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
+      if (!kdsAudioCtx) kdsAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (kdsAudioCtx.state === 'suspended') kdsAudioCtx.resume();
+      const osc = kdsAudioCtx.createOscillator();
+      const gain = kdsAudioCtx.createGain();
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(kdsAudioCtx.destination);
       if (type === 'ready') { osc.frequency.value = 880; gain.gain.value = 0.3; }
       else if (type === 'new') { osc.frequency.value = 440; gain.gain.value = 0.2; }
       else { osc.frequency.value = 660; gain.gain.value = 0.2; }
       osc.type = 'sine';
       osc.start();
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-      osc.stop(ctx.currentTime + 0.3);
+      gain.gain.exponentialRampToValueAtTime(0.001, kdsAudioCtx.currentTime + 0.3);
+      osc.stop(kdsAudioCtx.currentTime + 0.3);
     } catch(e) {}
   }
 
   let kdsChannel = null;
   let kdsOrders = new Map(); // orderId -> order data
   let kdsOrderItemCounts = new Map(); // orderId -> item count (for detecting new items)
+  let kdsReloadTimer = null;
+  let kdsAudioCtx = null;
   
   async function openKDS() {
     openModal('kds-modal');
@@ -2131,13 +2148,19 @@
   
   async function loadKDSOrders() {
     const { data } = await sb.from('orders')
-      .select('*, order_items(*, products(name)), restaurant_tables!table_id(table_number, name)')
+      .select('id, status, created_at, business_id, order_items(id, quantity, product_id, products(name)), restaurant_tables!table_id(table_number, name)')
       .eq('business_id', membership.business_id)
       .in('status', ['pending', 'preparing', 'ready'])
       .order('created_at', { ascending: true });
+    const prev = new Map(kdsOrders);
     kdsOrders.clear();
     (data || []).forEach(o => kdsOrders.set(o.id, o));
-    renderKDS();
+    renderKDS(prev);
+  }
+
+  function scheduleKDSReload() {
+    if (kdsReloadTimer) clearTimeout(kdsReloadTimer);
+    kdsReloadTimer = setTimeout(() => { kdsReloadTimer = null; loadKDSOrders(); }, 300);
   }
   
   function setupKDSRealtime() {
@@ -2154,78 +2177,104 @@
   
   function handleKDSOrderChange(payload) {
     if (payload.eventType === 'DELETE') return;
-    if (payload.table === 'order_items') { playKDSSound('new'); loadKDSOrders(); return; }
+    if (payload.table === 'order_items') { playKDSSound('new'); scheduleKDSReload(); return; }
     const order = payload.new;
     if (!order || order.business_id !== membership.business_id) return;
     if (['pending', 'preparing', 'ready'].includes(order.status)) {
       if (order.status === 'ready') playKDSSound('ready');
       else if (order.status === 'pending') playKDSSound('new');
     }
-    loadKDSOrders();
+    scheduleKDSReload();
   }
   
-  function renderKDS() {
+  function renderKDS(prevOrders) {
     const el = document.getElementById('kds-grid');
     if (!el) return;
     const orders = Array.from(kdsOrders.values()).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     if (orders.length === 0) {
-      el.innerHTML = '<div class="pos-empty">No active orders</div>';
+      el.innerHTML = '<div class="kds-empty">No active orders</div>';
+      kdsOrderItemCounts.clear();
       return;
     }
-    el.innerHTML = orders.map(o => {
-      const tableInfo = o.restaurant_tables ? `T${o.restaurant_tables.table_number}${o.restaurant_tables.name ? ' ' + o.restaurant_tables.name : ''}` : '';
-      const prevCount = kdsOrderItemCounts.get(o.id) || 0;
-      const currentCount = (o.order_items || []).length;
-      const hasNewItems = prevCount > 0 && currentCount > prevCount;
-      return `
-      <div class="kds-ticket ${o.status}">
-        <div class="kds-ticket-header">
-          <span>
-            <span class="kds-order-id">#${o.id.slice(0,6).toUpperCase()}</span>
-            ${tableInfo ? `<span class="kds-table">${escapeHtml(tableInfo)}</span>` : ''}
-          </span>
-          <span>
-            ${hasNewItems ? `<span class="kds-new-badge">NEW ITEMS</span>` : ''}
-            <span class="kds-time">${new Date(o.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span>
-            <span class="kds-status ${o.status}">${o.status.toUpperCase()}</span>
-          </span>
-        </div>
-        <div class="kds-items">
-          ${(o.order_items || []).map((item, idx) => `
-            <div class="kds-item ${idx >= prevCount && hasNewItems ? 'kds-item-new' : ''}">
-              <span class="kds-qty">${item.quantity}x</span>
-              <span class="kds-name">${escapeHtml(item.products?.name || 'Unknown')}</span>
-              ${idx >= prevCount && hasNewItems ? '<span class="kds-item-added">NEW</span>' : ''}
-            </div>
-          `).join('')}
-        </div>
-        <div class="kds-actions">
-          ${o.status === 'pending' ? `<button class="kds-btn-start" onclick="kdsUpdateStatus('${o.id}', 'preparing')">Start</button>` : ''}
-          ${o.status === 'preparing' ? `<button class="kds-btn-ready" onclick="kdsUpdateStatus('${o.id}', 'ready')">Ready</button>` : ''}
-          ${o.status === 'ready' ? `<button class="kds-btn-served" onclick="kdsUpdateStatus('${o.id}', 'served')">Served</button>` : ''}
-        </div>
-      </div>`;
-    }).join('');
+
+    const newIds = new Set(orders.map(o => o.id));
+    const prevMap = prevOrders || new Map();
+
+    // Remove tickets for orders no longer active
+    el.querySelectorAll('.kds-ticket[data-order-id]').forEach(ticket => {
+      if (!newIds.has(ticket.dataset.orderId)) ticket.remove();
+    });
+
+    // Build or update each ticket
+    const frag = document.createDocumentFragment();
+    orders.forEach(o => {
+      const existing = el.querySelector(`.kds-ticket[data-order-id="${o.id}"]`);
+      const html = buildKDSTicket(o);
+      if (existing) {
+        existing.outerHTML = html;
+      } else {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html;
+        frag.appendChild(tmp.firstElementChild);
+      }
+    });
+    el.appendChild(frag);
+
     // Update tracked counts
     orders.forEach(o => kdsOrderItemCounts.set(o.id, (o.order_items || []).length));
+  }
+
+  function buildKDSTicket(o) {
+    const tableInfo = o.restaurant_tables ? `T${o.restaurant_tables.table_number}${o.restaurant_tables.name ? ' ' + o.restaurant_tables.name : ''}` : '';
+    const prevCount = kdsOrderItemCounts.get(o.id) || 0;
+    const currentCount = (o.order_items || []).length;
+    const hasNewItems = prevCount > 0 && currentCount > prevCount;
+    return `
+    <div class="kds-ticket ${o.status}" data-order-id="${o.id}">
+      <div class="kds-ticket-header">
+        <span>
+          <span class="kds-order-id">#${o.id.slice(0,6).toUpperCase()}</span>
+          ${tableInfo ? `<span class="kds-table">${escapeHtml(tableInfo)}</span>` : ''}
+        </span>
+        <span>
+          ${hasNewItems ? `<span class="kds-new-badge">NEW ITEMS</span>` : ''}
+          <span class="kds-time">${new Date(o.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span>
+          <span class="kds-status ${o.status}">${o.status.toUpperCase()}</span>
+        </span>
+      </div>
+      <div class="kds-items">
+        ${(o.order_items || []).map((item, idx) => `
+          <div class="kds-item ${idx >= prevCount && hasNewItems ? 'kds-item-new' : ''}">
+            <span class="kds-qty">${item.quantity}x</span>
+            <span class="kds-name">${escapeHtml(item.products?.name || 'Unknown')}</span>
+            ${idx >= prevCount && hasNewItems ? '<span class="kds-item-added">NEW</span>' : ''}
+          </div>
+        `).join('')}
+      </div>
+      <div class="kds-actions">
+        ${o.status === 'pending' ? `<button class="kds-btn-start" onclick="kdsUpdateStatus('${o.id}', 'preparing')">Start</button>` : ''}
+        ${o.status === 'preparing' ? `<button class="kds-btn-ready" onclick="kdsUpdateStatus('${o.id}', 'ready')">Ready</button>` : ''}
+        ${o.status === 'ready' ? `<button class="kds-btn-served" onclick="kdsUpdateStatus('${o.id}', 'served')">Served</button>` : ''}
+      </div>
+    </div>`;
   }
   
   async function kdsUpdateStatus(orderId, newStatus) {
     if (newStatus === 'served') {
       const { data: order } = await sb.from('orders')
-        .select('*, order_items(*, products(product_type))')
+        .select('id, business_id, order_items(id, quantity, product_id, products(product_type))')
         .eq('id', orderId).eq('business_id', membership.business_id).single();
       if (order) {
-        for (const item of (order.order_items || [])) {
-          const prod = item.products;
-          if (!prod) continue;
-          if (prod.product_type === 'recipe') continue; // sale-count only, no per-order stock deduction
-          await adjustStock('products', item.product_id, -item.quantity, membership.business_id);
-          await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: -item.quantity, reason: 'sale', refType: 'order', refId: order.id });
-        }
+        const stockOps = (order.order_items || [])
+          .filter(item => item.products && item.products.product_type !== 'recipe')
+          .map(item => Promise.all([
+            adjustStock('products', item.product_id, -item.quantity, membership.business_id),
+            logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: -item.quantity, reason: 'sale', refType: 'order', refId: order.id })
+          ]));
+        await Promise.all(stockOps);
       }
       await sb.from('orders').update({ status: 'served' }).eq('id', orderId).eq('business_id', membership.business_id);
-      await loadProducts();
+      loadProducts();
     } else {
       await sb.from('orders').update({ status: newStatus }).eq('id', orderId).eq('business_id', membership.business_id);
     }
@@ -2522,9 +2571,9 @@
   }
 
   function paymentMethodOptions(selected) {
-    return ['cash', 'card', 'mobile_money'].map(m => {
-      const label = m === 'cash' ? 'Cash' : m === 'card' ? 'Card' : 'Mobile Money';
-      const i18nKey = m === 'cash' ? 'payment_screen.cash' : m === 'card' ? 'payment_screen.card' : 'payment_screen.mobile_money';
+    return ['cash', 'card'].map(m => {
+      const label = m === 'cash' ? 'Cash' : 'Card / Bank Transfer';
+      const i18nKey = m === 'cash' ? 'payment_screen.cash' : 'payment_screen.card';
       const text = t(i18nKey) !== i18nKey ? t(i18nKey) : label;
       return `<option value="${m}" ${m === selected ? 'selected' : ''}>${escapeHtml(text)}</option>`;
     }).join('');
@@ -2559,7 +2608,7 @@
   function addPaymentLine() {
     const remaining = Math.max(0, paymentTotalDue() - paymentSumLines());
     const usedMethods = paymentState.lines.map(l => l.method);
-    const nextMethod = ['cash', 'card', 'mobile_money'].find(m => !usedMethods.includes(m)) || 'cash';
+    const nextMethod = ['cash', 'card'].find(m => !usedMethods.includes(m)) || 'cash';
     paymentState.lines.push({ method: nextMethod, amount: remaining });
     renderPaymentLines();
   }
@@ -2803,7 +2852,7 @@
 
   async function posShowReceipt(orderId) {
     const { data: order } = await sb.from('orders')
-      .select('*, customers(name), order_items(*, products(name))')
+      .select('*, customers(name), restaurant_tables!table_id(table_number, name), order_items(*, products(name))')
       .eq('id', orderId).single();
     if (!order) return;
     const { data: orderPayments } = await sb.from('payments')
@@ -2828,7 +2877,8 @@
         <p>Receipt ${receiptNum}</p>
         <p>${new Date(order.created_at).toLocaleString()}</p>
         ${order.order_type ? `<p>${escapeHtml(order.order_type.replace('_',' '))}</p>` : ''}
-        ${order.table_id ? `<p>Table: ${escapeHtml(order.table_id)}</p>` : ''}
+        ${order.customers ? `<p>${escapeHtml(order.customers.name)}</p>` : `<p>Walk-in</p>`}
+        ${order.restaurant_tables ? `<p>Table ${order.restaurant_tables.table_number}${order.restaurant_tables.name ? ' — ' + escapeHtml(order.restaurant_tables.name) : ''}</p>` : ''}
         <p>Cashier: ${escapeHtml(cashierName)}</p>
       </div>
       <div class="receipt-items">
@@ -4292,7 +4342,7 @@
   async function loadSales(append = false) {
     updateSalesGroupBtn();
     if (salesExpandedDay && !append) {
-      const { data } = await sb.from('orders').select('*, customers(name)').eq('business_id', membership.business_id).neq('status', 'voided').gte('created_at', salesExpandedDay + 'T00:00:00').lte('created_at', salesExpandedDay + 'T23:59:59').order('created_at', { ascending: false });
+      const { data } = await sb.from('orders').select('*, customers(name), restaurant_tables!table_id(table_number, name)').eq('business_id', membership.business_id).neq('status', 'voided').gte('created_at', salesExpandedDay + 'T00:00:00').lte('created_at', salesExpandedDay + 'T23:59:59').order('created_at', { ascending: false });
       const el = document.getElementById("sales-ledger");
       if (!el) return;
       const label = new Date(salesExpandedDay + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
@@ -4300,8 +4350,11 @@
       const backBtn = `<div style="padding:8px 0 12px;"><button class="btn-ghost" onclick="salesGoBack()" style="font-size:13px;">← Back to summary</button> <span style="color:var(--ink-faint); font-size:13px; margin-left:8px;">${escapeHtml(label)} — ${money(dayTotal)}</span></div>`;
       if (!data || data.length === 0) { el.innerHTML = backBtn + `<div class="empty-state">No orders for this day.</div>`; return; }
       const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;"><div>Customer</div><div>Time</div><div style="text-align:right">Total</div><div></div><div></div></div>`;
-      const rows = data.map(o => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;">
-        <div>${o.customers ? escapeHtml(o.customers.name) : "Walk-in"}${o.status !== 'completed' ? ` <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:var(--amber-soft); color:var(--amber); font-weight:600;">${o.status.toUpperCase()}</span>` : ''}</div>
+      const rows = data.map(o => {
+        const custLabel = o.customers ? escapeHtml(o.customers.name) : 'Walk-in';
+        const tableLabel = o.restaurant_tables ? ` · T${o.restaurant_tables.table_number}` : '';
+        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;">
+        <div>${custLabel}${tableLabel}${o.status !== 'completed' ? ` <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:var(--amber-soft); color:var(--amber); font-weight:600;">${o.status.toUpperCase()}</span>` : ''}</div>
         <div style="color:var(--ink-faint); font-size:12px;">${new Date(o.created_at).toLocaleTimeString()}</div>
         <div class="num" style="text-align:right">${money(o.total_amount)}</div>
         <div style="text-align:right;">${o.status === 'served' ? `<span style="color:#16a34a; font-size:12px; text-decoration:underline; cursor:pointer; font-weight:600;" onclick="payTableOrder('${escapeAttr(o.id)}')">Pay</span>` : `<span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="posShowReceipt('${escapeAttr(o.id)}')">Receipt</span>`}</div>
@@ -4311,7 +4364,7 @@
       return;
     }
     if (salesGroupByDay && !append) {
-      await pagedLoad('sales', { table: 'orders', select: '*, customers(name)', orderBy: 'created_at', ascending: false, timeFilterKey: 'sales', append: false });
+      await pagedLoad('sales', { table: 'orders', select: '*, customers(name), restaurant_tables!table_id(table_number, name)', orderBy: 'created_at', ascending: false, timeFilterKey: 'sales', append: false });
       const el = document.getElementById("sales-ledger");
       if (!el) return;
       if (cache.sales.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💰</div>No sales recorded yet.<br><span style="font-size:12px;">Tap "New Sale" to open the POS.</span></div>`; return; }
@@ -4340,18 +4393,23 @@
       el.innerHTML = head + rows + totalBar;
       return;
     }
-    await pagedLoad('sales', { table: 'orders', select: '*, customers(name)', orderBy: 'created_at', ascending: false, timeFilterKey: 'sales', append });
+    await pagedLoad('sales', { table: 'orders', select: '*, customers(name), restaurant_tables!table_id(table_number, name)', orderBy: 'created_at', ascending: false, timeFilterKey: 'sales', append });
     const el = document.getElementById("sales-ledger");
     if (!el) return;
     if (cache.sales.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💰</div>No sales recorded yet.<br><span style="font-size:12px;">Tap "New Sale" to open the POS.</span></div>`; return; }
     const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;"><div>Customer</div><div>Date</div><div style="text-align:right">Total</div><div></div><div></div></div>`;
-    const rows = cache.sales.map((o) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;">
-        <div>${o.customers ? escapeHtml(o.customers.name) : "Walk-in"}${o.status !== 'completed' ? ` <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:${o.status === 'voided' ? 'var(--danger-soft)' : 'var(--amber-soft)'}; color:${o.status === 'voided' ? 'var(--danger)' : 'var(--amber)'}; font-weight:600;">${o.status.toUpperCase()}</span>` : ''}</div>
+    const rows = cache.sales.map((o) => {
+      const custLabel = o.customers ? escapeHtml(o.customers.name) : 'Walk-in';
+      const tableLabel = o.restaurant_tables ? ` · T${o.restaurant_tables.table_number}` : '';
+      const statusBadge = o.status !== 'completed' ? ` <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:${o.status === 'voided' ? 'var(--danger-soft)' : 'var(--amber-soft)'}; color:${o.status === 'voided' ? 'var(--danger)' : 'var(--amber)'}; font-weight:600;">${o.status.toUpperCase()}</span>` : '';
+      return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;">
+        <div>${custLabel}${tableLabel}${statusBadge}</div>
         <div style="color:var(--ink-faint); font-size:12px;">${new Date(o.created_at).toLocaleDateString()}</div>
         <div class="num" style="text-align:right">${money(o.total_amount)}</div>
         <div style="text-align:right;">${o.status === 'served' ? `<span style="color:#16a34a; font-size:12px; text-decoration:underline; cursor:pointer; font-weight:600;" onclick="payTableOrder('${escapeAttr(o.id)}')">Pay</span>` : `<span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="posShowReceipt('${escapeAttr(o.id)}')">Receipt</span>`}</div>
         <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidSale('${escapeAttr(o.id)}')">Void</span></div>
-      </div>`).join("");
+      </div>`;
+    }).join("");
     appendPaginated(el, head + rows, "sales", append);
   }
   function salesExpandDay(day) {

@@ -498,9 +498,10 @@
   .btn-sm { padding: 6px 10px; font-size: 12px; }
 
   /* Desktop: side-by-side */
-  .pos-body { display: grid; grid-template-columns: 1fr 360px; height: calc(95vh - 60px); overflow: hidden; }
+  .pos-body { display: grid; grid-template-columns: 1fr 360px; height: calc(95vh - 60px); overflow: hidden; position: relative; }
   .pos-left { display: flex; flex-direction: column; overflow: hidden; padding: 12px; }
-  .pos-right { background: var(--card); border-left: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; }
+  .pos-right { background: var(--card); border-left: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; position: relative; }
+  .pos-right.expanded { position: absolute; inset: 0; width: 100%; z-index: 30; border-left: none; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
   .pos-search { display: flex; gap: 8px; margin-bottom: 10px; }
   .pos-search input { flex: 1; padding: 10px 14px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; background: var(--paper); color: var(--ink); }
   .pos-search input::placeholder { color: var(--ink-faint); }
@@ -518,7 +519,8 @@
   .pos-prod-stock { font-size: 11px; color: var(--ink-faint); }
 
   /* Cart panel */
-  .pos-cart-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--paper); flex-shrink: 0; }
+  .pos-cart-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--paper); flex-shrink: 0; cursor: pointer; user-select: none; }
+  .pos-cart-expand-icon { font-size: 12px; color: var(--ink-faint); margin-left: 4px; }
   .pos-cart-count { font-size: 12px; color: var(--ink-faint); }
   .pos-customer-bar { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line); cursor: pointer; font-size: 13px; flex-shrink: 0; }
   .pos-customer-bar:active { background: var(--paper); }
@@ -571,7 +573,7 @@
       box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
       transition: max-height 0.3s ease;
     }
-    .pos-right.expanded { max-height: 85vh; }
+    .pos-right.expanded { max-height: 95vh; }
     .pos-cart-header {
       cursor: pointer; user-select: none;
       padding: 10px 16px;
@@ -1434,7 +1436,7 @@
       <div class="pos-right" id="pos-right">
         <div class="pos-cart-header" onclick="posToggleCart()">
           <span data-i18n="pos.order">Order</span>
-          <span class="pos-cart-count" id="pos-cart-count">0 items</span>
+          <span class="pos-cart-count" id="pos-cart-count">0 items <span class="pos-cart-expand-icon" id="pos-cart-expand-icon">⛶</span></span>
         </div>
         <div class="pos-customer-bar" id="pos-customer-bar" onclick="openCustomerPicker()">
           <span><span id="pos-customer-label">Walk-in</span> <span id="pos-customer-table" style="color:var(--ink-faint);"></span></span>
@@ -2536,9 +2538,11 @@
   }
 
   function posToggleCart() {
-    if (window.innerWidth > 720) return;
     const panel = document.getElementById('pos-right');
-    if (panel) panel.classList.toggle('expanded');
+    if (!panel) return;
+    panel.classList.toggle('expanded');
+    const icon = document.getElementById('pos-cart-expand-icon');
+    if (icon) icon.textContent = panel.classList.contains('expanded') ? '✕' : '⛶';
   }
 
   // --- POS Cart Modal Actions ---

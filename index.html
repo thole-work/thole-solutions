@@ -577,7 +577,11 @@
     .pos-cart-header {
       cursor: pointer; user-select: none;
       padding: 10px 16px;
+      justify-content: space-between;
+      align-items: center;
     }
+    .pos-cart-header > span:first-child { text-align: left; }
+    .pos-cart-count { margin-left: auto; justify-content: flex-end; }
     .pos-cart-header::after {
       content: ''; display: block; width: 40px; height: 4px;
       background: var(--line); border-radius: 2px; margin: 6px auto 0;

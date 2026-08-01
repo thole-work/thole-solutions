@@ -2560,6 +2560,8 @@
   function posToggleCart() {
     const panel = document.getElementById('pos-right');
     if (!panel) return;
+    panel.style.height = '';
+    panel.style.transition = '';
     panel.classList.toggle('expanded');
     const icon = document.getElementById('pos-cart-expand-icon');
     if (icon) icon.textContent = panel.classList.contains('expanded') ? '✕' : '⛶';
@@ -2599,8 +2601,8 @@
       dragging = false;
       handle.classList.remove('dragging');
       panel.style.transition = '';
-      panel.style.height = '';
       const h = panel.getBoundingClientRect().height;
+      panel.style.height = h + 'px';
       const expanded = h > window.innerHeight * 0.45;
       panel.classList.toggle('expanded', expanded);
       const icon = document.getElementById('pos-cart-expand-icon');

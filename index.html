@@ -519,7 +519,8 @@
   .pos-prod-stock { font-size: 11px; color: var(--ink-faint); }
 
   /* Cart panel */
-  .pos-cart-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--paper); flex-shrink: 0; cursor: pointer; user-select: none; }
+  .pos-cart-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--paper); flex-shrink: 0; cursor: pointer; user-select: none; }
+  .pos-cart-drag { display: none; }
   .pos-cart-count { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--accent); }
   .pos-cart-expand-icon { font-size: 13px; color: var(--accent); display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 6px; background: var(--accent-soft); }
   .pos-customer-bar { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line); cursor: pointer; font-size: 13px; flex-shrink: 0; }
@@ -580,8 +581,18 @@
       justify-content: space-between;
       align-items: center;
     }
-    .pos-cart-header > span:first-child { text-align: left; }
-    .pos-cart-count { margin-left: auto; justify-content: flex-end; }
+    .pos-cart-header > span:first-child { text-align: left; flex-shrink: 0; }
+    .pos-cart-drag {
+      display: flex; align-items: center; justify-content: center;
+      flex: 1; min-width: 40px; cursor: grab; touch-action: none; height: 24px;
+    }
+    .pos-cart-drag::before {
+      content: ''; display: block; width: 56px; height: 4px;
+      background: var(--accent); border-radius: 2px;
+    }
+    .pos-cart-drag.dragging { cursor: grabbing; }
+    .pos-cart-drag.dragging::before { opacity: 0.6; }
+    .pos-cart-count { margin-left: auto; justify-content: flex-end; flex-shrink: 0; }
     .pos-customer-bar { padding: 6px 16px; font-size: 12px; }
     #pos-held-bar { padding: 6px 16px; font-size: 11px; }
     .pos-cart { padding: 8px 12px; }
@@ -1436,6 +1447,7 @@
       <div class="pos-right" id="pos-right">
         <div class="pos-cart-header" onclick="posToggleCart()">
           <span data-i18n="pos.order">Order</span>
+          <span class="pos-cart-drag" id="pos-cart-drag" onclick="event.stopPropagation()"></span>
           <span class="pos-cart-count" id="pos-cart-count">0 items <span class="pos-cart-expand-icon" id="pos-cart-expand-icon">⛶</span></span>
         </div>
         <div class="pos-customer-bar" id="pos-customer-bar" onclick="openCustomerPicker()">
@@ -2478,6 +2490,7 @@
     posRenderCart();
     updateCustomerDisplay();
     updateHeldOrdersBar();
+    posSetupCartDrag();
   }
 
   let posActiveCategory = null;
@@ -2550,6 +2563,56 @@
     panel.classList.toggle('expanded');
     const icon = document.getElementById('pos-cart-expand-icon');
     if (icon) icon.textContent = panel.classList.contains('expanded') ? '✕' : '⛶';
+  }
+
+  function posSetupCartDrag() {
+    const handle = document.getElementById('pos-cart-drag');
+    const panel = document.getElementById('pos-right');
+    if (!handle || !panel || handle.dataset.dragSetup) return;
+    handle.dataset.dragSetup = '1';
+    let startY = 0;
+    let startH = 0;
+    let dragging = false;
+
+    const onStart = (e) => {
+      if (window.innerWidth > 720) return;
+      dragging = true;
+      startY = e.touches ? e.touches[0].clientY : e.clientY;
+      startH = panel.getBoundingClientRect().height;
+      panel.style.transition = 'none';
+      panel.style.height = startH + 'px';
+      handle.classList.add('dragging');
+      e.stopPropagation();
+    };
+    const onMove = (e) => {
+      if (!dragging) return;
+      const y = e.touches ? e.touches[0].clientY : e.clientY;
+      const dh = y - startY;
+      let h = startH - dh;
+      h = Math.max(80, Math.min(window.innerHeight * 0.95, h));
+      panel.style.height = h + 'px';
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    const onEnd = () => {
+      if (!dragging) return;
+      dragging = false;
+      handle.classList.remove('dragging');
+      panel.style.transition = '';
+      panel.style.height = '';
+      const h = panel.getBoundingClientRect().height;
+      const expanded = h > window.innerHeight * 0.45;
+      panel.classList.toggle('expanded', expanded);
+      const icon = document.getElementById('pos-cart-expand-icon');
+      if (icon) icon.textContent = expanded ? '✕' : '⛶';
+    };
+
+    handle.addEventListener('touchstart', onStart, { passive: false });
+    handle.addEventListener('touchmove', onMove, { passive: false });
+    handle.addEventListener('touchend', onEnd);
+    handle.addEventListener('mousedown', onStart);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onEnd);
   }
 
   // --- POS Cart Modal Actions ---

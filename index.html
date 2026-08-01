@@ -2348,6 +2348,13 @@
     if (discEl) discEl.textContent = discount > 0 ? `-${money(discount)}` : money(0);
     if (taxEl) taxEl.textContent = money(tax);
     if (totalEl) totalEl.textContent = money(total);
+    const countEl = document.getElementById('pos-cart-count');
+    if (countEl) {
+      const count = posState.cart.reduce((s, i) => s + (Number(i.qty) || 1), 0);
+      const panel = document.getElementById('pos-right');
+      const expandedIcon = panel && panel.classList.contains('expanded') ? '✕' : '⛶';
+      countEl.innerHTML = `${count} item${count === 1 ? '' : 's'}<span class="pos-cart-expand-icon" id="pos-cart-expand-icon">${expandedIcon}</span>`;
+    }
   }
 
   function posAddProduct(productId) {
@@ -4404,12 +4411,11 @@
       const dayTotal = (data || []).reduce((s, o) => s + Number(o.total_amount || 0), 0);
       const backBtn = `<div style="padding:8px 0 12px;"><button class="btn-ghost" onclick="salesGoBack()" style="font-size:13px;">← Back to summary</button> <span style="color:var(--ink-faint); font-size:13px; margin-left:8px;">${escapeHtml(label)} — ${money(dayTotal)}</span></div>`;
       if (!data || data.length === 0) { el.innerHTML = backBtn + `<div class="empty-state">No orders for this day.</div>`; return; }
-      const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;"><div>Customer</div><div>Time</div><div style="text-align:right">Total</div><div></div><div></div></div>`;
+      const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;"><div>Table / Customer</div><div>Time</div><div style="text-align:right">Total</div><div></div><div></div></div>`;
       const rows = data.map(o => {
-        const custLabel = o.customers ? escapeHtml(o.customers.name) : 'Walk-in';
-        const tableLabel = o.restaurant_tables ? ` · T${o.restaurant_tables.table_number}` : '';
+        const primaryLabel = o.restaurant_tables ? `T${o.restaurant_tables.table_number}${o.restaurant_tables.name ? ' — ' + escapeHtml(o.restaurant_tables.name) : ''}` : (o.customers ? escapeHtml(o.customers.name) : 'Walk-in');
         return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;">
-        <div style="cursor:pointer; color:var(--accent);" onclick="showOrderPreview('${escapeAttr(o.id)}')">${custLabel}${tableLabel}${o.status !== 'completed' ? ` <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:var(--amber-soft); color:var(--amber); font-weight:600;">${o.status.toUpperCase()}</span>` : ''}</div>
+        <div style="cursor:pointer; color:var(--accent);" onclick="showOrderPreview('${escapeAttr(o.id)}')">${primaryLabel}${o.status !== 'completed' ? ` <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:var(--amber-soft); color:var(--amber); font-weight:600;">${o.status.toUpperCase()}</span>` : ''}</div>
         <div style="color:var(--ink-faint); font-size:12px;">${new Date(o.created_at).toLocaleTimeString()}</div>
         <div class="num" style="text-align:right">${money(o.total_amount)}</div>
         <div style="text-align:right;">${o.status === 'served' ? `<span style="color:#16a34a; font-size:12px; text-decoration:underline; cursor:pointer; font-weight:600;" onclick="payTableOrder('${escapeAttr(o.id)}')">Pay</span>` : `<span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="posShowReceipt('${escapeAttr(o.id)}')">Receipt</span>`}</div>
@@ -4453,13 +4459,12 @@
     const el = document.getElementById("sales-ledger");
     if (!el) return;
     if (cache.sales.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💰</div>No sales recorded yet.<br><span style="font-size:12px;">Tap "New Sale" to open the POS.</span></div>`; return; }
-    const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;"><div>Customer</div><div>Date</div><div style="text-align:right">Total</div><div></div><div></div></div>`;
+    const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;"><div>Table / Customer</div><div>Date</div><div style="text-align:right">Total</div><div></div><div></div></div>`;
     const rows = cache.sales.map((o) => {
-      const custLabel = o.customers ? escapeHtml(o.customers.name) : 'Walk-in';
-      const tableLabel = o.restaurant_tables ? ` · T${o.restaurant_tables.table_number}` : '';
+      const primaryLabel = o.restaurant_tables ? `T${o.restaurant_tables.table_number}${o.restaurant_tables.name ? ' — ' + escapeHtml(o.restaurant_tables.name) : ''}` : (o.customers ? escapeHtml(o.customers.name) : 'Walk-in');
       const statusBadge = o.status !== 'completed' ? ` <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:${o.status === 'voided' ? 'var(--danger-soft)' : 'var(--amber-soft)'}; color:${o.status === 'voided' ? 'var(--danger)' : 'var(--amber)'}; font-weight:600;">${o.status.toUpperCase()}</span>` : '';
       return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;">
-        <div style="cursor:pointer; color:var(--accent);" onclick="showOrderPreview('${escapeAttr(o.id)}')">${custLabel}${tableLabel}${statusBadge}</div>
+        <div style="cursor:pointer; color:var(--accent);" onclick="showOrderPreview('${escapeAttr(o.id)}')">${primaryLabel}${statusBadge}</div>
         <div style="color:var(--ink-faint); font-size:12px;">${new Date(o.created_at).toLocaleDateString()}</div>
         <div class="num" style="text-align:right">${money(o.total_amount)}</div>
         <div style="text-align:right;">${o.status === 'served' ? `<span style="color:#16a34a; font-size:12px; text-decoration:underline; cursor:pointer; font-weight:600;" onclick="payTableOrder('${escapeAttr(o.id)}')">Pay</span>` : `<span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="posShowReceipt('${escapeAttr(o.id)}')">Receipt</span>`}</div>

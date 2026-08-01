@@ -1499,6 +1499,14 @@
   </div>
 </div>
 
+<!-- ========== ORDER PREVIEW MODAL ========== -->
+<div id="order-preview-modal" class="modal-backdrop hidden">
+  <div class="modal" style="max-width:420px; max-height:85vh; overflow-y:auto;">
+    <div class="close" onclick="closeModal('order-preview-modal')">Close</div>
+    <div id="order-preview-content"></div>
+  </div>
+</div>
+
 <!-- ========== CUSTOMER PICKER MODAL (for POS) ========== -->
 <div id="customer-picker-modal" class="modal-backdrop hidden">
   <div class="modal" style="max-width:420px;">
@@ -2905,6 +2913,47 @@
       <div class="receipt-footer">${escapeHtml(receiptFooter)}</div>
     `;
     openModal('receipt-modal');
+  }
+
+  async function showOrderPreview(orderId) {
+    const { data: order } = await sb.from('orders')
+      .select('*, customers(name), restaurant_tables!table_id(table_number, name), order_items(*, products(name))')
+      .eq('id', orderId).single();
+    if (!order) return showToast('Order not found', 'error');
+    const custName = order.customers ? escapeHtml(order.customers.name) : 'Walk-in';
+    const tableLabel = order.restaurant_tables ? `Table ${order.restaurant_tables.table_number}${order.restaurant_tables.name ? ' — ' + escapeHtml(order.restaurant_tables.name) : ''}` : '';
+    const statusColor = order.status === 'voided' ? 'var(--danger)' : order.status === 'completed' ? 'var(--accent)' : 'var(--amber)';
+    const el = document.getElementById('order-preview-content');
+    el.innerHTML = `
+      <div style="margin-bottom:12px;">
+        <div style="font-size:18px; font-weight:700; margin-bottom:2px;">${custName}</div>
+        ${tableLabel ? `<div style="font-size:13px; color:var(--ink-soft);">${escapeHtml(tableLabel)}</div>` : ''}
+        <div style="font-size:12px; color:var(--ink-faint); margin-top:4px;">${new Date(order.created_at).toLocaleString()} · <span style="color:${statusColor}; font-weight:600;">${order.status.toUpperCase()}</span></div>
+      </div>
+      <div style="border-top:1px solid var(--line); padding-top:8px;">
+        ${(order.order_items || []).map(item => `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--line);">
+            <div>
+              <span style="font-weight:600;">${escapeHtml(item.products?.name || 'Item')}</span>
+              <span style="color:var(--ink-faint); font-size:13px; margin-left:4px;">× ${item.quantity}</span>
+            </div>
+            <div style="font-weight:500;">${money(item.line_total || (item.quantity * item.unit_price))}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div style="border-top:1px solid var(--line); padding-top:8px; margin-top:4px;">
+        <div style="display:flex; justify-content:space-between; padding:3px 0; font-size:13px;"><span>Subtotal</span><span>${money(order.subtotal)}</span></div>
+        ${order.discount > 0 ? `<div style="display:flex; justify-content:space-between; padding:3px 0; font-size:13px;"><span>Discount</span><span style="color:var(--danger);">-${money(order.discount)}</span></div>` : ''}
+        ${order.tax > 0 ? `<div style="display:flex; justify-content:space-between; padding:3px 0; font-size:13px;"><span>Tax (${((order.tax_rate || 0) * 100).toFixed(0)}%)</span><span>${money(order.tax)}</span></div>` : ''}
+        ${order.tip > 0 ? `<div style="display:flex; justify-content:space-between; padding:3px 0; font-size:13px;"><span>Tip</span><span>${money(order.tip)}</span></div>` : ''}
+        <div style="display:flex; justify-content:space-between; padding:6px 0; font-size:16px; font-weight:700; border-top:2px solid var(--line); margin-top:4px;"><span>Total</span><span>${money(order.total_amount)}</span></div>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:16px;">
+        ${order.status === 'served' ? `<button class="btn-primary" style="flex:1;" onclick="closeModal('order-preview-modal'); payTableOrder('${escapeAttr(order.id)}')">Pay</button>` : ''}
+        <button class="btn-ghost" style="flex:1;" onclick="closeModal('order-preview-modal')">Close</button>
+      </div>
+    `;
+    openModal('order-preview-modal');
   }
 
   function printReceipt() {
@@ -4356,7 +4405,7 @@
         const custLabel = o.customers ? escapeHtml(o.customers.name) : 'Walk-in';
         const tableLabel = o.restaurant_tables ? ` · T${o.restaurant_tables.table_number}` : '';
         return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;">
-        <div>${custLabel}${tableLabel}${o.status !== 'completed' ? ` <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:var(--amber-soft); color:var(--amber); font-weight:600;">${o.status.toUpperCase()}</span>` : ''}</div>
+        <div style="cursor:pointer; color:var(--accent);" onclick="showOrderPreview('${escapeAttr(o.id)}')">${custLabel}${tableLabel}${o.status !== 'completed' ? ` <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:var(--amber-soft); color:var(--amber); font-weight:600;">${o.status.toUpperCase()}</span>` : ''}</div>
         <div style="color:var(--ink-faint); font-size:12px;">${new Date(o.created_at).toLocaleTimeString()}</div>
         <div class="num" style="text-align:right">${money(o.total_amount)}</div>
         <div style="text-align:right;">${o.status === 'served' ? `<span style="color:#16a34a; font-size:12px; text-decoration:underline; cursor:pointer; font-weight:600;" onclick="payTableOrder('${escapeAttr(o.id)}')">Pay</span>` : `<span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="posShowReceipt('${escapeAttr(o.id)}')">Receipt</span>`}</div>
@@ -4406,7 +4455,7 @@
       const tableLabel = o.restaurant_tables ? ` · T${o.restaurant_tables.table_number}` : '';
       const statusBadge = o.status !== 'completed' ? ` <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:${o.status === 'voided' ? 'var(--danger-soft)' : 'var(--amber-soft)'}; color:${o.status === 'voided' ? 'var(--danger)' : 'var(--amber)'}; font-weight:600;">${o.status.toUpperCase()}</span>` : '';
       return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;">
-        <div>${custLabel}${tableLabel}${statusBadge}</div>
+        <div style="cursor:pointer; color:var(--accent);" onclick="showOrderPreview('${escapeAttr(o.id)}')">${custLabel}${tableLabel}${statusBadge}</div>
         <div style="color:var(--ink-faint); font-size:12px;">${new Date(o.created_at).toLocaleDateString()}</div>
         <div class="num" style="text-align:right">${money(o.total_amount)}</div>
         <div style="text-align:right;">${o.status === 'served' ? `<span style="color:#16a34a; font-size:12px; text-decoration:underline; cursor:pointer; font-weight:600;" onclick="payTableOrder('${escapeAttr(o.id)}')">Pay</span>` : `<span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="posShowReceipt('${escapeAttr(o.id)}')">Receipt</span>`}</div>

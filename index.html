@@ -2995,22 +2995,22 @@
     const { data: order } = await sb.from('orders')
       .select('*, customers(name), restaurant_tables!table_id(table_number, name), order_items(*, products(name))')
       .eq('id', orderId).single();
-    if (!order) return showToast('Order not found', 'error');
-    const custName = order.customers ? escapeHtml(order.customers.name) : 'Walk-in';
-    const tableLabel = order.restaurant_tables ? `Table ${order.restaurant_tables.table_number}${order.restaurant_tables.name ? ' — ' + escapeHtml(order.restaurant_tables.name) : ''}` : '';
+    if (!order) return showToast(t('error.order_not_found'), 'error');
+    const custName = order.customers ? escapeHtml(order.customers.name) : t('sales.walk_in');
+    const tableLabel = order.restaurant_tables ? `${t('pos.table')} ${order.restaurant_tables.table_number}${order.restaurant_tables.name ? ' — ' + escapeHtml(order.restaurant_tables.name) : ''}` : '';
     const statusColor = order.status === 'voided' ? 'var(--danger)' : order.status === 'completed' ? 'var(--accent)' : 'var(--amber)';
     const el = document.getElementById('order-preview-content');
     el.innerHTML = `
       <div style="margin-bottom:12px;">
         <div style="font-size:18px; font-weight:700; margin-bottom:2px;">${custName}</div>
-        ${tableLabel ? `<div style="font-size:13px; color:var(--ink-soft);">${escapeHtml(tableLabel)}</div>` : ''}
+        ${tableLabel ? `<div style="font-size:13px; color:var(--ink-soft);">${tableLabel}</div>` : ''}
         <div style="font-size:12px; color:var(--ink-faint); margin-top:4px;">${new Date(order.created_at).toLocaleString()} · <span style="color:${statusColor}; font-weight:600;">${order.status.toUpperCase()}</span></div>
       </div>
       <div style="border-top:1px solid var(--line); padding-top:8px;">
         ${(order.order_items || []).map(item => `
           <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--line);">
             <div>
-              <span style="font-weight:600;">${escapeHtml(item.products?.name || 'Item')}</span>
+              <span style="font-weight:600;">${escapeHtml(item.products?.name || t('pos.item'))}</span>
               <span style="color:var(--ink-faint); font-size:13px; margin-left:4px;">× ${item.quantity}</span>
             </div>
             <div style="font-weight:500;">${money(item.line_total || (item.quantity * item.unit_price))}</div>
@@ -3018,15 +3018,15 @@
         `).join('')}
       </div>
       <div style="border-top:1px solid var(--line); padding-top:8px; margin-top:4px;">
-        <div style="display:flex; justify-content:space-between; padding:3px 0; font-size:13px;"><span>Subtotal</span><span>${money(order.subtotal)}</span></div>
-        ${order.discount > 0 ? `<div style="display:flex; justify-content:space-between; padding:3px 0; font-size:13px;"><span>Discount</span><span style="color:var(--danger);">-${money(order.discount)}</span></div>` : ''}
-        ${order.tax > 0 ? `<div style="display:flex; justify-content:space-between; padding:3px 0; font-size:13px;"><span>Tax (${((order.tax_rate || 0) * 100).toFixed(0)}%)</span><span>${money(order.tax)}</span></div>` : ''}
-        ${order.tip > 0 ? `<div style="display:flex; justify-content:space-between; padding:3px 0; font-size:13px;"><span>Tip</span><span>${money(order.tip)}</span></div>` : ''}
-        <div style="display:flex; justify-content:space-between; padding:6px 0; font-size:16px; font-weight:700; border-top:2px solid var(--line); margin-top:4px;"><span>Total</span><span>${money(order.total_amount)}</span></div>
+        <div style="display:flex; justify-content:space-between; padding:3px 0; font-size:13px;"><span>${t('pos.subtotal')}</span><span>${money(order.subtotal)}</span></div>
+        ${order.discount > 0 ? `<div style="display:flex; justify-content:space-between; padding:3px 0; font-size:13px;"><span>${t('pos.discount')}</span><span style="color:var(--danger);">-${money(order.discount)}</span></div>` : ''}
+        ${order.tax > 0 ? `<div style="display:flex; justify-content:space-between; padding:3px 0; font-size:13px;"><span>${t('pos.tax')} (${((order.tax_rate || 0) * 100).toFixed(0)}%)</span><span>${money(order.tax)}</span></div>` : ''}
+        ${order.tip > 0 ? `<div style="display:flex; justify-content:space-between; padding:3px 0; font-size:13px;"><span>${t('payment_screen.tip')}</span><span>${money(order.tip)}</span></div>` : ''}
+        <div style="display:flex; justify-content:space-between; padding:6px 0; font-size:16px; font-weight:700; border-top:2px solid var(--line); margin-top:4px;"><span>${t('pos.total')}</span><span>${money(order.total_amount)}</span></div>
       </div>
       <div style="display:flex; gap:8px; margin-top:16px;">
-        ${order.status === 'served' ? `<button class="btn-primary" style="flex:1;" onclick="closeModal('order-preview-modal'); payTableOrder('${escapeAttr(order.id)}')">Pay</button>` : ''}
-        <button class="btn-ghost" style="flex:1;" onclick="closeModal('order-preview-modal')">Close</button>
+        ${order.status === 'served' ? `<button class="btn-primary" style="flex:1;" onclick="closeModal('order-preview-modal'); payTableOrder('${escapeAttr(order.id)}')">${t('pos.pay')}</button>` : ''}
+        <button class="btn-ghost" style="flex:1;" onclick="closeModal('order-preview-modal')">${t('modal.close')}</button>
       </div>
     `;
     openModal('order-preview-modal');

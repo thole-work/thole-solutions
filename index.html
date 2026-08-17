@@ -722,6 +722,9 @@
     .kds-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
   }
   .nav-icon svg { width: 20px; height: 20px; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  :focus-visible { outline: 3px solid var(--sky); outline-offset: 3px; }
+  .nav-item[role="button"], .close[role="button"], .logout-link[role="button"] { cursor: pointer; }
+  .modal-backdrop[aria-hidden="true"] { display: none; }
 </style>
 </head>
 <body>
@@ -1919,14 +1922,86 @@
     requestAnimationFrame(step);
   }
 
-  function openModal(id) { show(id); document.getElementById("app-topbar").classList.add("topbar-dimmed"); const firstInput = document.querySelector(`#${id} .modal input:not([type=hidden]), #${id} .modal select`); if (firstInput) setTimeout(() => firstInput.focus(), 100); }
+  let modalTrigger = null;
+  function getModalFocusables(modal) {
+    return [...modal.querySelectorAll('button:not([disabled]), [href], input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+      .filter((el) => !el.closest('.hidden'));
+  }
+  function openModal(id) {
+    const backdrop = document.getElementById(id);
+    modalTrigger = document.activeElement;
+    show(id);
+    backdrop.setAttribute('aria-hidden', 'false');
+    document.getElementById("app-topbar").classList.add("topbar-dimmed");
+    const firstFocusable = getModalFocusables(backdrop)[0];
+    if (firstFocusable) setTimeout(() => firstFocusable.focus(), 100);
+  }
   function closeModal(id) {
+    const backdrop = document.getElementById(id);
     hide(id);
+    backdrop.setAttribute('aria-hidden', 'true');
     document.getElementById("app-topbar").classList.remove("topbar-dimmed");
     document.querySelectorAll(`#${id} input`).forEach((i) => (i.value = ""));
     const errId = id.replace("-modal", "-error");
     if (document.getElementById(errId)) clearError(errId);
     editingRecord = null;
+    if (!document.querySelector('.modal-backdrop:not(.hidden)') && modalTrigger?.focus) modalTrigger.focus();
+    modalTrigger = null;
+  }
+
+  function setupAccessibility() {
+    document.querySelectorAll('.nav-item, .close, .logout-link').forEach((el) => {
+      el.setAttribute('role', 'button');
+      el.tabIndex = 0;
+      if (el.dataset.tab) el.setAttribute('aria-current', el.classList.contains('active') ? 'page' : 'false');
+    });
+    document.querySelectorAll('.modal-backdrop').forEach((backdrop) => {
+      const dialog = backdrop.querySelector('.modal');
+      const title = dialog?.querySelector('h3');
+      if (!dialog || !title) return;
+      if (!title.id) title.id = `${backdrop.id}-title`;
+      dialog.setAttribute('role', 'dialog');
+      dialog.setAttribute('aria-modal', 'true');
+      dialog.setAttribute('aria-labelledby', title.id);
+      backdrop.setAttribute('aria-hidden', backdrop.classList.contains('hidden') ? 'true' : 'false');
+    });
+
+    const profileButton = document.getElementById('profile-avatar');
+    const profileMenu = document.getElementById('profile-dropdown');
+    profileButton?.setAttribute('aria-expanded', 'false');
+    profileButton?.setAttribute('aria-controls', 'profile-dropdown');
+    profileMenu?.setAttribute('role', 'group');
+    profileMenu?.setAttribute('aria-label', 'Account menu');
+
+    const moreButton = document.querySelector('.mobile-more-btn');
+    const morePanel = document.getElementById('mobile-more-panel');
+    moreButton?.setAttribute('aria-expanded', 'false');
+    moreButton?.setAttribute('aria-controls', 'mobile-more-panel');
+    morePanel?.setAttribute('role', 'navigation');
+    morePanel?.setAttribute('aria-label', 'More navigation');
+
+    document.addEventListener('keydown', (e) => {
+      const openModal = document.querySelector('.modal-backdrop:not(.hidden)');
+      if (e.key === 'Tab' && openModal) {
+        const focusables = getModalFocusables(openModal);
+        if (!focusables.length) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+      if (e.key === 'Escape' && profileMenu?.classList.contains('open')) {
+        profileMenu.classList.remove('open');
+        profileButton?.setAttribute('aria-expanded', 'false');
+        profileButton?.focus();
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.nav-item[role="button"], .close[role="button"], .logout-link[role="button"]')) {
+        e.preventDefault();
+        e.target.click();
+      }
+    });
   }
 
   // ============================================================
@@ -3938,11 +4013,13 @@
     e.stopPropagation();
     const dd = document.getElementById("profile-dropdown");
     dd.classList.toggle("open");
+    document.getElementById('profile-avatar').setAttribute('aria-expanded', String(dd.classList.contains('open')));
   }
   document.addEventListener("click", function(e) {
     const dd = document.getElementById("profile-dropdown");
     if (dd && !dd.contains(e.target) && !document.getElementById("profile-avatar").contains(e.target)) {
       dd.classList.remove("open");
+      document.getElementById('profile-avatar').setAttribute('aria-expanded', 'false');
     }
   });
   function updateProfileAvatar(name) {
@@ -3980,7 +4057,11 @@
     section.classList.remove("hidden");
     section.classList.add("is-entering");
     setTimeout(() => section.classList.remove("is-entering"), 260);
-    document.querySelectorAll(".nav-item").forEach((el) => el.classList.toggle("active", el.dataset.tab === tab));
+    document.querySelectorAll(".nav-item").forEach((el) => {
+      const active = el.dataset.tab === tab;
+      el.classList.toggle("active", active);
+      if (el.dataset.tab) el.setAttribute('aria-current', active ? 'page' : 'false');
+    });
     updateTopbar(tab);
     if (tab === "efficiency") { renderEfficiency(); loadWaste(); loadShifts(); loadProduceBatches(); }
     if (tab === "suppliers") loadSuppliers();
@@ -4083,8 +4164,10 @@
   }
 
   function toggleMoreMenu() {
-    document.getElementById("mobile-more-panel").classList.toggle("open");
+    const panel = document.getElementById("mobile-more-panel");
+    panel.classList.toggle("open");
     document.getElementById("mobile-more-backdrop").classList.toggle("open");
+    document.querySelector('.mobile-more-btn')?.setAttribute('aria-expanded', String(panel.classList.contains('open')));
   }
 
   // ============================================================
@@ -5833,6 +5916,7 @@
     });
   });
 
+  setupAccessibility();
   boot();
 </script>
 

@@ -820,6 +820,7 @@
       <div class="nav-item nav-secondary" data-tab="stock-movements" onclick="switchTab('stock-movements')"><span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span> <span data-i18n="nav.stock_movements">Stock Movements</span></div>
       <div class="nav-item nav-secondary" data-tab="efficiency" onclick="switchTab('efficiency')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 12 16 8"/><path d="M12 6v6"/><circle cx="12" cy="12" r="2"/></svg></span> <span data-i18n="nav.efficiency">Efficiency</span></div>
       <div class="nav-item nav-secondary" data-tab="settings" onclick="switchTab('settings')"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.08 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1.08Z"/></svg></span> <span data-i18n="nav.settings">Settings</span></div>
+      <div class="nav-item nav-secondary hidden" data-tab="admin" onclick="switchTab('admin')"><span class="nav-icon">🛡️</span> <span>Admin</span></div>
       <div class="nav-item mobile-more-btn" onclick="toggleMoreMenu()"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></span> <span data-i18n="nav.more">More</span></div>
     </nav>
     <div class="side-footer">
@@ -1221,6 +1222,37 @@
         <p style="font-size:12px; color:var(--ink-faint); margin-bottom:12px;" data-i18n="settings.tables_desc">Manage restaurant tables for dine-in orders.</p>
         <div id="settings-tables-list"></div>
         <button class="btn-primary" onclick="openTableSettingsModal()" style="margin-top:12px;" data-i18n="settings.add_table">Add Table</button>
+      </div>
+    </section>
+
+    <section id="tab-admin" class="tab-panel hidden">
+      <div class="page-header"><h2>Platform Admin</h2><p>Tenant-wide activity, usage, and audit trail.</p></div>
+      <div class="reports-metrics">
+        <div class="report-summary-card report-card">
+          <div class="label">Businesses</div>
+          <div class="value num" id="admin-business-count">0</div>
+          <div class="note">All active tenants.</div>
+        </div>
+        <div class="report-summary-card report-card">
+          <div class="label">Members</div>
+          <div class="value num" id="admin-member-count">0</div>
+          <div class="note">Active business memberships.</div>
+        </div>
+        <div class="report-summary-card report-card">
+          <div class="label">Usage events</div>
+          <div class="value num" id="admin-usage-count">0</div>
+          <div class="note">Recent recorded activity.</div>
+        </div>
+      </div>
+      <div class="report-grid">
+        <div class="report-card">
+          <h3>Recent audit</h3>
+          <div class="ledger" id="admin-audit-ledger"></div>
+        </div>
+        <div class="report-card">
+          <h3>Recent usage</h3>
+          <div class="ledger" id="admin-usage-ledger"></div>
+        </div>
       </div>
     </section>
   </main>
@@ -1896,6 +1928,24 @@
       console.warn("usage event failed", err);
     }
   }
+  async function recordAudit(action, entityType, entityId = null, beforeData = null, afterData = null, metadata = {}) {
+    if (!membership?.business_id || !currentUser?.id) return;
+    try {
+      await sb.from("audit_log").insert({
+        business_id: membership.business_id,
+        branch_id: currentBranch?.id ?? membership.branch_id ?? null,
+        user_id: currentUser.id,
+        action,
+        entity_type: entityType,
+        entity_id: entityId,
+        before_data: beforeData,
+        after_data: afterData,
+        metadata,
+      });
+    } catch (err) {
+      console.warn("audit log failed", err);
+    }
+  }
   async function loadCurrentBranch() {
     currentBranch = null;
     if (!membership?.business_id) return;
@@ -2196,6 +2246,7 @@
       : await sb.from(table).insert(insertPayload);
     setBtnLoading(btn, false);
     if (error) return setError(errId, error.message);
+    await recordAudit(editingRecord ? "update" : "create", table, editingRecord?.id ?? null, editingRecord ? { ...payload } : null, editingRecord ? { ...payload } : insertPayload);
     closeModal(modalId);
     showToast(editingRecord ? 'Updated' : 'Added');
     if (postSubmit) await postSubmit();
@@ -2895,6 +2946,7 @@
         tax: orderTax,
         total_amount: orderTotal,
       }).eq('id', orderId).eq('business_id', membership.business_id);
+      await recordAudit("update", "orders", orderId, null, { subtotal: orderSubtotal, discount: orderDiscount, tax: orderTax, total_amount: orderTotal });
 
       showToast('Order updated — kitchen notified', 'success');
       playKDSSound('new');
@@ -2939,6 +2991,7 @@
         created_by: currentUser.id,
       }).select().single();
       if (orderErr) { setBtnLoading(btn, false); return showToast(orderErr.message, 'error'); }
+      await recordAudit("create", "orders", order.id, null, { business_id: membership.business_id, branch_id: activeBranchId(), table_id: posState.tableId || null, customer_id: posState.customerId || null, total_amount: groupTotal });
       orderIds.push(order.id);
 
       const orderItems = items.map(item => ({
@@ -3871,8 +3924,10 @@
     if (membership.role === "staff") { showToast("Staff cannot delete records.", "error"); return; }
     if (!confirm("Delete this record? It can be restored later by an admin.")) return;
     const payload = table === "products" ? { is_active: false } : { status: "voided" };
+    const before = cache[table]?.find?.(x => x.id === editingRecord.id) || null;
     const { error } = await sb.from(table).update(payload).eq("id", editingRecord.id).eq("business_id", membership.business_id);
     if (error) return setError(modalId.replace("-modal", "-error"), error.message);
+    await recordAudit("delete", table, editingRecord.id, before, payload);
     closeModal(modalId);
     showToast("Record deleted");
     await loadEverything();
@@ -3985,6 +4040,9 @@
     if (addProductBtn) addProductBtn.classList.toggle("hidden", isStaff);
     const addMaterialBtn = document.querySelector('button[onclick="openAddMaterial()"]');
     if (addMaterialBtn) addMaterialBtn.classList.toggle("hidden", isStaff);
+    document.querySelectorAll('.nav-item[data-tab="admin"]').forEach((el) => {
+      el.classList.toggle("hidden", role !== "super_admin");
+    });
   }
 
   // ============================================================
@@ -4280,6 +4338,7 @@
       { const { data: ri } = await sb.from('recipe_items').select('*').eq('business_id', membership.business_id); cache.recipeItems = ri || []; }
       if (membership.role === "owner") await loadTeam();
       if (membership.role === "owner" || membership.role === "manager") await loadReports();
+      if (membership.role === "super_admin") await loadAdminDashboard();
       await Promise.all([loadWaste(), loadShifts(), loadProduceBatches()]);
       renderDashboard();
       setupRealtimeSubscriptions();
@@ -5351,7 +5410,7 @@
   // ============================================================
   async function loadTeam() {
     document.getElementById("team-invite-code").textContent = membership.businesses.invite_code;
-    const { data } = await sb.from("app_users").select("*").eq("business_id", membership.business_id).order("created_at");
+    const { data } = await sb.from("business_members").select("id, user_id, role, full_name, status, branch_id, branch_id, created_at, branches(name)").eq("business_id", membership.business_id).order("created_at");
     const el = document.getElementById("team-ledger");
     if (!el) return;
     if (!data || data.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">👤</div>No team members found.<br><span style="font-size:12px;">Share your invite code to add staff.</span></div>`; return; }
@@ -5361,13 +5420,14 @@
       data.map((u) => {
         const isSelf = u.user_id === currentUser.id;
         return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 0.8fr;">
-          <div>${escapeHtml(u.full_name || "—")}${isSelf ? ' <span style="color:var(--ink-faint); font-size:12px;">(you)</span>' : ""}</div>
+          <div>${escapeHtml(u.full_name || "—")}${isSelf ? ' <span style="color:var(--ink-faint); font-size:12px;">(you)</span>' : ""}${u.branches?.name ? `<br><span style="font-size:11px; color:var(--ink-faint);">${escapeHtml(u.branches.name)}</span>` : ""}</div>
           <div>
             ${isSelf
               ? `<span class="cat-badge">${escapeHtml(u.role)}</span>`
               : `<select onchange="changeRole('${u.user_id}', this.value)" style="padding:5px 8px; font-size:12px;">
-                  <option value="staff" ${u.role === "staff" ? "selected" : ""}>Staff</option>
+                  <option value="cashier" ${u.role === "cashier" ? "selected" : ""}>Cashier</option>
                   <option value="manager" ${u.role === "manager" ? "selected" : ""}>Manager</option>
+                  <option value="admin" ${u.role === "admin" ? "selected" : ""}>Admin</option>
                   <option value="owner" ${u.role === "owner" ? "selected" : ""}>Owner</option>
                 </select>`
             }
@@ -5380,15 +5440,17 @@
   }
 
   async function changeRole(userId, newRole) {
-    const { error } = await sb.from("app_users").update({ role: newRole }).eq("user_id", userId).eq("business_id", membership.business_id);
+    const { error } = await sb.from("business_members").update({ role: newRole }).eq("user_id", userId).eq("business_id", membership.business_id);
     if (error) { showToast(error.message, "error"); }
+    await recordAudit("update", "business_members", null, null, { user_id: userId, role: newRole });
     await loadTeam();
   }
 
   async function removeTeamMember(userId) {
     if (!confirm("Remove this person's access to the business? Their login stays, but they'll need a new invite code to rejoin.")) return;
-    const { error } = await sb.from("app_users").delete().eq("user_id", userId).eq("business_id", membership.business_id);
+    const { error } = await sb.from("business_members").delete().eq("user_id", userId).eq("business_id", membership.business_id);
     if (error) { showToast(error.message, "error"); return; }
+    await recordAudit("delete", "business_members", null, null, { user_id: userId });
     await loadTeam();
   }
 
@@ -5401,6 +5463,32 @@
     const orderItems = await getOrderItems();
     renderReportSummary(orderItems);
     await Promise.all([renderCategoryChart(orderItems), renderTopProducts(orderItems), renderLowStockReport()]);
+  }
+
+  async function loadAdminDashboard() {
+    try {
+      const [{ count: businessCount }, { count: memberCount }, { count: usageCount }, { data: audits }, { data: usages }] = await Promise.all([
+        sb.from("businesses").select("id", { count: "exact", head: true }).eq("is_active", true),
+        sb.from("business_members").select("id", { count: "exact", head: true }).eq("status", "active"),
+        sb.from("usage_events").select("id", { count: "exact", head: true }),
+        sb.from("audit_log").select("action, entity_type, created_at, business_id, branch_id").order("created_at", { ascending: false }).limit(10),
+        sb.from("usage_events").select("event_type, page_key, created_at, business_id, branch_id").order("created_at", { ascending: false }).limit(10),
+      ]);
+      const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = String(value ?? 0); };
+      setText("admin-business-count", businessCount || 0);
+      setText("admin-member-count", memberCount || 0);
+      setText("admin-usage-count", usageCount || 0);
+      const auditEl = document.getElementById("admin-audit-ledger");
+      const usageEl = document.getElementById("admin-usage-ledger");
+      if (auditEl) {
+        auditEl.innerHTML = (audits || []).map(a => `<div class="ledger-row" style="grid-template-columns: 1.2fr 1fr 1fr;"><div>${escapeHtml(a.action)}</div><div>${escapeHtml(a.entity_type)}</div><div style="font-size:12px; color:var(--ink-faint);">${new Date(a.created_at).toLocaleString()}</div></div>`).join("") || '<div class="empty-state">No audit entries yet.</div>';
+      }
+      if (usageEl) {
+        usageEl.innerHTML = (usages || []).map(u => `<div class="ledger-row" style="grid-template-columns: 1.2fr 1fr 1fr;"><div>${escapeHtml(u.event_type)}</div><div>${escapeHtml(u.page_key || "—")}</div><div style="font-size:12px; color:var(--ink-faint);">${new Date(u.created_at).toLocaleString()}</div></div>`).join("") || '<div class="empty-state">No usage events yet.</div>';
+      }
+    } catch (err) {
+      console.warn("loadAdminDashboard failed", err);
+    }
   }
 
   async function getOrderItems() {

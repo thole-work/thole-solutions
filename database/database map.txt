@@ -1,0 +1,245 @@
+### Table: app_users
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| `user_id` | `uuid` | NOT NULL |  |  |
+| `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
+| `role` | `text` | NOT NULL |  |  |
+| `full_name` | `text` | NULL |  |  |
+| `is_active` | `boolean` | NULL |  |  |
+| `created_at` | `timestamp with time zone` | NULL |  |  |
+
+### Table: business_type_modules
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `business_type_id` | `uuid` | NOT NULL | `PRIMARY KEY` | `REFERENCES business_types(id)` |
+| `module_key` | `text` | NOT NULL | `PRIMARY KEY` | `REFERENCES modules(key)` |
+| `is_default` | `boolean` | NOT NULL |  |  |
+
+### Table: business_types
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| `type_key` | `text` | NOT NULL |  |  |
+| `display_name` | `text` | NOT NULL |  |  |
+| `created_at` | `timestamp with time zone` | NULL |  |  |
+
+### Table: businesses
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| `name` | `text` | NOT NULL |  |  |
+| `business_type_id` | `uuid` | NOT NULL |  | `REFERENCES business_types(id)` |
+| `invite_code` | `text` | NOT NULL |  |  |
+| `settings` | `jsonb` | NULL |  |  |
+| `is_active` | `boolean` | NULL |  |  |
+| `created_at` | `timestamp with time zone` | NULL |  |  |
+| `address` | `text` | NULL |  |  |
+| `phone` | `text` | NULL |  |  |
+| `tax_id` | `text` | NULL |  |  |
+
+### Table: customer_balances
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `customer_id` | `uuid` | NULL |  |  |
+| `business_id` | `uuid` | NULL |  |  |
+| `name` | `text` | NULL |  |  |
+| `total_invoiced` | `numeric` | NULL |  |  |
+| `total_paid` | `numeric` | NULL |  |  |
+| `balance_owed` | `numeric` | NULL |  |  |
+
+### Table: customers
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
+| `name` | `text` | NULL |  |  |
+| `phone` | `text` | NULL |  |  |
+| `notes` | `text` | NULL |  |  |
+| `created_at` | `timestamp with time zone` | NULL |  |  |
+
+### Table: expenses
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
+| `category` | `text` | NOT NULL |  |  |
+| `description` | `text` | NULL |  |  |
+| `amount` | `numeric` | NOT NULL |  |  |
+| `expense_date` | `date` | NOT NULL |  |  |
+| `created_by` | `uuid` | NULL |  | `REFERENCES app_users(user_id)` |
+| `created_at` | `timestamp with time zone` | NULL |  |  |
+
+### Table: labor_shifts
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
+| `user_id` | `uuid` | NULL |  |  |
+| `role` | `text` | NOT NULL |  |  |
+| `hourly_rate` | `numeric` | NOT NULL |  |  |
+| `clock_in` | `timestamp with time zone` | NOT NULL |  |  |
+| `clock_out` | `timestamp with time zone` | NULL |  |  |
+| `break_minutes` | `integer` | NULL |  |  |
+| `created_at` | `timestamp with time zone` | NULL |  |  |
+
+### Table: modules
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `key` | `text` | NOT NULL | `PRIMARY KEY` |  |
+| `display_name` | `text` | NOT NULL |  |  |
+| `description` | `text` | NULL |  |  |
+
+### Table: order_items
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| `order_id` | `uuid` | NOT NULL |  | `REFERENCES orders(id)` |
+| `product_id` | `uuid` | NOT NULL |  | `REFERENCES products(id)` |
+| `quantity` | `numeric` | NOT NULL |  |  |
+| `unit_price` | `numeric` | NOT NULL |  |  |
+| `line_total` | `numeric` | NULL |  |  |
+
+### Table: orders
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
+| `customer_id` | `uuid` | NULL |  | `REFERENCES customers(id)` |
+| `created_by` | `uuid` | NULL |  | `REFERENCES app_users(user_id)` |
+| `status` | `text` | NOT NULL |  |  |
+| `total_amount` | `numeric` | NOT NULL |  |  |
+| `created_at` | `timestamp with time zone` | NULL |  |  |
+| `table_id` | `uuid` | NULL |  | `REFERENCES restaurant_tables(id)` |
+| `order_type` | `text` | NOT NULL |  |  |
+| `subtotal` | `numeric` | NOT NULL |  |  |
+| `discount` | `numeric` | NOT NULL |  |  |
+| `discount_type` | `text` | NULL |  |  |
+| `tax_rate` | `numeric` | NOT NULL |  |  |
+| `tax` | `numeric` | NOT NULL |  |  |
+| `tip` | `numeric` | NOT NULL |  |  |
+| `change_given` | `numeric` | NULL |  |  |
+| `receipt_number` | `integer` | NULL |  |  |
+| `payment_method` | `text` | NULL |  |  |
+
+### Table: payments
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
+| `direction` | `text` | NOT NULL |  |  |
+| `party_type` | `text` | NOT NULL |  |  |
+| `customer_id` | `uuid` | NULL |  | `REFERENCES customers(id)` |
+| `supplier_id` | `uuid` | NULL |  | `REFERENCES suppliers(id)` |
+| `order_id` | `uuid` | NULL |  | `REFERENCES orders(id)` |
+| `purchase_order_id` | `uuid` | NULL |  | `REFERENCES purchase_orders(id)` |
+| `amount` | `numeric` | NOT NULL |  |  |
+| `method` | `text` | NULL |  |  |
+| `created_by` | `uuid` | NULL |  | `REFERENCES app_users(user_id)` |
+| `created_at` | `timestamp with time zone` | NULL |  |  |
+
+### Table: pos_sessions
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
+| `opened_by` | `uuid` | NULL |  |  |
+| `closed_by` | `uuid` | NULL |  |  |
+| `opening_float` | `numeric` | NULL |  |  |
+| `expected_cash` | `numeric` | NULL |  |  |
+| `actual_cash` | `numeric` | NULL |  |  |
+| `status` | `text` | NULL |  |  |
+| `opened_at` | `timestamp with time zone` | NULL |  |  |
+| `closed_at` | `timestamp with time zone` | NULL |  |  |
+
+### Table: produce_batches
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
+| `product_id` | `uuid` | NOT NULL |  | `REFERENCES products(id)` |
+| `batch_qty` | `numeric` | NOT NULL |  |  |
+| `actual_yield` | `numeric` | NULL |  |  |
+| `status` | `text` | NULL |  |  |
+| `started_by` | `uuid` | NULL |  |  |
+| `completed_by` | `uuid` | NULL |  |  |
+| `started_at` | `timestamp with time zone` | NULL |  |  |
+| `completed_at` | `timestamp with time zone` | NULL |  |  |
+| `notes` | `text` | NULL |  |  |
+| `created_at` | `timestamp with time zone` | NULL |  |  |
+
+### Table: products
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
+| `name` | `text` | NOT NULL |  |  |
+| `category` | `text` | NULL |  |  |
+| `price` | `numeric` | NOT NULL |  |  |
+| `unit` | `text` | NULL |  |  |
+| `stock_qty` | `numeric` | NULL |  |  |
+| `low_stock_threshold` | `numeric` | NULL |  |  |
+| `automation_rules` | `jsonb` | NULL |  |  |
+| `is_active` | `boolean` | NULL |  |  |
+| `created_at` | `timestamp with time zone` | NULL |  |  |
+| `product_type` | `text` | NOT NULL |  |  |
+| `total_sold` | `numeric` | NOT NULL |  |  |
+| `stock_limit` | `numeric` | NULL |  |  |
+
+### Table: purchase_order_items
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| `purchase_order_id` | `uuid` | NOT NULL |  | `REFERENCES purchase_orders(id)` |
+| `product_id` | `uuid` | NULL |  | `REFERENCES products(id)` |
+| `raw_material_id` | `uuid` | NULL |  | `REFERENCES raw_materials(id)` |
+| `quantity` | `numeric` | NOT NULL |  |  |
+| `unit_cost` | `numeric` | NOT NULL |  |  |
+| `line_total` | `numeric` | NULL |  |  |
+
+### Table: purchase_orders
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
+| `supplier_id` | `uuid` | NULL |  | `REFERENCES suppliers(id)` |
+| `status` | `text` | NOT NULL |  |  |
+| `total_amount` | `numeric` | NOT NULL |  |  |
+| `created_by` | `uuid` | NULL |  | `REFERENCES app_users(user_id)` |
+| `created_at` | `timestamp with time zone` | NULL |  |  |
+| `received_at` | `timestamp with time zone` | NULL |  |  |
+
+### Table: raw_materials
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
+| `name` | `text` | NOT NULL |  |  |
+| `unit` | `text` | NOT NULL |  |  |
+| `stock_qty` | `numeric` | NOT NULL |  |  |
+| `low_stock_threshold` | `numeric` | NULL |  |  |
+| `cost_per_unit` | `numeric` | NULL |  |  |
+| `created_at` | `timestamp with time zone` | NULL |  |  |
+| `kitchen_stock_qty` | `numeric` | NOT NULL |  |  |
+
+### Table: recipe_items
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| `product_id` | `uuid` | NOT NULL |  | `REFERENCES products(id)` |
+| `raw_material_id` | `uuid` | NOT NULL |  | `REFERENCES raw_materials(id)` |
+| `quantity_required` | `numeric` | NOT NULL |  |  |
+
+### Table: restaurant_tables
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
+| `table_number` | `text` | NOT NULL |  |  |
+| `name` | `text` | NULL |  |  |
+| `capacity` | `integer` | NULL |  |  |
+| `status` | `text` | NULL |  |  |
+| `current_order_id` | `uuid` | NULL |  | `REFERENCES orders(id)` |
+| `created_at` | `timestamp with time zone` | NULL |  |  |
+
+### Table: stock_movements
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
+| `item_type` | `text` | NOT NULL |  |  |
+| `product_id` | `uuid` | NULL |  | `REFERENCES products(id)` |
+| `raw_material_id` | `uuid` | NULL |  | `REFERENCES raw_materials(id)` |
+| `quantity_change` | `numeric` | NOT NULL |  |  |
+| `reason` | `text` | NOT NULL |  |  |
+| `reference_type` | `text` | NULL |  |  |
+| `reference_id` | `uuid` | NULL |  |  |
+| `created_by` | `uuid` | NULL |  | `REFERENCES app_users(user_id)` |
+| `created_at` | `timestamp with time zone` | NULL |  |  |
+| `location` | `text` | NOT NULL |  |  |
+
+### Table: supplier_balances
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `supplier_id` | `uuid` | NULL |  |  |
+| `business_id` | `uuid` | NULL |  |  |
+| `name` | `text` | NULL |  |  |
+| `total_purchased` | `numeric` | NULL |  |  |
+| `total_paid` | `numeric` | NULL |  |  |
+| `balance_owed` | `numeric` | NULL |  |  |
+
+### Table: suppliers
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
+| `name` | `text` | NOT NULL |  |  |
+| `phone` | `text` | NULL |  |  |
+| `notes` | `text` | NULL |  |  |
+| `created_at` | `timestamp with time zone` | NULL |  |  |
+
+### Table: waste_log
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
+| `product_id` | `uuid` | NULL |  | `REFERENCES products(id)` |
+| `raw_material_id` | `uuid` | NULL |  | `REFERENCES raw_materials(id)` |
+| `quantity` | `numeric` | NOT NULL |  |  |
+| `unit_cost` | `numeric` | NULL |  |  |
+| `reason` | `text` | NOT NULL |  |  |
+| `notes` | `text` | NULL |  |  |
+| `recorded_by` | `uuid` | NULL |  |  |
+| `created_at` | `timestamp with time zone` | NULL |  |  |

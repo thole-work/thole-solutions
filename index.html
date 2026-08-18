@@ -1914,9 +1914,16 @@
     }
   }
   function setBusinessHeader() {
+    if (membership?.businesses?.name) {
+      const bizNameEl = document.getElementById("biz-name");
+      if (bizNameEl) bizNameEl.textContent = membership.businesses.name;
+    }
     const branchLabel = currentBranch?.name ? ` · ${currentBranch.name}` : "";
-    const topBarSub = document.querySelector("#app-topbar p");
-    if (topBarSub && membership?.businesses?.name) topBarSub.textContent = `${membership.businesses.name}${branchLabel}`;
+    const topBarSub = document.getElementById("page-sub");
+    if (topBarSub) {
+      const base = "Overview of your workspace right now.";
+      topBarSub.textContent = membership?.businesses?.name ? `${base}${branchLabel}` : base;
+    }
   }
   function activeBranchId() {
     return currentBranch?.id || membership?.branch_id || null;

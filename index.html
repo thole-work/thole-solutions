@@ -1918,6 +1918,12 @@
     const topBarSub = document.querySelector("#app-topbar p");
     if (topBarSub && membership?.businesses?.name) topBarSub.textContent = `${membership.businesses.name}${branchLabel}`;
   }
+  function activeBranchId() {
+    return currentBranch?.id || membership?.branch_id || null;
+  }
+  function needsBranchScope(table) {
+    return ["restaurant_tables", "orders", "pos_sessions", "labor_shifts", "expenses", "stock_movements", "payments", "customers", "suppliers"].includes(table);
+  }
   async function loadMore(key) {
     await { products: loadProducts, customers: loadCustomers, sales: loadSales, payments: loadPayments, expenses: loadExpenses, purchases: loadPurchases, materials: loadMaterials, suppliers: loadSuppliers, movements: loadMovements }[key](true);
   }
@@ -2114,6 +2120,7 @@
     const ver = ++reqVersion[key];
     const offset = append ? pagination[key] : 0;
     let query = sb.from(table).select(select || '*').eq('business_id', membership.business_id);
+    if (needsBranchScope(table) && activeBranchId()) query = query.eq('branch_id', activeBranchId());
     if (extraFilters) extraFilters.forEach(f => { query = query.eq(f[0], f[1]); });
     if (orderBy) query = query.order(orderBy, { ascending });
     query = query.range(offset, offset + PAGE_SIZE - 1);
@@ -2159,9 +2166,9 @@
       if (vErr) return setError(errId, vErr);
     }
     setBtnLoading(btn, true);
-    const insertPayload = { business_id: membership.business_id, ...payload, ...(extraInsert ? extraInsert() : {}) };
+    const insertPayload = { business_id: membership.business_id, ...(needsBranchScope(table) && activeBranchId() ? { branch_id: activeBranchId() } : {}), ...payload, ...(extraInsert ? extraInsert() : {}) };
     const { error } = editingRecord
-      ? await sb.from(table).update(payload).eq('id', editingRecord.id)
+      ? await sb.from(table).update(payload).eq('id', editingRecord.id).eq('business_id', membership.business_id)
       : await sb.from(table).insert(insertPayload);
     setBtnLoading(btn, false);
     if (error) return setError(errId, error.message);
@@ -2892,6 +2899,7 @@
 
       const { data: order, error: orderErr } = await sb.from('orders').insert({
         business_id: membership.business_id,
+        ...(activeBranchId() ? { branch_id: activeBranchId() } : {}),
         table_id: posState.tableId || null,
         customer_id: posState.customerId || null,
         order_type: posState.tableId ? 'dine_in' : (posState.orderType || 'takeout'),
@@ -2927,7 +2935,7 @@
 
     // Mark table as occupied (use first order id)
     if (posState.tableId && orderIds.length > 0) {
-      await sb.from('restaurant_tables').update({ status: 'occupied', current_order_id: orderIds[0] }).eq('id', posState.tableId).eq('business_id', membership.business_id);
+      await sb.from('restaurant_tables').update({ status: 'occupied', current_order_id: orderIds[0], ...(activeBranchId() ? { branch_id: activeBranchId() } : {}) }).eq('id', posState.tableId).eq('business_id', membership.business_id);
     }
 
     setBtnLoading(btn, false);
@@ -3026,6 +3034,7 @@
       if (amt <= 0) continue;
       await sb.from('payments').insert({
         business_id: membership.business_id,
+        ...(activeBranchId() ? { branch_id: activeBranchId() } : {}),
         order_id: orderId,
         customer_id: order.customer_id,
         amount: amt,
@@ -3060,7 +3069,8 @@
     const { data: orderPayments } = await sb.from('payments')
       .select('amount, method')
       .eq('order_id', orderId)
-      .eq('direction', 'in');
+      .eq('direction', 'in')
+      .eq('business_id', membership.business_id);
     const { data: business } = await sb.from('businesses')
       .select('name, address, phone, tax_id')
       .eq('id', membership.business_id).single();

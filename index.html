@@ -4192,7 +4192,7 @@
     try {
       const { data, error } = await sb.auth.signUp({ email, password });
       if (error) return setError("auth-error", error.message);
-      if (!data.session) return setError("auth-error", "Account created but not signed in — check if email confirmation is required.");
+      if (!data.session) return setError("auth-error", "Account created but not signed in ï¿½ check if email confirmation is required.");
 
       currentUser = data.user;
       const { data: invite, error: inviteErr } = await sb
@@ -4217,7 +4217,7 @@
 
       await sb.from("invites").update({ status: "accepted", accepted_at: new Date().toISOString() }).eq("id", invite.id);
       await recordAudit("create", "business_members", null, null, { invite_id: invite.id, role: invite.role, branch_id: invite.branch_id });
-      await recordUsage("signup_invite_redeem", { invite_token: token.slice(0, 4) + "…" });
+      await recordUsage("signup_invite_redeem", { invite_token: token.slice(0, 4) + "ï¿½" });
       await checkMembership();
     } catch (err) {
       console.error("handleSignup error:", err);

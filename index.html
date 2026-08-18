@@ -4037,14 +4037,39 @@
         .eq("user_id", currentUser.id)
         .maybeSingle();
 
-      if (error || !data) {
-        hide("auth-screen"); hide("app-screen"); show("onboarding-screen");
-        return;
+      if (error) {
+        console.warn("business_members lookup failed; trying legacy app_users fallback:", error.message);
       }
+
+      if (!data) {
+        const { data: legacyData, error: legacyErr } = await sb
+          .from("app_users")
+          .select("business_id, role, full_name, businesses(name, invite_code, settings, business_types(display_name, type_key))")
+          .eq("user_id", currentUser.id)
+          .maybeSingle();
+
+        if (legacyErr) {
+          console.warn("legacy app_users lookup failed:", legacyErr.message);
+        }
+
+        if (!legacyData) {
+          hide("auth-screen"); hide("app-screen"); show("onboarding-screen");
+          return;
+        }
+
+        data = {
+          business_id: legacyData.business_id,
+          branch_id: null,
+          role: legacyData.role,
+          full_name: legacyData.full_name,
+          businesses: legacyData.businesses,
+        };
+      }
+
       membership = data;
       await loadCurrentBranch();
       setBusinessHeader();
-      document.getElementById("biz-type").textContent = data.businesses.business_types?.display_name ?? "";
+      document.getElementById("biz-type").textContent = data.businesses?.business_types?.display_name ?? "";
       const userName = data.full_name || currentUser.email;
       document.getElementById("user-name-display").textContent = userName;
       document.getElementById("user-role-display").textContent = data.role;
@@ -4052,7 +4077,7 @@
       document.getElementById("user-role-top").textContent = data.role;
       updateProfileAvatar(userName);
       applyRolePermissions(data.role);
-      applyBusinessTypeVisibility(data.businesses.business_types?.type_key);
+      applyBusinessTypeVisibility(data.businesses?.business_types?.type_key);
       hide("auth-screen"); hide("onboarding-screen"); show("app-screen");
       setDefaultDateFilters();
       await loadEverything();

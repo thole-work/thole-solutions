@@ -801,6 +801,7 @@
       <div>
         <div class="biz" id="biz-name">—</div>
         <div class="type-tag" id="biz-type">—</div>
+        <select id="branch-select" style="margin-top:8px; width:100%; display:none;" onchange="handleBranchChange()"></select>
       </div>
     </div>
     <nav>
@@ -1909,9 +1910,25 @@
       if (branches.length === 0) return;
       currentBranch = branches.find(b => b.id === storedBranchId) || branches[0];
       localStorage.setItem(`thole:branch:${membership.business_id}`, currentBranch.id);
+      const branchSelect = document.getElementById("branch-select");
+      if (branchSelect) {
+        branchSelect.innerHTML = branches.map(b => `<option value="${escapeAttr(b.id)}"${b.id === currentBranch.id ? ' selected' : ''}>${escapeHtml(b.name)}</option>`).join("");
+        branchSelect.style.display = branches.length > 1 ? "block" : "none";
+      }
     } catch (err) {
       console.warn("loadCurrentBranch failed", err);
     }
+  }
+  async function handleBranchChange() {
+    const branchSelect = document.getElementById("branch-select");
+    if (!branchSelect || !branchSelect.value) return;
+    const { data } = await sb.from("branches").select("id, name, branch_key, is_active").eq("id", branchSelect.value).single();
+    if (!data) return;
+    currentBranch = data;
+    localStorage.setItem(`thole:branch:${membership.business_id}`, currentBranch.id);
+    setBusinessHeader();
+    await loadEverything();
+    await recordUsage("branch_switch", { branch_id: currentBranch.id }, "branch", currentBranch.id);
   }
   function setBusinessHeader() {
     if (membership?.businesses?.name) {
@@ -3237,7 +3254,9 @@
   // ========== LABOR SHIFTS ==========
   async function loadShifts() {
     try {
-      const { data } = await sb.from('labor_shifts').select('id, user_id, role, hourly_rate, clock_in, clock_out, break_minutes, business_id').eq('business_id', membership.business_id).order('clock_in', { ascending: false }).limit(50);
+      let query = sb.from('labor_shifts').select('id, user_id, role, hourly_rate, clock_in, clock_out, break_minutes, business_id').eq('business_id', membership.business_id);
+      if (activeBranchId()) query = query.eq('branch_id', activeBranchId());
+      const { data } = await query.order('clock_in', { ascending: false }).limit(50);
       const el = document.getElementById('shifts-ledger');
       if (!el) return;
       if (!data || data.length === 0) { el.innerHTML = '<div class="empty-state">No shifts recorded.</div>'; return; }
@@ -3533,7 +3552,9 @@
   let editingTableId = null;
 
   async function loadTablesSettings() {
-    const { data } = await sb.from('restaurant_tables').select('*').eq('business_id', membership.business_id).order('table_number');
+    let query = sb.from('restaurant_tables').select('*').eq('business_id', membership.business_id);
+    if (activeBranchId()) query = query.eq('branch_id', activeBranchId());
+    const { data } = await query.order('table_number');
     const el = document.getElementById('settings-tables-list');
     if (!el) return;
     if (!data || data.length === 0) {
@@ -3588,6 +3609,7 @@
     const capacity = parseInt(document.getElementById('ts-table-capacity').value) || null;
 
     const payload = { business_id: membership.business_id, table_number: number, name, capacity };
+    if (activeBranchId()) payload.branch_id = activeBranchId();
 
     if (editingTableId) {
       const { error } = await sb.from('restaurant_tables').update(payload).eq('id', editingTableId).eq('business_id', membership.business_id);
@@ -3631,7 +3653,9 @@
   }
 
   async function openCustomerPicker() {
-    const { data } = await sb.from('customers').select('id, name, phone').eq('business_id', membership.business_id).order('name').limit(50);
+    let query = sb.from('customers').select('id, name, phone').eq('business_id', membership.business_id);
+    if (activeBranchId()) query = query.eq('branch_id', activeBranchId());
+    const { data } = await query.order('name').limit(50);
     const list = document.getElementById('cust-picker-list');
     if (!data || data.length === 0) {
       list.innerHTML = '<div style="padding:12px; color:var(--ink-faint); font-size:13px;">No customers yet.</div>';
@@ -3672,7 +3696,9 @@
     if (!name) return showToast('Name is required', 'error');
     const phone = document.getElementById('cust-picker-new-phone').value.trim() || null;
     const { data, error } = await sb.from('customers').insert({
-      business_id: membership.business_id, name, phone
+      business_id: membership.business_id,
+      ...(activeBranchId() ? { branch_id: activeBranchId() } : {}),
+      name, phone
     }).select().single();
     if (error) return showToast(error.message, 'error');
     selectCustomer(data.id, data.name);
@@ -4627,7 +4653,9 @@
   async function loadSales(append = false) {
     updateSalesGroupBtn();
     if (salesExpandedDay && !append) {
-      const { data } = await sb.from('orders').select('*, customers(name), restaurant_tables!table_id(table_number, name)').eq('business_id', membership.business_id).neq('status', 'voided').gte('created_at', salesExpandedDay + 'T00:00:00').lte('created_at', salesExpandedDay + 'T23:59:59').order('created_at', { ascending: false });
+      let query = sb.from('orders').select('*, customers(name), restaurant_tables!table_id(table_number, name)').eq('business_id', membership.business_id).neq('status', 'voided');
+      if (activeBranchId()) query = query.eq('branch_id', activeBranchId());
+      const { data } = await query.gte('created_at', salesExpandedDay + 'T00:00:00').lte('created_at', salesExpandedDay + 'T23:59:59').order('created_at', { ascending: false });
       const el = document.getElementById("sales-ledger");
       if (!el) return;
       const label = new Date(salesExpandedDay + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
@@ -4816,8 +4844,8 @@
     const payload = { name, phone };
     setBtnLoading(btn, true);
     const { error } = editingRecord
-      ? await sb.from("customers").update(payload).eq("id", editingRecord.id)
-      : await sb.from("customers").insert({ business_id: membership.business_id, ...payload });
+      ? await sb.from("customers").update(payload).eq("id", editingRecord.id).eq("business_id", membership.business_id)
+      : await sb.from("customers").insert({ business_id: membership.business_id, ...(activeBranchId() ? { branch_id: activeBranchId() } : {}), ...payload });
     setBtnLoading(btn, false);
 
     if (error) return setError("customer-error", error.message);
@@ -4848,7 +4876,9 @@
   async function loadPayments(append = false) {
     updatePaymentsGroupBtn();
     if (paymentsExpandedDay && !append) {
-      const { data } = await sb.from('payments').select('*, customers(name)').eq('business_id', membership.business_id).eq('direction', 'in').gte('created_at', paymentsExpandedDay + 'T00:00:00').lte('created_at', paymentsExpandedDay + 'T23:59:59').order('created_at', { ascending: false });
+      let query = sb.from('payments').select('*, customers(name)').eq('business_id', membership.business_id).eq('direction', 'in');
+      if (activeBranchId()) query = query.eq('branch_id', activeBranchId());
+      const { data } = await query.gte('created_at', paymentsExpandedDay + 'T00:00:00').lte('created_at', paymentsExpandedDay + 'T23:59:59').order('created_at', { ascending: false });
       const el = document.getElementById("payments-ledger");
       if (!el) return;
       const label = new Date(paymentsExpandedDay + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
@@ -4971,7 +5001,9 @@
   async function loadExpenses(append = false) {
     updateExpensesGroupBtn();
     if (expensesExpandedDay && !append) {
-      const { data } = await sb.from('expenses').select('*').eq('business_id', membership.business_id).eq('expense_date', expensesExpandedDay).order('created_at', { ascending: false });
+      let query = sb.from('expenses').select('*').eq('business_id', membership.business_id).eq('expense_date', expensesExpandedDay);
+      if (activeBranchId()) query = query.eq('branch_id', activeBranchId());
+      const { data } = await query.order('created_at', { ascending: false });
       const el = document.getElementById("expenses-ledger");
       if (!el) return;
       const label = new Date(expensesExpandedDay + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
@@ -5057,8 +5089,8 @@
     const payload = { category, description, amount, expense_date: date };
     setBtnLoading(btn, true);
     const { error } = editingRecord
-      ? await sb.from("expenses").update(payload).eq("id", editingRecord.id)
-      : await sb.from("expenses").insert({ business_id: membership.business_id, created_by: currentUser.id, ...payload });
+      ? await sb.from("expenses").update(payload).eq("id", editingRecord.id).eq("business_id", membership.business_id)
+      : await sb.from("expenses").insert({ business_id: membership.business_id, ...(activeBranchId() ? { branch_id: activeBranchId() } : {}), created_by: currentUser.id, ...payload });
     setBtnLoading(btn, false);
 
     if (error) return setError("expense-error", error.message);
@@ -5280,8 +5312,8 @@
     const payload = { name, phone };
     setBtnLoading(btn, true);
     const { error } = editingRecord
-      ? await sb.from("suppliers").update(payload).eq("id", editingRecord.id)
-      : await sb.from("suppliers").insert({ business_id: membership.business_id, ...payload });
+      ? await sb.from("suppliers").update(payload).eq("id", editingRecord.id).eq("business_id", membership.business_id)
+      : await sb.from("suppliers").insert({ business_id: membership.business_id, ...(activeBranchId() ? { branch_id: activeBranchId() } : {}), ...payload });
     setBtnLoading(btn, false);
 
     if (error) return setError("supplier-error", error.message);
@@ -5722,7 +5754,7 @@
     const payload = { name, unit, cost_per_unit: cost, stock_qty: stock, low_stock_threshold: threshold };
     setBtnLoading(btn, true);
     const { error } = editingRecord
-      ? await sb.from("raw_materials").update(payload).eq("id", editingRecord.id)
+      ? await sb.from("raw_materials").update(payload).eq("id", editingRecord.id).eq("business_id", membership.business_id)
       : await sb.from("raw_materials").insert({ business_id: membership.business_id, ...payload });
     setBtnLoading(btn, false);
 

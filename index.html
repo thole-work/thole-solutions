@@ -1703,6 +1703,7 @@
 
   let currentUser = null;
   let membership = null; // { business_id, role, full_name, businesses: {...} }
+  let currentBranch = null; // { id, name, branch_key }
   let cache = { products: [], customers: [], sales: [], payments: [], expenses: [], purchases: [], materials: [], suppliers: [], movements: [] };
   let editingRecord = null; // { table: 'products', id: '...' } — null means "adding new"
   let businessTypeKey = null;
@@ -1876,6 +1877,46 @@
     if (pagination[key] > 0) {
       el.insertAdjacentHTML("beforeend", `<div style="text-align:center; padding:12px;"><button class="btn-ghost load-more-btn" onclick="loadMore('${key}')">Load more</button></div>`);
     }
+  }
+  async function recordUsage(eventType, metadata = {}, entityType = null, entityId = null) {
+    if (!membership?.business_id || !currentUser?.id) return;
+    try {
+      await sb.from("usage_events").insert({
+        business_id: membership.business_id,
+        branch_id: currentBranch?.id ?? membership.branch_id ?? null,
+        user_id: currentUser.id,
+        event_type: eventType,
+        page_key: document.querySelector('.nav-item.active')?.dataset.tab || null,
+        entity_type: entityType,
+        entity_id: entityId,
+        metadata,
+      });
+    } catch (err) {
+      console.warn("usage event failed", err);
+    }
+  }
+  async function loadCurrentBranch() {
+    currentBranch = null;
+    if (!membership?.business_id) return;
+    const storedBranchId = localStorage.getItem(`thole:branch:${membership.business_id}`);
+    try {
+      const { data } = await sb.from("branches")
+        .select("id, name, branch_key, is_active")
+        .eq("business_id", membership.business_id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: true });
+      const branches = data || [];
+      if (branches.length === 0) return;
+      currentBranch = branches.find(b => b.id === storedBranchId) || branches[0];
+      localStorage.setItem(`thole:branch:${membership.business_id}`, currentBranch.id);
+    } catch (err) {
+      console.warn("loadCurrentBranch failed", err);
+    }
+  }
+  function setBusinessHeader() {
+    const branchLabel = currentBranch?.name ? ` · ${currentBranch.name}` : "";
+    const topBarSub = document.querySelector("#app-topbar p");
+    if (topBarSub && membership?.businesses?.name) topBarSub.textContent = `${membership.businesses.name}${branchLabel}`;
   }
   async function loadMore(key) {
     await { products: loadProducts, customers: loadCustomers, sales: loadSales, payments: loadPayments, expenses: loadExpenses, purchases: loadPurchases, materials: loadMaterials, suppliers: loadSuppliers, movements: loadMovements }[key](true);
@@ -3827,18 +3868,29 @@
 
   async function checkMembership() {
     try {
-      const { data, error } = await sb
-        .from("app_users")
-        .select("business_id, role, full_name, businesses(name, invite_code, settings, business_types(display_name, type_key))")
+      let { data, error } = await sb
+        .from("business_members")
+        .select("business_id, branch_id, role, full_name, businesses(name, invite_code, settings, business_types(display_name, type_key))")
         .eq("user_id", currentUser.id)
         .maybeSingle();
+
+      if ((error || !data)) {
+        const legacy = await sb
+          .from("app_users")
+          .select("business_id, role, full_name, businesses(name, invite_code, settings, business_types(display_name, type_key))")
+          .eq("user_id", currentUser.id)
+          .maybeSingle();
+        data = legacy.data;
+        error = legacy.error;
+      }
 
       if (error || !data) {
         hide("auth-screen"); hide("app-screen"); show("onboarding-screen");
         return;
       }
       membership = data;
-      document.getElementById("biz-name").textContent = data.businesses.name;
+      await loadCurrentBranch();
+      setBusinessHeader();
       document.getElementById("biz-type").textContent = data.businesses.business_types?.display_name ?? "";
       const userName = data.full_name || currentUser.email;
       document.getElementById("user-name-display").textContent = userName;
@@ -3851,6 +3903,7 @@
       hide("auth-screen"); hide("onboarding-screen"); show("app-screen");
       setDefaultDateFilters();
       await loadEverything();
+      await recordUsage("session_start", { source: "boot" });
       updateTopbar(document.querySelector('.nav-item.active')?.dataset.tab || 'dashboard');
     } catch(err) {
       console.error("checkMembership error:", err);
@@ -3874,12 +3927,12 @@
   // ROLE PERMISSIONS
   // ============================================================
   function applyRolePermissions(role) {
-    const isStaff = role === "staff";
+    const isStaff = !["owner", "admin", "manager", "accountant", "super_admin"].includes(role);
     document.querySelectorAll('.nav-item[data-tab="payments"], .nav-item[data-tab="expenses"], .nav-item[data-tab="purchases"], .nav-item[data-tab="reports"], .nav-item[data-tab="settings"]').forEach((el) => {
       el.classList.toggle("hidden", isStaff);
     });
     document.querySelectorAll('.nav-item[data-tab="team"]').forEach((el) => {
-      el.classList.toggle("hidden", role !== "owner");
+      el.classList.toggle("hidden", !["owner", "admin", "super_admin"].includes(role));
     });
     if (isStaff) {
       const activeTab = document.querySelector(".nav-item.active")?.dataset.tab;
@@ -3903,6 +3956,7 @@
 
     const { error } = await sb.rpc("redeem_invite_code", { p_invite_code: code, p_full_name: fullName });
     if (error) return setError(errEl, error.message);
+    await recordUsage("invite_redeemed", { invite_code: code.slice(0, 4) + "…" });
     await checkMembership();
   }
 
@@ -3950,6 +4004,7 @@
       hide("auth-screen");
       document.getElementById("invite-code-display").textContent = code;
       show("invite-reveal-screen");
+      await recordUsage("business_created", { business_type: businessType });
     } catch (err) {
       console.error("handleCreateBusiness error:", err);
       setError("auth-error", "Something went wrong creating your business. Please try again.");
@@ -3972,6 +4027,7 @@
       const { data, error } = await sb.auth.signInWithPassword({ email, password });
       if (error) return setError("auth-error", error.message);
       currentUser = data.user;
+      await recordUsage("login", { method: "password" });
       await checkMembership();
     } catch (err) {
       console.error("handleLogin error:", err);
@@ -4001,6 +4057,7 @@
         hide("auth-screen"); show("onboarding-screen");
         return setError("ob-error", rpcErr.message);
       }
+      await recordUsage("signup_invite_redeem", { invite_code: code.slice(0, 4) + "…" });
       await checkMembership();
     } catch (err) {
       console.error("handleSignup error:", err);
@@ -4062,6 +4119,7 @@
       el.classList.toggle("active", active);
       if (el.dataset.tab) el.setAttribute('aria-current', active ? 'page' : 'false');
     });
+    recordUsage("tab_view", { tab }).catch(() => {});
     updateTopbar(tab);
     if (tab === "efficiency") { renderEfficiency(); loadWaste(); loadShifts(); loadProduceBatches(); }
     if (tab === "suppliers") loadSuppliers();

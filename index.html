@@ -742,7 +742,7 @@
     <label data-i18n="auth.email">Email</label><input type="email" id="login-email" />
     <label data-i18n="auth.password">Password</label><input type="password" id="login-password" />
     <button class="btn-primary" id="login-submit-btn" onclick="handleLogin()" data-i18n="auth.sign_in">Sign in</button>
-    <div class="switch"><span data-i18n="auth.new_here">New here?</span> <a onclick="showSignup()" data-i18n="auth.redeem_invite">Redeem an invite code</a> or <a onclick="showNewBusiness()" data-i18n="auth.start_business">start a new business</a></div>
+    <div class="switch"><span data-i18n="auth.new_here">New here?</span> <a onclick="showSignup()" data-i18n="auth.redeem_invite">Redeem an invite</a> or <a onclick="showNewBusiness()" data-i18n="auth.start_business">start a new business</a></div>
   </div>
 
   <div id="signup-form" class="hidden">
@@ -779,14 +779,14 @@
   <h1 data-i18n="auth.all_set">You're all set</h1>
   <p class="sub" data-i18n="auth.share_code">Share this code with your staff so they can join:</p>
   <div class="num" style="font-size:28px; font-weight:600; letter-spacing:0.05em; background:var(--accent-soft); color:var(--accent); padding:16px; border-radius:10px; margin:16px 0;" id="invite-code-display">—</div>
-  <p class="sub" style="margin-top:0;" data-i18n="auth.enter_under">They'll enter it under "Redeem an invite code" when they sign up.</p>
+  <p class="sub" style="margin-top:0;" data-i18n="auth.enter_under">They'll enter it under "Redeem an invite" when they sign up.</p>
   <button class="btn-primary" onclick="finishInviteReveal()" data-i18n="auth.go_dashboard">Go to dashboard</button>
 </div>
 
 <div id="onboarding-screen" class="hidden" style="max-width: 420px; margin: 0 auto; padding: 60px 20px;">
   <div class="brand-mark"><img src="logo.png" alt="Thole Solutions" /></div>
   <h1 data-i18n="auth.join_business">Join your business</h1>
-  <p class="sub" data-i18n="auth.join_subtitle">You're signed in — just one more step. Ask your admin for your invite code.</p>
+  <p class="sub" data-i18n="auth.join_subtitle">You're signed in — just one more step. Ask your admin for your invite.</p>
   <label data-i18n="auth.your_name">Your name</label><input type="text" id="ob-name" />
   <label data-i18n="auth.invite_code">Invite code</label><input type="text" id="ob-code" placeholder="e.g. TEST-0001" />
   <button class="btn-primary" onclick="handleRedeem()" data-i18n="auth.join_button">Join business</button>
@@ -1034,15 +1034,38 @@
     
     <section id="tab-team" class="tab-panel hidden">
       <div class="page-header"><h2 data-i18n="nav.team">Team</h2><p data-i18n="team.subtitle">Everyone with access to this business.</p></div>
-      <div style="background:var(--accent-soft); border-radius:10px; padding:16px 18px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-        <div>
-          <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); margin-bottom:4px;" data-i18n="team.invite_code">Invite code</div>
-          <div class="num" style="font-size:20px; font-weight:600; color:var(--accent);" id="team-invite-code">—</div>
+      <div class="report-card" style="margin-bottom:18px;">
+        <div class="report-card-header">
+          <div>
+            <h3>Invite staff</h3>
+            <p>Create a token-based invite for a business member or a branch.</p>
+          </div>
         </div>
-        <button class="btn-ghost" onclick="copyInviteCode(event)" data-i18n="team.copy">Copy</button>
+        <div style="display:grid; gap:10px; grid-template-columns: 1fr 1fr 1fr 1fr auto; align-items:end;">
+          <div><label style="margin-top:0;">Name</label><input id="invite-name" type="text" placeholder="Full name" /></div>
+          <div><label style="margin-top:0;">Email</label><input id="invite-email" type="email" placeholder="name@example.com" /></div>
+          <div><label style="margin-top:0;">Role</label><select id="invite-role"><option value="cashier">Cashier</option><option value="manager">Manager</option><option value="admin">Admin</option></select></div>
+          <div><label style="margin-top:0;">Branch</label><select id="invite-branch"></select></div>
+          <button class="btn-small" onclick="createInvite()">Create Invite</button>
+        </div>
       </div>
-      <div class="ledger" id="team-ledger"></div>
-      <p style="font-size:12px; color:var(--ink-faint); margin-top:14px;" data-i18n="team.note">Share this code with new staff — they use it under "Redeem an invite code" when they sign up. You can promote them to Manager here after.</p>
+      <div class="report-grid">
+        <div class="report-card">
+          <h3>Pending invites</h3>
+          <div class="ledger" id="invites-ledger"></div>
+        </div>
+        <div class="report-card">
+          <div style="background:var(--accent-soft); border-radius:10px; padding:16px 18px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div>
+              <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); margin-bottom:4px;" data-i18n="team.invite_code">Legacy invite code</div>
+              <div class="num" style="font-size:20px; font-weight:600; color:var(--accent);" id="team-invite-code">—</div>
+            </div>
+            <button class="btn-ghost" onclick="copyInviteCode(event)" data-i18n="team.copy">Copy</button>
+          </div>
+          <div class="ledger" id="team-ledger"></div>
+        </div>
+      </div>
+      <p style="font-size:12px; color:var(--ink-faint); margin-top:14px;" data-i18n="team.note">Invite staff from the new invites list. You can promote them to Manager here after.</p>
     </section>
 
     <section id="tab-reports" class="tab-panel hidden">
@@ -1965,6 +1988,10 @@
         branchSelect.innerHTML = branches.map(b => `<option value="${escapeAttr(b.id)}"${b.id === currentBranch.id ? ' selected' : ''}>${escapeHtml(b.name)}</option>`).join("");
         branchSelect.style.display = branches.length > 1 ? "block" : "none";
       }
+      const inviteBranch = document.getElementById("invite-branch");
+      if (inviteBranch) {
+        inviteBranch.innerHTML = `<option value="">Main branch</option>` + branches.map(b => `<option value="${escapeAttr(b.id)}"${b.id === currentBranch.id ? ' selected' : ''}>${escapeHtml(b.name)}</option>`).join("");
+      }
     } catch (err) {
       console.warn("loadCurrentBranch failed", err);
     }
@@ -1979,6 +2006,55 @@
     setBusinessHeader();
     await loadEverything();
     await recordUsage("branch_switch", { branch_id: currentBranch.id }, "branch", currentBranch.id);
+  }
+
+  async function loadInvites() {
+    const el = document.getElementById("invites-ledger");
+    if (!el || !membership?.business_id) return;
+    try {
+      const { data } = await sb.from("invites")
+        .select("id, email, phone, role, status, expires_at, created_at, branches(name)")
+        .eq("business_id", membership.business_id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (!data || data.length === 0) {
+        el.innerHTML = '<div class="empty-state">No invites yet.</div>';
+        return;
+      }
+      el.innerHTML = `<div class="ledger-head" style="grid-template-columns: 1.6fr 1fr 1fr 1fr;"><div>Invitee</div><div>Role</div><div>Branch</div><div>Status</div></div>` +
+        data.map(i => `<div class="ledger-row" style="grid-template-columns: 1.6fr 1fr 1fr 1fr;">
+          <div>${escapeHtml(i.email || i.phone || '—')}</div>
+          <div>${escapeHtml(i.role)}</div>
+          <div>${escapeHtml(i.branches?.name || 'Main branch')}</div>
+          <div><span class="cat-badge">${escapeHtml(i.status)}</span></div>
+        </div>`).join("");
+    } catch (err) {
+      console.warn("loadInvites failed", err);
+    }
+  }
+
+  async function createInvite() {
+    const email = document.getElementById("invite-email")?.value.trim() || null;
+    const fullName = document.getElementById("invite-name")?.value.trim() || null;
+    const role = document.getElementById("invite-role")?.value || "cashier";
+    const branchId = document.getElementById("invite-branch")?.value || null;
+    if (!email && !fullName) return showToast("Enter an email or a name for the invite.", "error");
+    const token = Math.random().toString(36).slice(2, 10).toUpperCase();
+    const { error } = await sb.from("invites").insert({
+      business_id: membership.business_id,
+      branch_id: branchId,
+      invited_by: currentUser.id,
+      email,
+      role,
+      token,
+      status: "pending",
+    });
+    if (error) return showToast(error.message, "error");
+    document.getElementById("invite-email").value = "";
+    document.getElementById("invite-name").value = "";
+    await recordAudit("create", "invites", null, null, { email, role, branch_id: branchId, token });
+    await loadInvites();
+    showToast("Invite created");
   }
   function setBusinessHeader() {
     if (membership?.businesses?.name) {
@@ -5410,7 +5486,7 @@
   // ============================================================
   async function loadTeam() {
     document.getElementById("team-invite-code").textContent = membership.businesses.invite_code;
-    const { data } = await sb.from("business_members").select("id, user_id, role, full_name, status, branch_id, branch_id, created_at, branches(name)").eq("business_id", membership.business_id).order("created_at");
+    const { data } = await sb.from("business_members").select("id, user_id, role, full_name, status, branch_id, created_at, branches(name)").eq("business_id", membership.business_id).order("created_at");
     const el = document.getElementById("team-ledger");
     if (!el) return;
     if (!data || data.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">👤</div>No team members found.<br><span style="font-size:12px;">Share your invite code to add staff.</span></div>`; return; }
@@ -5437,6 +5513,7 @@
           </div>
         </div>`;
       }).join("");
+    await loadInvites();
   }
 
   async function changeRole(userId, newRole) {

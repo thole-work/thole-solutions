@@ -742,15 +742,15 @@
     <label data-i18n="auth.email">Email</label><input type="email" id="login-email" />
     <label data-i18n="auth.password">Password</label><input type="password" id="login-password" />
     <button class="btn-primary" id="login-submit-btn" onclick="handleLogin()" data-i18n="auth.sign_in">Sign in</button>
-    <div class="switch"><span data-i18n="auth.new_here">New here?</span> <a onclick="showSignup()" data-i18n="auth.redeem_invite">Join with invite</a> or <a onclick="showNewBusiness()" data-i18n="auth.start_business">start a new business</a></div>
+    <div class="switch"><span data-i18n="auth.new_here">New here?</span> <a onclick="showSignup()" data-i18n="auth.redeem_invite">Redeem an invite</a> or <a onclick="showNewBusiness()" data-i18n="auth.start_business">start a new business</a></div>
   </div>
 
   <div id="signup-form" class="hidden">
     <label data-i18n="auth.full_name">Full name</label><input type="text" id="signup-name" />
-    <label>Invite token</label><input type="text" id="signup-token" placeholder="e.g. A1B2C3D4" />
+    <label data-i18n="auth.invite_code">Invite code</label><input type="text" id="signup-code" placeholder="e.g. TEST-0001" />
     <label data-i18n="auth.email">Email</label><input type="email" id="signup-email" />
     <label data-i18n="auth.password">Password</label><input type="password" id="signup-password" data-i18n-placeholder="auth.password_placeholder" placeholder="At least 6 characters" />
-    <button class="btn-primary" id="signup-submit-btn" onclick="handleSignup()" data-i18n="auth.redeem_create">Join & create account</button>
+    <button class="btn-primary" id="signup-submit-btn" onclick="handleSignup()" data-i18n="auth.redeem_create">Redeem & create account</button>
     <div class="switch"><span data-i18n="auth.already_account">Already have an account?</span> <a onclick="showLogin()" data-i18n="auth.sign_in">Sign in</a></div>
   </div>
 
@@ -783,12 +783,16 @@
   <button class="btn-primary" onclick="finishInviteReveal()" data-i18n="auth.go_dashboard">Go to dashboard</button>
 </div>
 
-  <div id="onboarding-screen" class="hidden" style="max-width: 420px; margin: 0 auto; padding: 60px 20px;">
-    <div class="brand-mark"><img src="logo.png" alt="Thole Solutions" /></div>
-    <h1 data-i18n="auth.join_business">Join your business</h1>
-    <p class="sub" data-i18n="auth.join_subtitle">You're signed in — wait for a token-based invite from your admin.</p>
-    <div class="switch" style="margin-top:18px;"><a onclick="confirmSignOut()" data-i18n="auth.diff_account">Sign out and use a different account</a></div>
-  </div>
+<div id="onboarding-screen" class="hidden" style="max-width: 420px; margin: 0 auto; padding: 60px 20px;">
+  <div class="brand-mark"><img src="logo.png" alt="Thole Solutions" /></div>
+  <h1 data-i18n="auth.join_business">Join your business</h1>
+  <p class="sub" data-i18n="auth.join_subtitle">You're signed in — just one more step. Ask your admin for your invite.</p>
+  <label data-i18n="auth.your_name">Your name</label><input type="text" id="ob-name" />
+  <label data-i18n="auth.invite_code">Invite code</label><input type="text" id="ob-code" placeholder="e.g. TEST-0001" />
+  <button class="btn-primary" onclick="handleRedeem()" data-i18n="auth.join_button">Join business</button>
+  <div id="ob-error" class="error hidden"></div>
+  <div class="switch" style="margin-top:18px;"><a onclick="confirmSignOut()" data-i18n="auth.diff_account">Sign out and use a different account</a></div>
+</div>
 
 <div id="app-screen" class="hidden">
   <aside>
@@ -1051,6 +1055,13 @@
           <div class="ledger" id="invites-ledger"></div>
         </div>
         <div class="report-card">
+          <div style="background:var(--accent-soft); border-radius:10px; padding:16px 18px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div>
+              <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); margin-bottom:4px;" data-i18n="team.invite_code">Legacy invite code</div>
+              <div class="num" style="font-size:20px; font-weight:600; color:var(--accent);" id="team-invite-code">—</div>
+            </div>
+            <button class="btn-ghost" onclick="copyInviteCode(event)" data-i18n="team.copy">Copy</button>
+          </div>
           <div class="ledger" id="team-ledger"></div>
         </div>
       </div>
@@ -3524,8 +3535,8 @@
 
   async function openShiftModal() {
     const sel = document.getElementById('shift-staff');
-    const { data: users } = await sb.from('business_members').select('user_id, full_name').eq('business_id', membership.business_id).eq('status', 'active');
-    sel.innerHTML = (users || []).map(u => `<option value="${u.user_id}">${escapeHtml(u.full_name)}</option>`).join('');
+    const { data: users } = await sb.from('app_users').select('id, full_name').eq('business_id', membership.business_id);
+    sel.innerHTML = (users || []).map(u => `<option value="${u.id}">${escapeHtml(u.full_name)}</option>`).join('');
     document.getElementById('shift-rate').value = '';
     document.getElementById('shift-break').value = '0';
     document.getElementById('shift-clock-out').value = '';
@@ -4037,8 +4048,24 @@
         .eq("user_id", currentUser.id)
         .maybeSingle();
 
+<<<<<<< HEAD
       if (error) {
         console.warn("business_members lookup failed; trying legacy app_users fallback:", error.message);
+=======
+      if ((error || !data)) {
+        const legacy = await sb
+          .from("app_users")
+          .select("business_id, role, full_name, businesses(name, invite_code, settings, business_types(display_name, type_key))")
+          .eq("user_id", currentUser.id)
+          .maybeSingle();
+        data = legacy.data;
+        error = legacy.error;
+      }
+
+      if (error || !data) {
+        hide("auth-screen"); hide("app-screen"); show("onboarding-screen");
+        return;
+>>>>>>> parent of a23b6c7 (Refactor invite handling to use token-based system and update related UI elements)
       }
 
       if (!data) {
@@ -4128,6 +4155,19 @@
   // ============================================================
   // ONBOARDING
   // ============================================================
+  async function handleRedeem() {
+    const errEl = "ob-error";
+    clearError(errEl);
+    const fullName = document.getElementById("ob-name").value.trim();
+    const code = document.getElementById("ob-code").value.trim();
+    if (!fullName || !code) return setError(errEl, "Please fill in both fields.");
+
+    const { error } = await sb.rpc("redeem_invite_code", { p_invite_code: code, p_full_name: fullName });
+    if (error) return setError(errEl, error.message);
+    await recordUsage("invite_redeemed", { invite_code: code.slice(0, 4) + "…" });
+    await checkMembership();
+  }
+
   // ============================================================
   // AUTH
   // ============================================================
@@ -4208,15 +4248,16 @@
     clearError("auth-error");
     const btn = document.getElementById("signup-submit-btn");
     const fullName = document.getElementById("signup-name").value.trim();
-    const token = document.getElementById("signup-token").value.trim().toUpperCase();
+    const code = document.getElementById("signup-code").value.trim();
     const email = document.getElementById("signup-email").value.trim();
     const password = document.getElementById("signup-password").value;
-    if (!fullName || !token) return setError("auth-error", "Full name and invite token are required.");
+    if (!fullName || !code) return setError("auth-error", "Full name and invite code are required.");
 
     setBtnLoading(btn, true);
     try {
       const { data, error } = await sb.auth.signUp({ email, password });
       if (error) return setError("auth-error", error.message);
+<<<<<<< HEAD
       if (!data.session) return setError("auth-error", "Account created but not signed in � check if email confirmation is required.");
 
       currentUser = data.user;
@@ -4243,10 +4284,21 @@
       await sb.from("invites").update({ status: "accepted", accepted_at: new Date().toISOString() }).eq("id", invite.id);
       await recordAudit("create", "business_members", null, null, { invite_id: invite.id, role: invite.role, branch_id: invite.branch_id });
       await recordUsage("signup_invite_redeem", { invite_token: token.slice(0, 4) + "�" });
+=======
+      if (!data.session) return setError("auth-error", "Account created but not signed in — check if email confirmation is required.");
+
+      currentUser = data.user;
+      const { error: rpcErr } = await sb.rpc("redeem_invite_code", { p_invite_code: code, p_full_name: fullName });
+      if (rpcErr) {
+        hide("auth-screen"); show("onboarding-screen");
+        return setError("ob-error", rpcErr.message);
+      }
+      await recordUsage("signup_invite_redeem", { invite_code: code.slice(0, 4) + "…" });
+>>>>>>> parent of a23b6c7 (Refactor invite handling to use token-based system and update related UI elements)
       await checkMembership();
     } catch (err) {
       console.error("handleSignup error:", err);
-      setError("auth-error", "Something went wrong joining your business. Please try again.");
+      setError("auth-error", "Something went wrong redeeming your invite. Please try again.");
     } finally {
       setBtnLoading(btn, false);
     }
@@ -5497,7 +5549,7 @@
     const { data } = await sb.from("business_members").select("id, user_id, role, full_name, status, branch_id, created_at, branches(name)").eq("business_id", membership.business_id).order("created_at");
     const el = document.getElementById("team-ledger");
     if (!el) return;
-    if (!data || data.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">👤</div>No team members found.<br><span style="font-size:12px;">Send an invite to add staff.</span></div>`; return; }
+    if (!data || data.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">👤</div>No team members found.<br><span style="font-size:12px;">Share your invite code to add staff.</span></div>`; return; }
 
     el.innerHTML =
       `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 0.8fr;"><div>Name</div><div>Role</div><div></div></div>` +
@@ -5532,7 +5584,7 @@
   }
 
   async function removeTeamMember(userId) {
-    if (!confirm("Remove this person's access to the business? Their login stays, but they'll need a new invite to rejoin.")) return;
+    if (!confirm("Remove this person's access to the business? Their login stays, but they'll need a new invite code to rejoin.")) return;
     const { error } = await sb.from("business_members").delete().eq("user_id", userId).eq("business_id", membership.business_id);
     if (error) { showToast(error.message, "error"); return; }
     await recordAudit("delete", "business_members", null, null, { user_id: userId });
@@ -5733,6 +5785,14 @@
       </div>`).join("");
     }
     el.innerHTML = html;
+  }
+
+  function copyInviteCode(evt) {
+    navigator.clipboard.writeText(membership.businesses.invite_code);
+    const btn = evt.target;
+    const original = btn.textContent;
+    btn.textContent = "Copied!";
+    setTimeout(() => (btn.textContent = original), 1200);
   }
 
   // ============================================================
@@ -6194,6 +6254,9 @@
 
 </body>
 </html>
+<<<<<<< HEAD
 
 
 
+=======
+>>>>>>> parent of a23b6c7 (Refactor invite handling to use token-based system and update related UI elements)

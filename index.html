@@ -861,6 +861,7 @@
   </div>
 </div>
 
+<script>
   // Namespace: wrap all app logic in TholeApp to avoid global pollution
   const TholeApp = (function () {
 
@@ -1527,6 +1528,12 @@
     document.getElementById("pay-method").value = p.method;
   }
 
+  async function submitPayment() {
+    clearError("payment-error");
+    const customerId = document.getElementById("pay-customer").value;
+    const amount = parseFloat(document.getElementById("pay-amount").value);
+    const method = document.getElementById("pay-method").value;
+    if (!customerId || isNaN(amount) || amount <= 0) return setError("payment-error", "Check the customer and amount.");
     if (amount > 999999999) return setError("payment-error", "Amount is too large.");
 
     const payload = { customer_id: customerId, amount, method };
@@ -2202,5 +2209,6 @@
   };
 })();
 
+</script>
 </body>
 </html>

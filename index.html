@@ -2052,7 +2052,7 @@
       const needed = Number(ri.quantity_required) * batchQty;
       const available = Number(ri.raw_materials.stock_qty);
       const short = needed > available;
-      return `<span style="${short ? "color:var(--danger); font-weight:500;" : ""}">${escapeHtml(ri.raw_materials.name)}: ${needed} ${escapeHtml(ri.raw_materials.unit)}${short ? ` (only ${available} available!)` : ""}</span>`;
+      return `<span style="${short ? "color:var(--danger); font-weight:500;" : ""}">${escapeHtml(ri.raw_materials.name)}: ${needed} ${escapeHtml(ri.raw_materials.unit)}${short ? " (only " + available + " available!)" : ""}</span>`;
     }).join("<br>");
   }
 

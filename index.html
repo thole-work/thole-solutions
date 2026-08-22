@@ -173,6 +173,30 @@
   .card-label { color: var(--ink-faint); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
 
   .reports-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 22px; }
+  .reports-toolbar { display: flex; justify-content: space-between; align-items: end; gap: 14px; margin-bottom: 18px; padding: 14px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+  .reports-toolbar label { margin: 0 0 5px; }
+  .reports-toolbar .filter-group { display: flex; gap: 8px; align-items: end; }
+  .reports-toolbar .filter-group select { min-width: 112px; }
+  .reports-toolbar .filter-group input { min-width: 148px; }
+  .reports-toolbar .clear-report-filter { padding: 9px 12px; white-space: nowrap; }
+  .report-period-note { color: var(--ink-soft); font-size: 12px; margin: 0; }
+  .report-kpi { min-width: 0; }
+  .report-kpi .value { overflow-wrap: anywhere; }
+  .report-kpi .trend { margin-top: 8px; font-size: 12px; color: var(--ink-soft); }
+  .report-kpi .trend.positive { color: #16805C; }
+  .report-kpi .trend.negative { color: var(--danger); }
+  .report-chart-card { min-height: 300px; }
+  .report-chart-wrap { position: relative; height: 230px; }
+  .report-chart-wrap canvas { max-height: none; }
+  .report-table-card { margin-bottom: 22px; }
+  .report-table-card h3 { margin-bottom: 14px; }
+  @media (max-width: 720px) {
+    .reports-toolbar { align-items: stretch; flex-direction: column; }
+    .reports-toolbar .filter-group { align-items: stretch; flex-direction: column; }
+    .reports-toolbar .filter-group > * { width: 100%; }
+    .report-chart-card { min-height: 270px; }
+    .report-chart-wrap { height: 210px; }
+  }
   .report-card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px; box-shadow: 0 20px 40px rgba(15,23,42,0.06); backdrop-filter: blur(18px); color: var(--ink); }
   .report-card h3 { margin: 0 0 12px; font-size: 15px; }
   .report-card header, .report-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
@@ -639,51 +663,63 @@
 
     <section id="tab-reports" class="tab-panel hidden">
       <div class="page-header"><h2>Reports</h2><p>Revenue trends, best sellers, and stock to watch.</p></div>
+      <div class="reports-toolbar">
+        <div>
+          <label for="report-date-filter">Reporting period</label>
+          <p class="report-period-note" id="report-period-note">Choose a period to compare business performance.</p>
+        </div>
+        <div class="filter-group">
+          <select id="report-filter-mode" onchange="TholeApp.setReportFilterMode(this.value)" aria-label="Report period type">
+            <option value="all">All time</option><option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
+          </select>
+          <input type="hidden" id="report-date-filter" onchange="TholeApp.loadReports()" aria-label="Report period" />
+          <button class="btn-ghost clear-report-filter" type="button" onclick="TholeApp.resetReportFilter()">Clear</button>
+        </div>
+      </div>
       <div class="reports-metrics">
-        <div class="report-summary-card report-card">
+        <div class="report-summary-card report-card report-kpi">
           <div class="label">Total revenue</div>
           <div class="value num" id="report-total-revenue">0</div>
-          <div class="note">Sum of all sales in your business.</div>
+          <div class="trend" id="report-revenue-note">No sales in this period.</div>
         </div>
-        <div class="report-summary-card report-card">
-          <div class="label">Average sale</div>
-          <div class="value num" id="report-avg-sale">0</div>
-          <div class="note">Average order value over all sales.</div>
+        <div class="report-summary-card report-card report-kpi">
+          <div class="label">Gross profit</div>
+          <div class="value num" id="report-gross-profit">0</div>
+          <div class="trend" id="report-profit-note">Revenue minus product cost and expenses.</div>
         </div>
-        <div class="report-summary-card report-card">
-          <div class="label">Top seller</div>
-          <div class="value" id="report-top-product">—</div>
-          <div class="note">Product generating the most revenue.</div>
+        <div class="report-summary-card report-card report-kpi">
+          <div class="label">Orders</div>
+          <div class="value num" id="report-order-count">0</div>
+          <div class="trend" id="report-avg-sale">Average sale $0.00</div>
         </div>
-        <div class="report-summary-card report-card">
-          <div class="label">Low-stock items</div>
+        <div class="report-summary-card report-card report-kpi">
+          <div class="label">Stock alerts</div>
           <div class="value num" id="report-low-stock-count">0</div>
-          <div class="note">Items at or below the reorder threshold.</div>
+          <div class="trend" id="report-stock-note">Items at or below reorder level.</div>
         </div>
       </div>
       <div class="report-grid">
-        <div class="report-card">
+        <div class="report-card report-chart-card">
           <div class="report-card-header">
-            <h3>Category share</h3>
-            <p class="note">Compact breakdown of sales across product categories.</p>
+            <h3>Revenue trend</h3>
+            <p class="note">Sales value across the selected period.</p>
           </div>
-          <canvas id="category-chart" height="110"></canvas>
+          <div class="report-chart-wrap"><canvas id="revenue-chart"></canvas></div>
         </div>
-        <div class="report-card report-insight-card">
-          <h3>Quick view</h3>
-          <div class="insight-list">
-            <div><span>Top category</span><strong id="report-top-category">—</strong></div>
-            <div><span>Top product</span><strong id="report-top-product-mini">—</strong></div>
-            <div><span>Low stock items</span><strong id="report-low-stock-count-mini">0</strong></div>
+        <div class="report-card report-chart-card">
+          <div class="report-card-header">
+            <h3>Revenue by category</h3>
+            <p class="note">Where sales value is coming from.</p>
           </div>
+          <div class="report-chart-wrap"><canvas id="category-chart"></canvas></div>
         </div>
       </div>
-      <div class="report-card" style="margin-bottom:22px;">
-        <h3>Top selling products</h3>
+      <div class="report-card report-table-card">
+        <div class="report-card-header"><h3>Top products</h3><p class="note">Ranked by revenue in this period.</p></div>
         <div class="ledger" id="top-products-ledger"></div>
       </div>
-      <div class="report-card">
-        <h3>Low stock</h3>
+      <div class="report-card report-table-card">
+        <div class="report-card-header"><h3>Stock to watch</h3><p class="note">Products needing attention before the next sale.</p></div>
         <div class="ledger" id="low-stock-ledger"></div>
       </div>
     </section>
@@ -1825,83 +1861,161 @@
   // REPORTS
   // ============================================================
   let categoryChartInstance = null;
+  let revenueChartInstance = null;
+
+  function getReportFilterValue(mode) {
+    const today = new Date();
+    if (mode === "date") return today.toISOString().slice(0, 10);
+    if (mode === "month") return today.toISOString().slice(0, 7);
+    if (mode === "number") return today.getFullYear().toString();
+    if (mode === "week") {
+      const start = new Date(today);
+      const day = start.getDay() || 7;
+      start.setDate(start.getDate() - day + 1);
+      const firstThursday = new Date(start.getFullYear(), 0, 4);
+      const week = Math.ceil((((start - firstThursday) / 86400000) + firstThursday.getDay() + 1) / 7);
+      return `${start.getFullYear()}-W${String(week).padStart(2, "0")}`;
+    }
+    return "";
+  }
+
+  function setReportFilterMode(mode) {
+    const filter = document.getElementById("report-date-filter");
+    if (!filter) return;
+    if (mode === "all") {
+      filter.type = "hidden";
+      filter.value = "";
+    } else {
+      filter.type = mode === "number" ? "number" : mode;
+      filter.value = getReportFilterValue(mode);
+      if (mode === "number") {
+        filter.min = "2000";
+        filter.max = new Date().getFullYear().toString();
+        filter.step = "1";
+      } else {
+        filter.removeAttribute("min");
+        filter.removeAttribute("max");
+        filter.removeAttribute("step");
+      }
+    }
+    loadReports();
+  }
+
+  function resetReportFilter() {
+    const mode = document.getElementById("report-filter-mode");
+    if (mode) mode.value = "all";
+    setReportFilterMode("all");
+  }
 
   async function loadReports() {
-    const { data: orders, error: ordersError } = await sb.from("orders").select("id, total_amount").order("created_at", { ascending: false });
+    const dateFilter = document.getElementById("report-date-filter")?.value;
+    const mode = document.getElementById("report-filter-mode")?.value || "date";
+    let ordersQuery = sb.from("orders").select("id, total_amount, created_at").order("created_at", { ascending: true });
+    ordersQuery = applyTimeFilter(ordersQuery, dateFilter, mode, "created_at");
+    let expensesQuery = sb.from("expenses").select("amount, expense_date").order("expense_date", { ascending: true });
+    expensesQuery = applyTimeFilter(expensesQuery, dateFilter, mode, "expense_date");
+    const [{ data: orders, error: ordersError }, { data: expenses, error: expensesError }] = await Promise.all([ordersQuery, expensesQuery]);
     if (ordersError) console.error("loadReports orders error:", ordersError);
+    if (expensesError) console.error("loadReports expenses error:", expensesError);
     const sales = orders ?? [];
+    const reportExpenses = expenses ?? [];
     const orderIds = sales.map((o) => o.id);
     let orderItems = [];
     if (orderIds.length > 0) {
-      const { data: items, error: itemsError } = await sb.from("order_items").select("product_id, quantity, line_total").in("order_id", orderIds);
+      const { data: items, error: itemsError } = await sb.from("order_items").select("product_id, quantity, unit_price, line_total").in("order_id", orderIds);
       if (itemsError) console.error("loadReports items error:", itemsError);
       orderItems = items ?? [];
     }
-    renderReportSummary(sales, orderItems);
-    await Promise.all([renderCategoryChart(orderItems), renderTopProducts(orderItems), renderLowStockReport()]);
+    const reportData = buildReportData(sales, orderItems, reportExpenses);
+    renderReportSummary(reportData, mode, dateFilter);
+    renderRevenueChart(reportData);
+    renderCategoryChart(reportData.categoryTotals);
+    renderTopProducts(reportData.products);
+    renderLowStockReport();
   }
 
-  function renderReportSummary(sales, orderItems) {
-    const totalRevenue = sales.reduce((sum, o) => sum + Number(o.total_amount), 0);
-    const avgSale = sales.length ? totalRevenue / sales.length : 0;
-    const lowStockCount = cache.products.filter((p) => p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold)).length;
-
-    const productRevenue = {};
-    for (const item of orderItems) {
-      productRevenue[item.product_id] = (productRevenue[item.product_id] || 0) + Number(item.line_total);
+  function buildReportData(sales, orderItems, expenses) {
+    const products = {};
+    const categoryTotals = {};
+    const trend = {};
+    let totalRevenue = 0;
+    let productCost = 0;
+    for (const sale of sales) {
+      totalRevenue += Number(sale.total_amount) || 0;
+      const date = new Date(sale.created_at).toISOString().slice(0, 10);
+      trend[date] = (trend[date] || 0) + (Number(sale.total_amount) || 0);
     }
-    const topProduct = Object.entries(productRevenue)
-      .map(([pid, revenue]) => ({ pid, revenue }))
-      .sort((a, b) => b.revenue - a.revenue)[0];
-    const topProductName = topProduct ? (cache.products.find((p) => p.id === topProduct.pid)?.name ?? "Deleted product") : "None yet";
+
+    for (const item of orderItems) {
+      const product = cache.products.find((p) => p.id === item.product_id);
+      const revenue = Number(item.line_total) || (Number(item.quantity) * Number(item.unit_price)) || 0;
+      const cost = Number(product?.cost_price) || 0;
+      if (!products[item.product_id]) products[item.product_id] = { name: product?.name || "Deleted product", category: product?.category || "Uncategorized", qty: 0, revenue: 0 };
+      products[item.product_id].qty += Number(item.quantity) || 0;
+      products[item.product_id].revenue += revenue;
+      productCost += cost * (Number(item.quantity) || 0);
+      const category = product?.category || "Uncategorized";
+      categoryTotals[category] = (categoryTotals[category] || 0) + revenue;
+    }
+
+    const expenseTotal = expenses.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0);
+    return { sales, products: Object.values(products).sort((a, b) => b.revenue - a.revenue), categoryTotals, trend, totalRevenue, productCost, expenseTotal };
+  }
+
+  function renderReportSummary(reportData, mode, dateFilter) {
+    const { sales, products, totalRevenue, productCost, expenseTotal } = reportData;
+    const avgSale = sales.length ? totalRevenue / sales.length : 0;
+    const grossProfit = totalRevenue - productCost - expenseTotal;
+    const lowStockCount = cache.products.filter((p) => p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold)).length;
+    const periodLabels = { date: "day", week: "week", month: "month", number: "year" };
+    const period = dateFilter ? `Selected ${periodLabels[mode] || "period"}` : "All recorded activity";
 
     const totalRevenueEl = document.getElementById("report-total-revenue");
-    const avgSaleEl = document.getElementById("report-avg-sale");
     totalRevenueEl.textContent = abbreviateCurrency(totalRevenue);
     totalRevenueEl.title = money(totalRevenue);
-    avgSaleEl.textContent = abbreviateCurrency(avgSale);
-    avgSaleEl.title = money(avgSale);
-    document.getElementById("report-top-product").textContent = escapeHtml(topProductName);
+    document.getElementById("report-gross-profit").textContent = abbreviateCurrency(grossProfit);
+    document.getElementById("report-gross-profit").title = money(grossProfit);
+    document.getElementById("report-order-count").textContent = sales.length;
+    document.getElementById("report-avg-sale").textContent = `Average sale ${money(avgSale)}`;
     document.getElementById("report-low-stock-count").textContent = lowStockCount;
-    document.getElementById("report-top-product-mini").textContent = escapeHtml(topProductName);
-    document.getElementById("report-low-stock-count-mini").textContent = lowStockCount;
-    const categoryTotals = {};
-    for (const item of orderItems) {
-      const product = cache.products.find((p) => p.id === item.product_id);
-      const category = product?.category || "Uncategorized";
-      categoryTotals[category] = (categoryTotals[category] || 0) + Number(item.line_total);
-    }
-    const topCategory = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "None yet";
-    document.getElementById("report-top-category").textContent = escapeHtml(topCategory);
+    document.getElementById("report-revenue-note").textContent = `${period} revenue from ${sales.length} order${sales.length === 1 ? "" : "s"}.`;
+    document.getElementById("report-profit-note").textContent = `Costs ${money(productCost + expenseTotal)} included.`;
+    document.getElementById("report-stock-note").textContent = `${lowStockCount} item${lowStockCount === 1 ? "" : "s"} need attention.`;
+    document.getElementById("report-period-note").textContent = dateFilter ? `${period} · ${dateFilter}` : period;
   }
 
-  async function renderCategoryChart(orderItems) {
+  function renderRevenueChart(reportData) {
+    const canvas = document.getElementById("revenue-chart");
+    if (!canvas) return;
+    if (revenueChartInstance) revenueChartInstance.destroy();
+    const entries = Object.entries(reportData.trend).sort((a, b) => a[0].localeCompare(b[0]));
+    revenueChartInstance = new Chart(canvas, {
+      type: "line",
+      data: { labels: entries.map(([date]) => new Date(`${date}T00:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" })), datasets: [{ label: "Revenue", data: entries.map(([, total]) => total), borderColor: "#1D1F91", backgroundColor: "rgba(92,172,247,0.18)", fill: true, tension: 0.35, pointRadius: 3, pointBackgroundColor: "#1D1F91" }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { callback: (value) => abbreviateCurrency(value) } }, x: { grid: { display: false } } } },
+    });
+  }
+
+  function renderCategoryChart(categoryTotals) {
     const canvas = document.getElementById("category-chart");
     if (!canvas) return;
-
-    const categoryTotals = {};
-    for (const item of orderItems) {
-      const product = cache.products.find((p) => p.id === item.product_id);
-      const category = product?.category || "Uncategorized";
-      categoryTotals[category] = (categoryTotals[category] || 0) + Number(item.line_total);
-    }
-
     const entries = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    if (categoryChartInstance) categoryChartInstance.destroy();
+    const chartWrap = canvas.parentElement;
+    const emptyState = chartWrap.querySelector(".chart-empty-state");
     if (entries.length === 0) {
-      canvas.parentElement.innerHTML = `<div class="empty-state">No category data available.</div>`;
+      canvas.style.display = "none";
+      if (!emptyState) chartWrap.insertAdjacentHTML("beforeend", `<div class="empty-state chart-empty-state">No category data available.</div>`);
       return;
     }
-
-    const labels = entries.map(([category]) => category);
-    const data = entries.map(([, total]) => total);
+    canvas.style.display = "block";
+    emptyState?.remove();
     const colors = ["#1D1F91","#5CACF7","#9C6B1F","#F59E0B","#10B981","#8B5CF6"];
-
-    if (categoryChartInstance) categoryChartInstance.destroy();
     categoryChartInstance = new Chart(canvas, {
       type: "doughnut",
       data: {
-        labels,
-        datasets: [{ data, backgroundColor: colors.slice(0, labels.length), borderWidth: 0 }],
+        labels: entries.map(([category]) => category),
+        datasets: [{ data: entries.map(([, total]) => total), backgroundColor: colors.slice(0, entries.length), borderWidth: 0 }],
       },
       options: {
         plugins: {
@@ -1913,26 +2027,11 @@
     });
   }
 
-  async function renderTopProducts(orderItems) {
+  function renderTopProducts(products) {
     const el = document.getElementById("top-products-ledger");
     if (!el) return;
-    if (orderItems.length === 0) { el.innerHTML = `<div class="empty-state">No sales yet.</div>`; return; }
-
-    const agg = {};
-    for (const it of orderItems) {
-      if (!agg[it.product_id]) agg[it.product_id] = { qty: 0, revenue: 0 };
-      agg[it.product_id].qty += Number(it.quantity);
-      agg[it.product_id].revenue += Number(it.line_total);
-    }
-    const top = Object.entries(agg)
-      .map(([pid, v]) => {
-        const p = cache.products.find((x) => x.id === pid);
-        return { name: p ? p.name : "Deleted product", category: p?.category ?? "—", ...v };
-      })
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 5);
-
-    if (top.length === 0) { el.innerHTML = `<div class="empty-state">No sales yet.</div>`; return; }
+    const top = products.slice(0, 5);
+    if (top.length === 0) { el.innerHTML = `<div class="empty-state">No sales in this period.</div>`; return; }
     el.innerHTML =
       `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr;"><div>Product</div><div>Category</div><div>Qty sold</div><div style="text-align:right">Revenue</div></div>` +
       top.map((t) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr;">
@@ -2224,6 +2323,7 @@
     openEditExpense, openEditSupplier, openPurchaseModal, openProduceModal,
     openRecipeModal, openEditMaterial, deleteRecord, duplicateProduct,
     voidSale, voidPurchase, copyInviteCode, toggleMoreMenu,
+    loadReports, setReportFilterMode, resetReportFilter,
     onSaleProductChange, onProduceProductChange, addRecipeItem, removeRecipeItem,
     submitSale, submitProduct, submitCustomer, submitPayment, submitExpense,
     submitSupplier, submitPurchase, submitMaterial, submitProduce,

@@ -2266,6 +2266,7 @@
       await loadPayments();
       toast(isEdit ? "Payment updated" : `Payment of ${money(amount)} recorded`);
     });
+  }
   const origOpenModal = openModal;
   window.openModal = function (id) {
     if (id === "payment-modal") {

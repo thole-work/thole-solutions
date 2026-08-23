@@ -7,6 +7,42 @@
 | `is_active` | `boolean` | NULL |  |  |
 | `created_at` | `timestamp with time zone` | NULL |  |  |
 
+### Table: audit_log
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| `business_id` | `uuid` | NULL |  | `REFERENCES businesses(id)` |
+| `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
+| `user_id` | `uuid` | NULL |  |  |
+| `action` | `text` | NOT NULL |  |  |
+| `entity_type` | `text` | NOT NULL |  |  |
+| `entity_id` | `uuid` | NULL |  |  |
+| `before_data` | `jsonb` | NULL |  |  |
+| `after_data` | `jsonb` | NULL |  |  |
+| `metadata` | `jsonb` | NOT NULL |  |  |
+| `created_at` | `timestamp with time zone` | NULL |  |  |
+
+### Table: branches
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
+| `branch_key` | `text` | NOT NULL |  |  |
+| `name` | `text` | NOT NULL |  |  |
+| `address` | `text` | NULL |  |  |
+| `phone` | `text` | NULL |  |  |
+| `is_active` | `boolean` | NOT NULL |  |  |
+| `created_at` | `timestamp with time zone` | NULL |  |  |
+
+### Table: business_members
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| `user_id` | `uuid` | NOT NULL |  |  |
+| `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
+| `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
+| `role` | `USER-DEFINED` | NOT NULL |  |  |
+| `status` | `USER-DEFINED` | NOT NULL |  |  |
+| `full_name` | `text` | NULL |  |  |
+| `invited_by` | `uuid` | NULL |  |  |
+| `accepted_at` | `timestamp with time zone` | NULL |  |  |
+| `created_at` | `timestamp with time zone` | NULL |  |  |
+| `updated_at` | `timestamp with time zone` | NULL |  |  |
+
 ### Table: business_type_modules
 | Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `business_type_id` | `uuid` | NOT NULL | `PRIMARY KEY` | `REFERENCES business_types(id)` |
 | `module_key` | `text` | NOT NULL | `PRIMARY KEY` | `REFERENCES modules(key)` |
@@ -45,6 +81,7 @@
 | `phone` | `text` | NULL |  |  |
 | `notes` | `text` | NULL |  |  |
 | `created_at` | `timestamp with time zone` | NULL |  |  |
+| `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
 
 ### Table: expenses
 | Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
@@ -54,6 +91,21 @@
 | `amount` | `numeric` | NOT NULL |  |  |
 | `expense_date` | `date` | NOT NULL |  |  |
 | `created_by` | `uuid` | NULL |  | `REFERENCES app_users(user_id)` |
+| `created_at` | `timestamp with time zone` | NULL |  |  |
+| `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
+
+### Table: invites
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
+| `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
+| `invited_by` | `uuid` | NULL |  |  |
+| `email` | `text` | NULL |  |  |
+| `phone` | `text` | NULL |  |  |
+| `role` | `USER-DEFINED` | NOT NULL |  |  |
+| `token` | `text` | NOT NULL |  |  |
+| `status` | `text` | NOT NULL |  |  |
+| `expires_at` | `timestamp with time zone` | NOT NULL |  |  |
+| `accepted_at` | `timestamp with time zone` | NULL |  |  |
 | `created_at` | `timestamp with time zone` | NULL |  |  |
 
 ### Table: labor_shifts
@@ -66,6 +118,7 @@
 | `clock_out` | `timestamp with time zone` | NULL |  |  |
 | `break_minutes` | `integer` | NULL |  |  |
 | `created_at` | `timestamp with time zone` | NULL |  |  |
+| `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
 
 ### Table: modules
 | Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `key` | `text` | NOT NULL | `PRIMARY KEY` |  |
@@ -99,6 +152,7 @@
 | `change_given` | `numeric` | NULL |  |  |
 | `receipt_number` | `integer` | NULL |  |  |
 | `payment_method` | `text` | NULL |  |  |
+| `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
 
 ### Table: payments
 | Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
@@ -113,6 +167,7 @@
 | `method` | `text` | NULL |  |  |
 | `created_by` | `uuid` | NULL |  | `REFERENCES app_users(user_id)` |
 | `created_at` | `timestamp with time zone` | NULL |  |  |
+| `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
 
 ### Table: pos_sessions
 | Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
@@ -125,6 +180,7 @@
 | `status` | `text` | NULL |  |  |
 | `opened_at` | `timestamp with time zone` | NULL |  |  |
 | `closed_at` | `timestamp with time zone` | NULL |  |  |
+| `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
 
 ### Table: produce_batches
 | Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
@@ -201,6 +257,7 @@
 | `status` | `text` | NULL |  |  |
 | `current_order_id` | `uuid` | NULL |  | `REFERENCES orders(id)` |
 | `created_at` | `timestamp with time zone` | NULL |  |  |
+| `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
 
 ### Table: stock_movements
 | Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
@@ -215,6 +272,7 @@
 | `created_by` | `uuid` | NULL |  | `REFERENCES app_users(user_id)` |
 | `created_at` | `timestamp with time zone` | NULL |  |  |
 | `location` | `text` | NOT NULL |  |  |
+| `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
 
 ### Table: supplier_balances
 | Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `supplier_id` | `uuid` | NULL |  |  |
@@ -230,6 +288,19 @@
 | `name` | `text` | NOT NULL |  |  |
 | `phone` | `text` | NULL |  |  |
 | `notes` | `text` | NULL |  |  |
+| `created_at` | `timestamp with time zone` | NULL |  |  |
+| `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
+
+### Table: usage_events
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| `business_id` | `uuid` | NULL |  | `REFERENCES businesses(id)` |
+| `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
+| `user_id` | `uuid` | NULL |  |  |
+| `event_type` | `text` | NOT NULL |  |  |
+| `page_key` | `text` | NULL |  |  |
+| `entity_type` | `text` | NULL |  |  |
+| `entity_id` | `uuid` | NULL |  |  |
+| `metadata` | `jsonb` | NOT NULL |  |  |
 | `created_at` | `timestamp with time zone` | NULL |  |  |
 
 ### Table: waste_log

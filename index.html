@@ -1689,25 +1689,29 @@
     if (unit.length > 50) return setError("product-error", "Unit is too long.");
 
     const payload = { name, category, sku, cost_price: costPrice, price, unit, stock_qty: stock, low_stock_threshold: threshold };
+    const isEdit = !!editingRecord;
 
-    if (editingRecord) {
-      const original = cache.products.find((p) => p.id === editingRecord.id);
-      const { error } = await sb.from("products").update(payload).eq("id", editingRecord.id);
-      if (error) return setError("product-error", error.message);
-      if (original && original.stock_qty !== null && stock !== null && Number(original.stock_qty) !== stock) {
-        await sb.from("stock_movements").insert({
-          business_id: membership.business_id, item_type: "product", product_id: editingRecord.id,
-          quantity_change: stock - Number(original.stock_qty), reason: "adjustment", created_by: currentUser.id,
-        });
+    await withBusy("product-submit-btn", async () => {
+      if (editingRecord) {
+        const original = cache.products.find((p) => p.id === editingRecord.id);
+        const { error } = await sb.from("products").update(payload).eq("id", editingRecord.id);
+        if (error) return setError("product-error", error.message);
+        if (original && original.stock_qty !== null && stock !== null && Number(original.stock_qty) !== stock) {
+          await sb.from("stock_movements").insert({
+            business_id: membership.business_id, item_type: "product", product_id: editingRecord.id,
+            quantity_change: stock - Number(original.stock_qty), reason: "adjustment", created_by: currentUser.id,
+          });
+        }
+      } else {
+        const { error } = await sb.from("products").insert({ business_id: membership.business_id, ...payload });
+        if (error) return setError("product-error", error.message);
       }
-    } else {
-      const { error } = await sb.from("products").insert({ business_id: membership.business_id, ...payload });
-      if (error) return setError("product-error", error.message);
-    }
 
-    closeModal("product-modal");
-    await loadProducts();
-    renderDashboard();
+      closeModal("product-modal");
+      await loadProducts();
+      renderDashboard();
+      toast(isEdit ? `${name} updated` : `${name} added`);
+    });
   }
 
   // ============================================================
@@ -1780,7 +1784,6 @@
 
   async function submitSale() {
     clearError("sale-error");
-    if (submittingSale) return;
     if (cart.length === 0) return setError("sale-error", "Add at least one item before completing the sale.");
 
     if (sessionRequired()) {
@@ -1790,8 +1793,7 @@
     }
     const tableId = document.getElementById("s-table")?.value || null;
 
-    submittingSale = true;
-    try {
+    await withBusy("sale-submit-btn", async () => {
       const customerId = document.getElementById("s-customer").value || null;
       const method = document.getElementById("s-payment-method").value || "cash";
       const orderType = document.getElementById("s-order-type").value || "takeaway";
@@ -1844,9 +1846,8 @@
       closeModal("sale-modal");
       await Promise.all([loadProducts(), loadSales()]);
       renderDashboard();
-    } finally {
-      submittingSale = false;
-    }
+      toast(`Sale #${receiptNumber} recorded · ${money(totals.total)}`);
+    }, "Saving…");
   }
 
   async function loadSales() {
@@ -2128,13 +2129,17 @@
     if (capacity !== null && (isNaN(capacity) || capacity < 0)) return setError("table-error", "Seats must be zero or more.");
 
     const payload = { table_number: number, name, capacity };
-    const { error } = editingRecord
-      ? await sb.from("restaurant_tables").update(payload).eq("id", editingRecord.id)
-      : await sb.from("restaurant_tables").insert({ business_id: membership.business_id, ...payload });
-    if (error) return setError("table-error", error.message);
+    const isEdit = !!editingRecord;
+    await withBusy("table-submit-btn", async () => {
+      const { error } = editingRecord
+        ? await sb.from("restaurant_tables").update(payload).eq("id", editingRecord.id)
+        : await sb.from("restaurant_tables").insert({ business_id: membership.business_id, ...payload });
+      if (error) return setError("table-error", error.message);
 
-    closeModal("table-modal");
-    await loadTables();
+      closeModal("table-modal");
+      await loadTables();
+      toast(isEdit ? `Table ${number} updated` : `Table ${number} added`, "info");
+    });
   }
 
   function populateCheckoutTables() {
@@ -2194,13 +2199,16 @@
     if (phone && phone.length > 50) return setError("customer-error", "Phone number is too long.");
 
     const payload = { name, phone };
-    const { error } = editingRecord
-      ? await sb.from("customers").update(payload).eq("id", editingRecord.id)
-      : await sb.from("customers").insert({ business_id: membership.business_id, ...payload });
-
-    if (error) return setError("customer-error", error.message);
-    closeModal("customer-modal");
-    await loadCustomers();
+    const isEdit = !!editingRecord;
+    await withBusy("customer-submit-btn", async () => {
+      const { error } = editingRecord
+        ? await sb.from("customers").update(payload).eq("id", editingRecord.id)
+        : await sb.from("customers").insert({ business_id: membership.business_id, ...payload });
+      if (error) return setError("customer-error", error.message);
+      closeModal("customer-modal");
+      await loadCustomers();
+      toast(isEdit ? "Customer updated" : "Customer added");
+    });
   }
 
   // ============================================================
@@ -2248,14 +2256,16 @@
     if (amount > 999999999) return setError("payment-error", "Amount is too large.");
 
     const payload = { customer_id: customerId, amount, method };
-    const { error } = editingRecord
-      ? await sb.from("payments").update(payload).eq("id", editingRecord.id)
-      : await sb.from("payments").insert({ business_id: membership.business_id, direction: "in", party_type: "customer", created_by: currentUser.id, ...payload });
-
-    if (error) return setError("payment-error", error.message);
-    closeModal("payment-modal");
-    await loadPayments();
-  }
+    const isEdit = !!editingRecord;
+    await withBusy("payment-submit-btn", async () => {
+      const { error } = editingRecord
+        ? await sb.from("payments").update(payload).eq("id", editingRecord.id)
+        : await sb.from("payments").insert({ business_id: membership.business_id, direction: "in", party_type: "customer", created_by: currentUser.id, ...payload });
+      if (error) return setError("payment-error", error.message);
+      closeModal("payment-modal");
+      await loadPayments();
+      toast(isEdit ? "Payment updated" : `Payment of ${money(amount)} recorded`);
+    });
   const origOpenModal = openModal;
   window.openModal = function (id) {
     if (id === "payment-modal") {
@@ -2311,14 +2321,17 @@
     if (description && description.length > 500) return setError("expense-error", "Description is too long.");
 
     const payload = { category, description, amount, expense_date: date };
-    const { error } = editingRecord
-      ? await sb.from("expenses").update(payload).eq("id", editingRecord.id)
-      : await sb.from("expenses").insert({ business_id: membership.business_id, created_by: currentUser.id, ...payload });
-
-    if (error) return setError("expense-error", error.message);
-    closeModal("expense-modal");
-    await loadExpenses();
-    renderDashboard();
+    const isEdit = !!editingRecord;
+    await withBusy("expense-submit-btn", async () => {
+      const { error } = editingRecord
+        ? await sb.from("expenses").update(payload).eq("id", editingRecord.id)
+        : await sb.from("expenses").insert({ business_id: membership.business_id, created_by: currentUser.id, ...payload });
+      if (error) return setError("expense-error", error.message);
+      closeModal("expense-modal");
+      await loadExpenses();
+      renderDashboard();
+      toast(isEdit ? "Expense updated" : `Expense of ${money(amount)} saved`);
+    });
   }
 
   // ============================================================
@@ -2358,13 +2371,16 @@
     if (phone && phone.length > 50) return setError("supplier-error", "Phone number is too long.");
 
     const payload = { name, phone };
-    const { error } = editingRecord
-      ? await sb.from("suppliers").update(payload).eq("id", editingRecord.id)
-      : await sb.from("suppliers").insert({ business_id: membership.business_id, ...payload });
-
-    if (error) return setError("supplier-error", error.message);
-    closeModal("supplier-modal");
-    await loadSuppliers();
+    const isEdit = !!editingRecord;
+    await withBusy("supplier-submit-btn", async () => {
+      const { error } = editingRecord
+        ? await sb.from("suppliers").update(payload).eq("id", editingRecord.id)
+        : await sb.from("suppliers").insert({ business_id: membership.business_id, ...payload });
+      if (error) return setError("supplier-error", error.message);
+      closeModal("supplier-modal");
+      await loadSuppliers();
+      toast(isEdit ? "Supplier updated" : "Supplier added");
+    });
   }
 
   // ============================================================
@@ -2417,33 +2433,35 @@
     if (cost > 999999999) return setError("purchase-error", "Cost is too large.");
 
     const total = qty * cost;
-    const { data: po, error: poErr } = await sb.from("purchase_orders").insert({
-      business_id: membership.business_id, supplier_id: supplierId, status: "received", total_amount: total, created_by: currentUser.id, received_at: new Date().toISOString(),
-    }).select().single();
-    if (poErr) return setError("purchase-error", poErr.message);
+    await withBusy("purchase-submit-btn", async () => {
+      const { data: po, error: poErr } = await sb.from("purchase_orders").insert({
+        business_id: membership.business_id, supplier_id: supplierId, status: "received", total_amount: total, created_by: currentUser.id, received_at: new Date().toISOString(),
+      }).select().single();
+      if (poErr) return setError("purchase-error", poErr.message);
 
-    const { error: itemErr } = await sb.from("purchase_order_items").insert({
-      purchase_order_id: po.id, product_id: productId, quantity: qty, unit_cost: cost,
+      const { error: itemErr } = await sb.from("purchase_order_items").insert({
+        purchase_order_id: po.id, product_id: productId, quantity: qty, unit_cost: cost,
+      });
+      if (itemErr) return setError("purchase-error", itemErr.message);
+
+      const { data: freshProduct, error: freshErr } = await sb.from("products").select("stock_qty").eq("id", productId).single();
+      if (freshErr || !freshProduct) return setError("purchase-error", "Unable to refresh product stock.");
+
+      const currentStock = freshProduct.stock_qty === null ? 0 : Number(freshProduct.stock_qty);
+      const newStock = currentStock + qty;
+      const { error: updateErr } = await sb.from("products").update({ stock_qty: newStock }).eq("id", productId);
+      if (updateErr) return setError("purchase-error", updateErr.message);
+
+      const { error: movementErr } = await sb.from("stock_movements").insert({
+        business_id: membership.business_id, item_type: "product", product_id: productId,
+        quantity_change: qty, reason: "purchase", reference_type: "purchase_order", reference_id: po.id, created_by: currentUser.id,
+      });
+      if (movementErr) return setError("purchase-error", movementErr.message);
+
+      closeModal("purchase-modal");
+      await Promise.all([loadProducts(), loadPurchases()]);
+      renderDashboard();
     });
-    if (itemErr) return setError("purchase-error", itemErr.message);
-
-    const { data: freshProduct, error: freshErr } = await sb.from("products").select("stock_qty").eq("id", productId).single();
-    if (freshErr || !freshProduct) return setError("purchase-error", "Unable to refresh product stock.");
-
-    const currentStock = freshProduct.stock_qty === null ? 0 : Number(freshProduct.stock_qty);
-    const newStock = currentStock + qty;
-    const { error: updateErr } = await sb.from("products").update({ stock_qty: newStock }).eq("id", productId);
-    if (updateErr) return setError("purchase-error", updateErr.message);
-
-    const { error: movementErr } = await sb.from("stock_movements").insert({
-      business_id: membership.business_id, item_type: "product", product_id: productId,
-      quantity_change: qty, reason: "purchase", reference_type: "purchase_order", reference_id: po.id, created_by: currentUser.id,
-    });
-    if (movementErr) return setError("purchase-error", movementErr.message);
-
-    closeModal("purchase-modal");
-    await Promise.all([loadProducts(), loadPurchases()]);
-    renderDashboard();
   }
 
   async function loadPurchases() {
@@ -2789,13 +2807,16 @@
     if (unit.length > 50) return setError("material-error", "Unit is too long.");
 
     const payload = { name, unit, cost_per_unit: cost, stock_qty: stock, low_stock_threshold: threshold };
-    const { error } = editingRecord
-      ? await sb.from("raw_materials").update(payload).eq("id", editingRecord.id)
-      : await sb.from("raw_materials").insert({ business_id: membership.business_id, ...payload });
-
-    if (error) return setError("material-error", error.message);
-    closeModal("material-modal");
-    await loadMaterials();
+    const isEdit = !!editingRecord;
+    await withBusy("material-submit-btn", async () => {
+      const { error } = editingRecord
+        ? await sb.from("raw_materials").update(payload).eq("id", editingRecord.id)
+        : await sb.from("raw_materials").insert({ business_id: membership.business_id, ...payload });
+      if (error) return setError("material-error", error.message);
+      closeModal("material-modal");
+      await loadMaterials();
+      toast(isEdit ? `${name} updated` : `${name} added`);
+    });
   }
 
   // ============================================================
@@ -2884,31 +2905,33 @@
       }
     }
 
-    for (const ri of recipe) {
-      const newQty = Number(ri.raw_materials.stock_qty) - Number(ri.quantity_required) * batchQty;
-      await sb.from("raw_materials").update({ stock_qty: newQty }).eq("id", ri.raw_material_id);
-      await sb.from("stock_movements").insert({
-        business_id: membership.business_id, item_type: "raw_material", raw_material_id: ri.raw_material_id,
-        quantity_change: -(Number(ri.quantity_required) * batchQty), reason: "production_consumption",
-        reference_type: "product", reference_id: productId, created_by: currentUser.id,
-      });
-    }
+    await withBusy("produce-submit-btn", async () => {
+      for (const ri of recipe) {
+        const newQty = Number(ri.raw_materials.stock_qty) - Number(ri.quantity_required) * batchQty;
+        await sb.from("raw_materials").update({ stock_qty: newQty }).eq("id", ri.raw_material_id);
+        await sb.from("stock_movements").insert({
+          business_id: membership.business_id, item_type: "raw_material", raw_material_id: ri.raw_material_id,
+          quantity_change: -(Number(ri.quantity_required) * batchQty), reason: "production_consumption",
+          reference_type: "product", reference_id: productId, created_by: currentUser.id,
+        });
+      }
 
-    const product = cache.products.find((p) => p.id === productId);
-    if (product && product.stock_qty !== null) {
-      const newStock = Number(product.stock_qty) + batchQty;
-      await sb.from("products").update({ stock_qty: newStock }).eq("id", productId);
-      await sb.from("stock_movements").insert({
-        business_id: membership.business_id, item_type: "product", product_id: productId,
-        quantity_change: batchQty, reason: "production_output", reference_type: "product", reference_id: productId, created_by: currentUser.id,
-      });
-    }
+      const product = cache.products.find((p) => p.id === productId);
+      if (product && product.stock_qty !== null) {
+        const newStock = Number(product.stock_qty) + batchQty;
+        await sb.from("products").update({ stock_qty: newStock }).eq("id", productId);
+        await sb.from("stock_movements").insert({
+          business_id: membership.business_id, item_type: "product", product_id: productId,
+          quantity_change: batchQty, reason: "production_output", reference_type: "product", reference_id: productId, created_by: currentUser.id,
+        });
+      }
 
-    closeModal("produce-modal");
-    await Promise.all([loadProducts(), loadMaterials()]);
-    renderDashboard();
+      closeModal("produce-modal");
+      await Promise.all([loadProducts(), loadMaterials()]);
+      renderDashboard();
+      toast(`Produced ${batchQty} × ${product ? escapeHtml(product.name) : "batch"}`, "info");
+    });
   }
-
   // initialize theme (reads preference) then boot app
   function setThemeClass(isDark) {
     if (isDark) document.documentElement.classList.add('theme-dark');

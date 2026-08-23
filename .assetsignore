@@ -1,0 +1,19 @@
+# Cloudflare Workers static assets — files/dirs NOT uploaded or served
+# (fixes "Asset too large" build failures and stops internal docs being public)
+
+# Version control & tooling
+.git
+.github
+.vscode
+
+# Internal documentation & database schema (should never be public)
+database
+plan.md
+*.md
+
+# Dev/config files
+package.json
+package-lock.json
+node_modules
+.wrangler
+.assetsignore

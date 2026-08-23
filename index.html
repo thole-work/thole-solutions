@@ -530,6 +530,7 @@
       <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team')"><span class="nav-icon">👤</span> Team</div>
       <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports')"><span class="nav-icon">📈</span> Reports</div>
       <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials')"><span class="nav-icon">🧱</span> Raw Materials</div>
+      <div class="nav-item nav-secondary" data-tab="tables" onclick="switchTab('tables')"><span class="nav-icon">🪑</span> Tables</div>
       <div class="nav-item mobile-more-btn" onclick="toggleMoreMenu()"><span class="nav-icon">⋯</span> More</div>
     </nav>
     <div class="side-footer">
@@ -548,6 +549,7 @@
     <div class="nav-item nav-secondary" data-tab="team" onclick="switchTab('team'); toggleMoreMenu();"><span class="nav-icon">👤</span> Team</div>
     <div class="nav-item nav-secondary" data-tab="reports" onclick="switchTab('reports'); toggleMoreMenu();"><span class="nav-icon">📈</span> Reports</div>
     <div class="nav-item nav-secondary" data-tab="materials" onclick="switchTab('materials'); toggleMoreMenu();"><span class="nav-icon">🧱</span> Raw Materials</div>
+    <div class="nav-item nav-secondary" data-tab="tables" onclick="switchTab('tables'); toggleMoreMenu();"><span class="nav-icon">🪑</span> Tables</div>
   </div>
   <div id="mobile-more-backdrop" onclick="toggleMoreMenu()"></div>
 
@@ -600,6 +602,19 @@
           <input type="date" id="sales-date-filter" onchange="loadSales()" placeholder="YYYY" />
         </div>
         <button class="btn-small" onclick="openSaleModal()">+ Record sale</button>
+      </div>
+      <div class="report-card compact-card hidden" id="pos-session-card">
+        <header class="report-card-header">
+          <div>
+            <h3>Cash session</h3>
+            <p id="pos-session-state">Checking session…</p>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn-ghost hidden" id="pos-flag-btn" onclick="toggleSessionRequirement()"></button>
+            <button class="btn-small hidden" id="pos-open-btn" onclick="openPosSession()">Open session</button>
+            <button class="btn-small hidden" id="pos-close-btn" onclick="closePosSession()">Close session</button>
+          </div>
+        </header>
       </div>
       <div class="ledger" id="sales-ledger"></div>
     </section>
@@ -654,6 +669,11 @@
           <input type="date" id="purchases-date-filter" onchange="loadPurchases()" placeholder="YYYY" />
         </div>
         <button class="btn-small" onclick="openPurchaseModal()">+ New purchase</button>
+      </div>
+      <div class="report-card compact-card hidden" id="reorder-suggestions-card">
+        <h3>Suggested reorder</h3>
+        <p class="card-label">Products at or below their reorder threshold. Start a PO for any of them.</p>
+        <div class="checklist" id="reorder-suggestions-list" style="margin-top:12px;"></div>
       </div>
       <div class="ledger" id="purchases-ledger"></div>
     </section>
@@ -742,6 +762,17 @@
       </div>
       <div class="ledger" id="materials-ledger"></div>
     </section>
+
+    <section id="tab-tables" class="tab-panel hidden">
+      <div class="page-header"><h2>Tables</h2><p>Floor overview — tap a table to cycle free → reserved → occupied.</p></div>
+      <div class="report-card compact-card hidden" id="tables-unavailable"></div>
+      <div class="toolbar">
+        <button class="btn-ghost hidden" id="table-service-toggle" onclick="toggleTableService()"></button>
+        <button class="btn-small hidden" id="add-table-btn" onclick="openModal('table-modal')">+ Add table</button>
+      </div>
+      <div id="tables-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:12px;"></div>
+      <div class="empty-state hidden" id="tables-empty">No tables yet — add your first one.</div>
+    </section>
   </main>
 </div>
 
@@ -779,10 +810,64 @@
       <div><label>Quantity</label><input type="number" id="s-qty" value="1" /></div>
       <div><label>Unit price</label><input type="number" id="s-price" /></div>
     </div>
+    <button class="btn-ghost" style="width:100%; margin-top:10px;" onclick="addToCart()">+ Add item to order</button>
+    <div id="cart-lines" style="margin-top:14px;"></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0;">
+      <span class="card-label">Order total</span>
+      <strong class="num" id="cart-total" style="font-size:18px;">$0.00</strong>
+    </div>
+    <div class="field-row">
+      <div><label>Discount</label><input type="number" id="s-discount" value="0" min="0" oninput="renderCart()" /></div>
+      <div><label>Discount type</label>
+        <select id="s-discount-type" onchange="renderCart()">
+          <option value="amount">Amount ($)</option>
+          <option value="percent">Percent (%)</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row">
+      <div><label>Tax rate (%)</label><input type="number" id="s-tax-rate" value="0" min="0" oninput="renderCart()" /></div>
+      <div><label>Tip</label><input type="number" id="s-tip" value="0" min="0" oninput="renderCart()" /></div>
+    </div>
     <label>Customer (optional)</label>
     <select id="s-customer"><option value="">Walk-in / no customer</option></select>
-    <button class="btn-primary" onclick="submitSale()">Save sale</button>
+    <div id="s-table-row" class="hidden">
+      <label>Table (optional)</label>
+      <select id="s-table"><option value="">No table</option></select>
+    </div>
+    <div class="field-row">
+      <div><label>Order type</label>
+        <select id="s-order-type">
+          <option value="takeaway">Takeaway</option>
+          <option value="dine_in">Dine-in</option>
+          <option value="delivery">Delivery</option>
+        </select>
+      </div>
+      <div><label>Payment method</label>
+        <select id="s-payment-method">
+          <option value="cash">Cash</option>
+          <option value="bank_transfer">Bank transfer</option>
+          <option value="mobile_money">Mobile money</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="submitSale()">Complete sale</button>
     <div id="sale-error" class="error hidden"></div>
+  </div>
+</div>
+
+<div id="table-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="close" onclick="closeModal('table-modal')">Close</div>
+    <h3 id="table-modal-title">Add table</h3>
+    <label>Table number / label</label><input type="text" id="t-number" placeholder="e.g. T1, 5, Patio-2" />
+    <div class="field-row">
+      <div><label>Name (optional)</label><input type="text" id="t-name" placeholder="e.g. Window booth" /></div>
+      <div><label>Seats (optional)</label><input type="number" id="t-capacity" min="0" /></div>
+    </div>
+    <button class="btn-primary" id="table-submit-btn" onclick="submitTable()">Save table</button>
+    <button class="btn-ghost hidden" id="table-delete-btn" style="width:100%; margin-top:10px; color:var(--danger); border-color:var(--danger-soft);" onclick="deleteRecord('restaurant_tables', 'table-modal')">Delete table</button>
+    <div id="table-error" class="error hidden"></div>
   </div>
 </div>
 
@@ -931,11 +1016,27 @@
 
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+  // ============================================================
+  // SHARED UI HELPERS
+  // ============================================================
+  function show(id) { document.getElementById(id)?.classList.remove("hidden"); }
+  function hide(id) { document.getElementById(id)?.classList.add("hidden"); }
+  function setError(id, msg) { const el = document.getElementById(id); if (!el) return; el.textContent = msg; el.classList.remove("hidden"); }
+  function clearError(id) { document.getElementById(id)?.classList.add("hidden"); }
+  function escapeHtml(s) {
+    return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+  function money(n) {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(n) || 0);
+  }
+
   let currentUser = null;
   let membership = null; // { business_id, role, full_name, businesses: {...} }
-  let cache = { products: [], customers: [], sales: [], payments: [], expenses: [], suppliers: [], purchases: [], materials: [] };
+  let cache = { products: [], customers: [], sales: [], payments: [], expenses: [], suppliers: [], purchases: [], materials: [], tables: [] };
   let editingRecord = null; // { table: 'products', id: '...' } — null means "adding new"
   let businessTypeKey = null;
+  let cart = []; // [{ product_id, name, qty, unit_price }] — lines for the sale in progress
+  let submittingSale = false; // double-submit guard for checkout
 
   // HELPER: Translates Day/Week/Month/Year inputs into Supabase time ranges
   function applyTimeFilter(query, val, mode, col = "created_at") {
@@ -1018,7 +1119,7 @@
   async function checkMembership() {
     const { data, error } = await sb
       .from("app_users")
-      .select("business_id, role, full_name, businesses(name, invite_code, business_types(display_name, type_key))")
+      .select("business_id, role, full_name, businesses(name, invite_code, settings, business_types(display_name, type_key))")
       .eq("user_id", currentUser.id)
       .maybeSingle();
 
@@ -1048,6 +1149,14 @@
     document.querySelectorAll('.nav-item[data-tab="materials"]').forEach((el) => {
       el.classList.toggle("hidden", !needsRawMaterials);
     });
+    const tablesVisible = tableServiceEnabled();
+    document.querySelectorAll('.nav-item[data-tab="tables"]').forEach((el) => {
+      el.classList.toggle("hidden", !tablesVisible);
+    });
+  }
+
+  function tableServiceEnabled() {
+    return businessTypeKey === "restaurant" || !!(membership?.businesses?.settings?.table_service);
   }
 
   function businessUsesRawMaterials() {
@@ -1291,8 +1400,14 @@
     renderDashboard();
   }
 
+  function getLowStockProducts() {
+    return cache.products.filter(
+      (p) => p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold)
+    );
+  }
+
   function updateHeaderStatus() {
-    const lowStockCount = cache.products.filter((p) => p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold)).length;
+    const lowStockCount = getLowStockProducts().length;
     const purchaseCount = cache.purchases.length;
     document.getElementById("notifications-count").textContent = lowStockCount > 99 ? "99+" : lowStockCount;
     document.getElementById("cart-count").textContent = purchaseCount > 99 ? "99+" : purchaseCount;
@@ -1301,17 +1416,16 @@
   }
 
   function renderDashboard() {
-    const revenue = cache.sales.reduce((s, o) => s + Number(o.total_amount), 0);
+    const settledSales = cache.sales.filter((o) => o.status !== "refunded");
+    const revenue = settledSales.reduce((s, o) => s + Number(o.total_amount), 0);
     const expenses = cache.expenses.reduce((s, e) => s + Number(e.amount), 0);
-    const lowStockProducts = cache.products.filter(
-      (p) => p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold)
-    );
+    const lowStockProducts = getLowStockProducts();
     const lowStockCount = lowStockProducts.length;
-    const averageSale = cache.sales.length ? revenue / cache.sales.length : 0;
-    const worstStock = lowStockProducts.length > 0 ? lowStockProducts.sort((a, b) => Number(a.stock_qty) - Number(b.stock_qty))[0].name : "All products healthy";
+    const averageSale = settledSales.length ? revenue / settledSales.length : 0;
+    const worstStock = lowStockProducts.length > 0 ? [...lowStockProducts].sort((a, b) => Number(a.stock_qty) - Number(b.stock_qty))[0].name : "All products healthy";
 
     document.getElementById("m-lowstock").textContent = lowStockCount;
-    document.getElementById("m-sales").textContent = cache.sales.length;
+    document.getElementById("m-sales").textContent = settledSales.length;
     document.getElementById("m-revenue").textContent = money(revenue);
     document.getElementById("m-profit").textContent = money(revenue - expenses);
 
@@ -1445,6 +1559,9 @@
     onSaleProductChange();
     const customerSelect = document.getElementById("s-customer");
     customerSelect.innerHTML = `<option value="">Walk-in / no customer</option>` + cache.customers.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
+    cart = [];
+    ["s-discount", "s-tax-rate", "s-tip"].forEach((id) => { const el = document.getElementById(id); if (el) el.value = 0; });
+    renderCart();
     openModal("sale-modal");
   }
   function onSaleProductChange() {
@@ -1452,40 +1569,117 @@
     const product = cache.products.find((p) => p.id === productId);
     if (product) document.getElementById("s-price").value = product.price;
   }
-  async function submitSale() {
+
+  function addToCart() {
     clearError("sale-error");
     const productId = document.getElementById("s-product").value;
     const qty = parseFloat(document.getElementById("s-qty").value);
     const price = parseFloat(document.getElementById("s-price").value);
-    const customerId = document.getElementById("s-customer").value || null;
     const product = cache.products.find((p) => p.id === productId);
     if (!product || isNaN(qty) || qty <= 0 || isNaN(price) || price <= 0) return setError("sale-error", "Check the product, quantity, and price.");
     if (qty > 999999) return setError("sale-error", "Quantity is too large.");
     if (price > 999999999) return setError("sale-error", "Price is too large.");
+    const existing = cart.find((l) => l.product_id === productId && Number(l.unit_price) === Number(price));
+    if (existing) existing.qty += qty;
+    else cart.push({ product_id: productId, name: product.name, qty, unit_price: price });
+    document.getElementById("s-qty").value = 1;
+    renderCart();
+  }
 
-    const total = qty * price;
-    const { data: order, error: orderErr } = await sb.from("orders").insert({
-      business_id: membership.business_id, customer_id: customerId, created_by: currentUser.id, status: "completed", total_amount: total,
-    }).select().single();
-    if (orderErr) return setError("sale-error", orderErr.message);
+  function removeCartLine(index) {
+    cart.splice(index, 1);
+    renderCart();
+  }
 
-    const { error: itemErr } = await sb.from("order_items").insert({
-      order_id: order.id, product_id: productId, quantity: qty, unit_price: price,
-    });
-    if (itemErr) return setError("sale-error", itemErr.message);
+  function cartTotals() {
+    const subtotal = cart.reduce((sum, l) => sum + l.qty * l.unit_price, 0);
+    const discountInput = parseFloat(document.getElementById("s-discount")?.value) || 0;
+    const discountType = document.getElementById("s-discount-type")?.value || "amount";
+    let discount = discountType === "percent" ? subtotal * Math.min(Math.max(discountInput, 0), 100) / 100 : Math.min(Math.max(discountInput, 0), subtotal);
+    const taxRate = Math.max(parseFloat(document.getElementById("s-tax-rate")?.value) || 0, 0);
+    const tax = ((subtotal - discount) * taxRate) / 100;
+    const tip = Math.max(parseFloat(document.getElementById("s-tip")?.value) || 0, 0);
+    const total = Math.max(subtotal - discount + tax + tip, 0);
+    return { subtotal, discount, discountType, taxRate, tax, tip, total };
+  }
 
-    if (product.stock_qty !== null) {
-      const newStock = Number(product.stock_qty) - qty;
-      await sb.from("products").update({ stock_qty: newStock }).eq("id", productId);
-      await sb.from("stock_movements").insert({
-        business_id: membership.business_id, item_type: "product", product_id: productId,
-        quantity_change: -qty, reason: "sale", reference_type: "order", reference_id: order.id, created_by: currentUser.id,
-      });
+  function renderCart() {
+    const el = document.getElementById("cart-lines");
+    if (!el) return;
+    el.innerHTML = cart.length === 0
+      ? `<div class="empty-state" style="padding:14px;">No items yet — add products above.</div>`
+      : cart.map((l, i) => `<div style="display:flex; align-items:center; gap:10px; padding:8px 2px; border-bottom:1px solid var(--line);">
+          <div style="flex:1; min-width:0;">${escapeHtml(l.name)}<br /><span class="num" style="color:var(--ink-faint); font-size:12px;">${l.qty} × ${money(l.unit_price)}</span></div>
+          <div class="num" style="text-align:right;">${money(l.qty * l.unit_price)}</div>
+          <span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="removeCartLine(${i})">Remove</span>
+        </div>`).join("");
+    const totalEl = document.getElementById("cart-total");
+    if (totalEl) totalEl.textContent = money(cartTotals().total);
+  }
+
+  async function submitSale() {
+    clearError("sale-error");
+    if (submittingSale) return;
+    if (cart.length === 0) return setError("sale-error", "Add at least one item before completing the sale.");
+
+    if (sessionRequired()) {
+      const cur = await getOpenPosSession();
+      if (cur.unavailable) return setError("sale-error", "Session tracking is required but currently unavailable. Contact your manager.");
+      if (!cur.session) return setError("sale-error", "No cash session is open. Open one at the top of the Sales tab first.");
     }
 
-    closeModal("sale-modal");
-    await Promise.all([loadProducts(), loadSales()]);
-    renderDashboard();
+    submittingSale = true;
+    try {
+      const customerId = document.getElementById("s-customer").value || null;
+      const method = document.getElementById("s-payment-method").value || "cash";
+      const orderType = document.getElementById("s-order-type").value || "takeaway";
+      const totals = cartTotals();
+
+      // Receipt number: max + 1 within this business (retry-on-conflict acceptable at this scale).
+      const { data: lastOrder } = await sb.from("orders").select("receipt_number")
+        .eq("business_id", membership.business_id).not("receipt_number", "is", null)
+        .order("receipt_number", { ascending: false }).limit(1);
+      const receiptNumber = (Number(lastOrder?.[0]?.receipt_number) || 0) + 1;
+
+      // Partial-write policy: sequence order → items → stock/movements. If a
+      // later step fails the order stays queryable; surface the error with the
+      // modal open so staff can retry or note it. Never silently continue.
+      const { data: order, error: orderErr } = await sb.from("orders").insert({
+        business_id: membership.business_id, customer_id: customerId, created_by: currentUser.id,
+        status: "completed", total_amount: totals.total,
+        subtotal: totals.subtotal, discount: totals.discount, discount_type: totals.discountType,
+        tax_rate: totals.taxRate, tax: totals.tax, tip: totals.tip,
+        order_type: orderType, payment_method: method, receipt_number: receiptNumber,
+      }).select().single();
+      if (orderErr) return setError("sale-error", orderErr.message);
+
+      const { error: itemErr } = await sb.from("order_items").insert(
+        cart.map((l) => ({ order_id: order.id, product_id: l.product_id, quantity: l.qty, unit_price: l.unit_price, line_total: l.qty * l.unit_price }))
+      );
+      if (itemErr) {
+        console.error("order_items batch insert failed:", itemErr);
+        return setError("sale-error", "The order was recorded but its line items failed to save (" + itemErr.message + "). Note the receipt #" + receiptNumber + " and contact your manager.");
+      }
+
+      for (const line of cart) {
+        const product = cache.products.find((p) => p.id === line.product_id);
+        if (product && product.stock_qty !== null) {
+          const newStock = Number(product.stock_qty) - line.qty;
+          await sb.from("products").update({ stock_qty: newStock }).eq("id", line.product_id);
+          await sb.from("stock_movements").insert({
+            business_id: membership.business_id, item_type: "product", product_id: line.product_id,
+            quantity_change: -line.qty, reason: "sale", reference_type: "order", reference_id: order.id, created_by: currentUser.id,
+          });
+        }
+      }
+
+      cart = [];
+      closeModal("sale-modal");
+      await Promise.all([loadProducts(), loadSales()]);
+      renderDashboard();
+    } finally {
+      submittingSale = false;
+    }
   }
 
   async function loadSales() {
@@ -1497,20 +1691,33 @@
     const { data, error } = await query;
     if (error) { console.error("loadSales error:", error); cache.sales = []; return; }
     cache.sales = data ?? [];
+    renderPosSessionCard();
     const el = document.getElementById("sales-ledger");
     if (cache.sales.length === 0) { el.innerHTML = `<div class="empty-state">No sales recorded yet.</div>`; return; }
     el.innerHTML =
       `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;"><div>Customer</div><div>Date</div><div style="text-align:right">Total</div><div></div></div>` +
-      cache.sales.map((o) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;">
-        <div>${o.customers ? escapeHtml(o.customers.name) : "Walk-in"}</div>
+      cache.sales.map((o) => {
+        const isRefunded = o.status === "refunded";
+        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;${isRefunded ? " opacity:0.55;" : ""}">
+        <div>${o.customers ? escapeHtml(o.customers.name) : "Walk-in"}${isRefunded ? ' <span class="cat-badge" style="background:var(--danger-soft); color:var(--danger);">refunded</span>' : ""}</div>
         <div style="color:var(--ink-faint); font-size:12px;">${new Date(o.created_at).toLocaleDateString()}</div>
         <div class="num" style="text-align:right">${money(o.total_amount)}</div>
-        <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidSale('${o.id}')">Void</span></div>
-      </div>`).join("");
+        <div style="text-align:right;">${isRefunded ? "" : `<span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidSale('${o.id}')">Refund</span>`}</div>
+      </div>`;
+      }).join("");
   }
 
   async function voidSale(orderId) {
-    if (!confirm("Void this sale? Stock will be restored. This can't be undone.")) return;
+    if (!confirm("Refund this sale? Stock will be restored and a refund payment recorded. This can't be undone.")) return;
+
+    const { data: freshOrder, error: orderFetchErr } = await sb.from("orders").select("status, customer_id, total_amount").eq("id", orderId).single();
+    if (orderFetchErr || !freshOrder) return alert("Unable to load this sale. Please refresh and try again.");
+    if (freshOrder.status === "refunded") return alert("This sale has already been refunded.");
+
+    const methodInput = prompt("Refund method — type one of: cash, bank_transfer, mobile_money", "cash");
+    if (methodInput === null) return;
+    const method = methodInput.trim().toLowerCase();
+    if (!["cash", "bank_transfer", "mobile_money"].includes(method)) return alert("Invalid refund method. Sale was not refunded.");
 
     const { data: items } = await sb.from("order_items").select("*").eq("order_id", orderId);
     for (const item of items ?? []) {
@@ -1520,14 +1727,129 @@
         await sb.from("products").update({ stock_qty: restoredQty }).eq("id", item.product_id);
         await sb.from("stock_movements").insert({
           business_id: membership.business_id, item_type: "product", product_id: item.product_id,
-          quantity_change: Number(item.quantity), reason: "sale_voided", reference_type: "order", reference_id: orderId, created_by: currentUser.id,
+          quantity_change: Number(item.quantity), reason: "sale_refunded", reference_type: "order", reference_id: orderId, created_by: currentUser.id,
         });
       }
     }
-    await sb.from("orders").delete().eq("id", orderId);
 
-    await Promise.all([loadProducts(), loadSales()]);
+    const { error: refundPayErr } = await sb.from("payments").insert({
+      business_id: membership.business_id, direction: "out", party_type: "customer",
+      customer_id: freshOrder.customer_id ?? null, order_id: orderId,
+      amount: Number(freshOrder.total_amount), method, created_by: currentUser.id,
+    });
+    if (refundPayErr) return alert("Stock was restored but the refund payment could not be recorded: " + refundPayErr.message);
+
+    const { error: statusErr } = await sb.from("orders").update({ status: "refunded" }).eq("id", orderId);
+    if (statusErr) return alert("Could not mark the sale as refunded: " + statusErr.message);
+
+    await Promise.all([loadProducts(), loadSales(), loadPayments()]);
     renderDashboard();
+  }
+
+  // ============================================================
+  // CASHIER SESSION (pos_sessions — opt-in via businesses.settings.require_pos_session)
+  // ============================================================
+  function sessionRequired() {
+    return !!(membership?.businesses?.settings?.require_pos_session);
+  }
+
+  async function getOpenPosSession() {
+    try {
+      const { data, error } = await sb.from("pos_sessions").select("*")
+        .eq("business_id", membership.business_id).eq("status", "open")
+        .order("opened_at", { ascending: false }).limit(1).maybeSingle();
+      if (error) throw error;
+      return { session: data };
+    } catch (err) {
+      console.error("pos_sessions read failed:", err);
+      return { unavailable: true };
+    }
+  }
+
+  async function renderPosSessionCard() {
+    const card = document.getElementById("pos-session-card");
+    if (!card) return;
+    const stateEl = document.getElementById("pos-session-state");
+    const openBtn = document.getElementById("pos-open-btn");
+    const closeBtn = document.getElementById("pos-close-btn");
+    const flagBtn = document.getElementById("pos-flag-btn");
+    [openBtn, closeBtn].forEach((b) => b.classList.add("hidden"));
+    card.classList.remove("hidden");
+
+    const required = sessionRequired();
+    flagBtn.textContent = required ? "Session required: ON" : "Session required: OFF";
+    flagBtn.classList.toggle("hidden", membership.role === "staff");
+    flagBtn.title = required ? "Turn off mandatory sessions for sales" : "Require an open cash session before sales";
+
+    const cur = await getOpenPosSession();
+    if (cur.unavailable) {
+      stateEl.textContent = required
+        ? "⚠ Session tracking is required but unavailable — check RLS/policies on pos_sessions."
+        : "Session tracking unavailable (optional feature).";
+      return;
+    }
+    if (cur.session) {
+      stateEl.innerHTML = `Open since ${new Date(cur.session.opened_at).toLocaleTimeString()} — opening float ${money(cur.session.opening_float ?? 0)}.`;
+      closeBtn.classList.remove("hidden");
+    } else {
+      stateEl.textContent = required ? "No session is open — open one before recording sales." : "No session open (sessions are optional right now).";
+      openBtn.classList.remove("hidden");
+    }
+  }
+
+  async function openPosSession() {
+    const input = prompt("Counted opening cash (float):", "0");
+    if (input === null) return;
+    const openingFloat = parseFloat(input);
+    if (isNaN(openingFloat) || openingFloat < 0) return alert("Enter a valid opening float.");
+    const { error } = await sb.from("pos_sessions").insert({
+      business_id: membership.business_id, opened_by: currentUser.id,
+      opening_float: openingFloat, status: "open", opened_at: new Date().toISOString(),
+    });
+    if (error) return alert("Could not open the session: " + error.message);
+    await renderPosSessionCard();
+  }
+
+  async function closePosSession() {
+    const cur = await getOpenPosSession();
+    if (cur.unavailable) return alert("Session tracking is unavailable.");
+    if (!cur.session) return alert("There is no open session to close.");
+    const s = cur.session;
+
+    const [{ data: cashOrders }, { data: cashRefunds }] = await Promise.all([
+      sb.from("orders").select("total_amount").eq("business_id", membership.business_id)
+        .eq("payment_method", "cash").neq("status", "refunded").gte("created_at", s.opened_at),
+      sb.from("payments").select("amount").eq("business_id", membership.business_id)
+        .eq("direction", "out").eq("method", "cash").gte("created_at", s.opened_at),
+    ]);
+    const expected = Number(s.opening_float ?? 0)
+      + (cashOrders ?? []).reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0)
+      - (cashRefunds ?? []).reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+
+    const input = prompt(`Expected cash in drawer: ${money(expected)}\nCounted actual cash:`, expected.toFixed(2));
+    if (input === null) return;
+    const actual = parseFloat(input);
+    if (isNaN(actual) || actual < 0) return alert("Enter a valid counted amount.");
+
+    const { error } = await sb.from("pos_sessions").update({
+      closed_by: currentUser.id, closed_at: new Date().toISOString(),
+      actual_cash: actual, expected_cash: expected, status: "closed",
+    }).eq("id", s.id);
+    if (error) return alert("Could not close the session: " + error.message);
+
+    const variance = actual - expected;
+    alert(variance === 0 ? "Session closed. Cash balanced." : `Session closed. Variance: ${money(Math.abs(variance))} ${variance > 0 ? "over" : "short"}.`);
+    await renderPosSessionCard();
+  }
+
+  async function toggleSessionRequirement() {
+    if (membership.role !== "owner" && membership.role !== "manager") return alert("Only owners and managers can change this setting.");
+    const settings = { ...(membership.businesses.settings ?? {}) };
+    settings.require_pos_session = !settings.require_pos_session;
+    const { error } = await sb.from("businesses").update({ settings }).eq("id", membership.business_id);
+    if (error) return alert("Could not update the setting: " + error.message);
+    membership.businesses.settings = settings;
+    await renderPosSessionCard();
   }
 
   // ============================================================
@@ -1748,6 +2070,35 @@
     openModal("purchase-modal");
   }
 
+  function suggestReorder() {
+    const card = document.getElementById("reorder-suggestions-card");
+    const list = document.getElementById("reorder-suggestions-list");
+    if (!card || !list) return;
+    if (!card.classList.contains("hidden")) { card.classList.add("hidden"); list.innerHTML = ""; return; }
+    const low = getLowStockProducts()
+      .map((p) => ({ ...p, deficit: Math.max(1, Math.ceil(Number(p.low_stock_threshold) - Number(p.stock_qty))) }))
+      .sort((a, b) => b.deficit - a.deficit);
+    if (low.length === 0) {
+      list.innerHTML = `<div class="empty-state">Nothing to reorder — stock levels are healthy.</div>`;
+    } else {
+      list.innerHTML = low.map((p) => `<li>
+        <span class="marker pending">!</span>
+        <span class="checklist-label">${escapeHtml(p.name)} — ${p.stock_qty} ${escapeHtml(p.unit ?? "")} left (threshold ${p.low_stock_threshold})<br /><span style="color:var(--ink-faint); font-size:12px;">Suggested: ${p.deficit} × ${money(Number(p.cost_price) || 0)}</span></span>
+        <button onclick="prefillPurchase('${p.id}')">Start PO</button>
+      </li>`).join("");
+    }
+    card.classList.remove("hidden");
+  }
+
+  function prefillPurchase(productId) {
+    const p = cache.products.find((x) => x.id === productId);
+    if (!p) return;
+    openPurchaseModal();
+    document.getElementById("po-product").value = productId;
+    document.getElementById("po-qty").value = Math.max(1, Math.ceil(Number(p.low_stock_threshold) - Number(p.stock_qty)));
+    if (p.cost_price !== null && p.cost_price !== undefined && Number(p.cost_price) > 0) document.getElementById("po-cost").value = p.cost_price;
+  }
+
   async function submitPurchase() {
     clearError("purchase-error");
     const productId = document.getElementById("po-product").value;
@@ -1931,7 +2282,7 @@
   async function loadReports() {
     const dateFilter = document.getElementById("report-date-filter")?.value;
     const mode = document.getElementById("report-filter-mode")?.value || "date";
-    let ordersQuery = sb.from("orders").select("id, total_amount, created_at").order("created_at", { ascending: true });
+    let ordersQuery = sb.from("orders").select("id, total_amount, created_at").neq("status", "refunded").order("created_at", { ascending: true });
     ordersQuery = applyTimeFilter(ordersQuery, dateFilter, mode, "created_at");
     let expensesQuery = sb.from("expenses").select("amount, expense_date").order("expense_date", { ascending: true });
     expensesQuery = applyTimeFilter(expensesQuery, dateFilter, mode, "expense_date");
@@ -1987,7 +2338,7 @@
     const { sales, products, totalRevenue, productCost, expenseTotal } = reportData;
     const avgSale = sales.length ? totalRevenue / sales.length : 0;
     const grossProfit = totalRevenue - productCost - expenseTotal;
-    const lowStockCount = cache.products.filter((p) => p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold)).length;
+    const lowStockCount = getLowStockProducts().length;
     const periodLabels = { date: "day", week: "week", month: "month", number: "year" };
     const period = dateFilter ? `Selected ${periodLabels[mode] || "period"}` : "All recorded activity";
 
@@ -2066,7 +2417,7 @@
   function renderLowStockReport() {
     const el = document.getElementById("low-stock-ledger");
     if (!el) return;
-    const low = cache.products.filter((p) => p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold));
+    const low = getLowStockProducts();
     if (low.length === 0) { el.innerHTML = `<div class="empty-state">Nothing low right now.</div>`; return; }
     el.innerHTML =
       `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Product</div><div>Stock left</div><div style="text-align:right">Reorder</div></div>` +
@@ -2292,16 +2643,9 @@
     document.querySelectorAll('.nav-item').forEach((el) => {
       el.addEventListener('click', () => switchTab(el.dataset.tab));
     });
-    // Modal submits
-    $('product-submit-btn')?.addEventListener('click', submitProduct);
-    $('sale-submit-btn')?.addEventListener('click', submitSale);
-    $('customer-submit-btn')?.addEventListener('click', submitCustomer);
-    $('payment-submit-btn')?.addEventListener('click', submitPayment);
-    $('expense-submit-btn')?.addEventListener('click', submitExpense);
-    $('supplier-submit-btn')?.addEventListener('click', submitSupplier);
-    $('purchase-submit-btn')?.addEventListener('click', submitPurchase);
-    $('material-submit-btn')?.addEventListener('click', submitMaterial);
-    $('produce-submit-btn')?.addEventListener('click', submitProduce);
+    // Modal submits — all modal buttons carry onclick="submitX()" in the HTML.
+    // Do NOT also addEventListener here: buttons with ids would fire twice
+    // (double inserts). This bit us before — see git history.
     // Modal opens
     $('add-product-btn')?.addEventListener('click', () => openModal('product-modal'));
     $('add-customer-btn')?.addEventListener('click', () => openModal('customer-modal'));
@@ -2337,12 +2681,18 @@
   }
 
 
-  // Expose minimal API for inline event handlers still in HTML
+  // Expose minimal API for inline event handlers still in HTML.
+  // Handlers in generated/static HTML use bare names (onclick="voidSale(...)"),
+  // which resolve against window — so the API must live on window itself,
+  // not only under the TholeApp namespace.
   window.TholeApp = {
     openModal, closeModal, switchTab, toggleTheme, confirmSignOut,
     openSaleModal, openEditProduct, openEditCustomer, openEditPayment,
     openEditExpense, openEditSupplier, openPurchaseModal, openProduceModal,
     openRecipeModal, openEditMaterial, deleteRecord, duplicateProduct,
+    suggestReorder, prefillPurchase,
+    addToCart, removeCartLine, renderCart, submitSale,
+    openPosSession, closePosSession, toggleSessionRequirement, renderPosSessionCard,
     voidSale, voidPurchase, copyInviteCode, toggleMoreMenu,
     loadReports, setReportFilterMode, resetReportFilter,
     onSaleProductChange, onProduceProductChange, addRecipeItem, removeRecipeItem,
@@ -2350,7 +2700,10 @@
     submitSupplier, submitPurchase, submitMaterial, submitProduce,
     handleLogin, handleSignup, handleCreateBusiness, finishInviteReveal,
     showSignup, showLogin, showNewBusiness, renderProducts, renderDashboard,
-  };
+  };  Object.assign(window, window.TholeApp);
+
+  // Kick off app bootstrap
+  boot();
 
   return {
     sb, currentUser, membership, cache, editingRecord, businessTypeKey,

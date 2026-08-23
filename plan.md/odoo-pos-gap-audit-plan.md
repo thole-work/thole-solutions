@@ -264,9 +264,24 @@ sense here:**
 
 ## 6. Shortcut plan (safe execution order)
 
-**Execution log (2026-08-23):** Phase 0 + Steps 1–4 shipped. Four pre-existing
-defects were found while testing and fixed, because the steps depended on the
-affected code paths:
+**Execution log (2026-08-23):** Phase 0 + Steps 1–5 shipped, plus a UI/UX
+foundation pass (tier 1):
+- **Styled dialogs replace every native confirm/prompt/alert** — zero remain.
+  Refund now offers three method buttons instead of asking staff to type
+  `bank_transfer` exactly; session open/close use input dialogs; deletes,
+  voids, sign-out and table-status changes use styled confirms.
+- **Toast system** for success/error/info feedback ("Sale #8 recorded · $26.75",
+  "Refunded $20.00 via bank transfer", session variance reports).
+- **Busy states** on all nine submit buttons (`withBusy` helper: disabled +
+  "Saving…" + double-click guard) while writes run.
+- **Esc + backdrop-click dismiss modals**, focus moves into the opened modal
+  and is restored on close — suppressed while a write is in flight so a
+  mid-save Escape can't orphan an order.
+All verified headless: dialog resolve/cancel paths, Enter-to-submit,
+mid-flight button state, toast rendering, refund payment row
+(`direction:"out"`, amount, method), focus restore.
+
+**Pre-existing defects fixed along the way (the steps depended on these):**
 1. The whole app lives inside an IIFE but dozens of inline handlers used bare
    names (`onclick="voidSale(...)"`, including the main nav) — none could ever
    resolve. Fixed by `Object.assign(window, window.TholeApp)` after the API

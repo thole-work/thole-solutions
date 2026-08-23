@@ -874,7 +874,7 @@
         </select>
       </div>
     </div>
-    <button class="btn-primary" onclick="submitSale()">Complete sale</button>
+    <button class="btn-primary" id="sale-submit-btn" onclick="submitSale()">Complete sale</button>
     <div id="sale-error" class="error hidden"></div>
   </div>
 </div>
@@ -1435,8 +1435,8 @@
     }
     await checkMembership();
   }
-  function confirmSignOut() {
-    if (!confirm("Are you sure you want to sign out?")) return;
+  async function confirmSignOut() {
+    if (!(await confirmDialog("Sign out of this business?", { title: "Sign out", confirmLabel: "Sign out", danger: true }))) return;
     handleLogout();
   }
 
@@ -2025,13 +2025,14 @@
   }
 
   async function toggleSessionRequirement() {
-    if (membership.role !== "owner" && membership.role !== "manager") return alert("Only owners and managers can change this setting.");
+    if (membership.role !== "owner" && membership.role !== "manager") { toast("Only owners and managers can change this setting.", "error"); return; }
     const settings = { ...(membership.businesses.settings ?? {}) };
     settings.require_pos_session = !settings.require_pos_session;
     const { error } = await sb.from("businesses").update({ settings }).eq("id", membership.business_id);
-    if (error) return alert("Could not update the setting: " + error.message);
+    if (error) { toast("Could not update the setting: " + error.message, "error", 6000); return; }
     membership.businesses.settings = settings;
     await renderPosSessionCard();
+    toast(settings.require_pos_session ? "Sessions now required for sales." : "Sessions now optional.", "info");
   }
 
   // ============================================================
@@ -2543,14 +2544,15 @@
 
   async function changeRole(userId, newRole) {
     const { error } = await sb.from("app_users").update({ role: newRole }).eq("user_id", userId);
-    if (error) { alert(error.message); }
+    if (error) toast("Could not change the role: " + error.message, "error", 6000);
+    else toast("Role updated.", "info");
     await loadTeam();
   }
 
   async function removeTeamMember(userId) {
-    if (!confirm("Remove this person's access to the business? Their login stays, but they'll need a new invite code to rejoin.")) return;
+    if (!(await confirmDialog("Remove this person's access to the business? Their login stays, but they'll need a new invite code to rejoin.", { title: "Remove team member", confirmLabel: "Remove", danger: true }))) return;
     const { error } = await sb.from("app_users").delete().eq("user_id", userId);
-    if (error) { alert(error.message); return; }
+    if (error) toast("Could not remove this member: " + error.message, "error", 6000);
     await loadTeam();
   }
 
@@ -3024,6 +3026,8 @@
     addToCart, removeCartLine, renderCart, submitSale,
     openPosSession, closePosSession, toggleSessionRequirement, renderPosSessionCard,
     cycleTableStatus, openEditTable, submitTable, toggleTableService, loadTables,
+    toast, confirmDialog, promptDialog, appDialog,
+    loadSales, loadProducts,
     voidSale, voidPurchase, copyInviteCode, toggleMoreMenu,
     loadReports, setReportFilterMode, resetReportFilter,
     onSaleProductChange, onProduceProductChange, addRecipeItem, removeRecipeItem,

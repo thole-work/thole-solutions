@@ -257,6 +257,29 @@
   .modal .close { text-align: right; font-size: 13px; color: var(--ink-soft); cursor: pointer; margin-bottom: 4px; }
   .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
+  /* ---------- APP DIALOGS / TOASTS / BUSY STATES ---------- */
+  .dialog-backdrop { position: fixed; inset: 0; background: rgba(28,28,30,0.4); display: flex; align-items: center; justify-content: center; z-index: 45; padding: 20px; }
+  .app-dialog { background: var(--paper); width: 100%; max-width: 400px; border-radius: 12px; padding: 24px; max-height: 85vh; overflow-y: auto; animation: modalIn 0.22s ease; }
+  .app-dialog h3 { margin: 0 0 8px; font-size: 17px; }
+  .app-dialog p.msg { color: var(--ink-soft); font-size: 14px; line-height: 1.5; margin: 0; }
+  .dialog-actions { display: flex; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
+  .dialog-actions button { flex: 1; min-width: 104px; padding: 10px 14px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease; }
+  .dialog-actions button:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(15,23,42,0.10); }
+  .dialog-actions .btn-primary { background: var(--accent); color: #fff; }
+  .dialog-actions .btn-danger { background: var(--danger); color: #fff; }
+  .dialog-actions .btn-ghost { border: 1px solid var(--line); background: var(--card); color: var(--ink-soft); }
+  @media (max-width: 480px) { .dialog-actions { flex-direction: column-reverse; } .dialog-actions button { width: 100%; } }
+
+  #toast-stack { position: fixed; right: 16px; bottom: 16px; z-index: 80; display: grid; gap: 8px; pointer-events: none; }
+  .toast { background: var(--card); color: var(--ink); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 13px; font-weight: 500; box-shadow: 0 12px 28px rgba(15,23,42,0.18); opacity: 0; transform: translateY(8px); transition: opacity 0.22s ease, transform 0.22s ease; max-width: 340px; overflow-wrap: anywhere; }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast-success { border-left-color: #16805C; }
+  .toast-error { border-left-color: var(--danger); }
+  .toast-info { border-left-color: var(--sky); }
+  @media (max-width: 720px) { #toast-stack { left: 16px; right: 16px; bottom: 86px; } .toast { max-width: none; } }
+
+  .btn-busy { opacity: 0.65 !important; pointer-events: none; }
+
   /* Dark theme variables */
   .theme-dark { --paper: #0B1020; --card: #0F1724; --ink: #E6EEF7; --ink-soft: #C3CEE6; --ink-faint: #9FB0D0; --line: rgba(255,255,255,0.06); --accent: #5E7CFF; --accent-soft: rgba(94,124,255,0.12); --sky: #5CACF7; --amber: #9C6B1F; --danger: #E06B5D; }
 
@@ -1030,6 +1053,135 @@
     return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(n) || 0);
   }
 
+  // ============================================================
+  // TOASTS + DIALOGS + BUSY STATES
+  // Styled replacements for native alert/confirm/prompt.
+  // ============================================================
+  function toast(message, type = "success", ms = 3400) {
+    let stack = document.getElementById("toast-stack");
+    if (!stack) { stack = document.createElement("div"); stack.id = "toast-stack"; document.body.appendChild(stack); }
+    const el = document.createElement("div");
+    el.className = "toast toast-" + type;
+    el.setAttribute("role", type === "error" ? "alert" : "status");
+    el.textContent = message;
+    stack.appendChild(el);
+    requestAnimationFrame(() => el.classList.add("show"));
+    setTimeout(() => { el.classList.remove("show"); setTimeout(() => el.remove(), 260); }, ms);
+  }
+
+  let uiBusyDepth = 0; // while > 0, Esc/backdrop can't dismiss a modal mid-write
+
+  async function withBusy(btnId, fn, busyLabel = "Saving…") {
+    const btn = document.getElementById(btnId);
+    if (btn && btn.dataset.busy) return;
+    uiBusyDepth++;
+    if (btn) {
+      btn.dataset.busy = "1";
+      btn.dataset.origLabel = btn.textContent;
+      btn.disabled = true;
+      btn.classList.add("btn-busy");
+      btn.textContent = busyLabel;
+    }
+    try {
+      return await fn();
+    } finally {
+      uiBusyDepth--;
+      if (btn) {
+        delete btn.dataset.busy;
+        btn.disabled = false;
+        btn.classList.remove("btn-busy");
+        btn.textContent = btn.dataset.origLabel ?? btn.textContent;
+        delete btn.dataset.origLabel;
+      }
+    }
+  }
+
+  // Resolves { action, inputValue } — action comes from the tapped button.
+  function appDialog({ title, message = "", html = "", input = null, actions }) {
+    return new Promise((resolve) => {
+      const backdrop = document.createElement("div");
+      backdrop.className = "dialog-backdrop";
+      const buttons = actions
+        .map((a, i) => `<button class="${a.kind || "btn-ghost"}" data-i="${i}">${escapeHtml(a.label)}</button>`)
+        .join("");
+      backdrop.innerHTML = `
+        <div class="app-dialog" role="dialog" aria-modal="true" aria-label="${escapeHtml(title)}">
+          <h3>${escapeHtml(title)}</h3>
+          ${message ? `<p class="msg">${escapeHtml(message)}</p>` : ""}
+          ${html}
+          ${input ? `<label style="margin-top:14px;">${escapeHtml(input.label)}</label>
+            <input type="${input.type || "text"}" id="dialog-input" value="${escapeHtml(input.value ?? "")}" ${input.attrs || ""} autocomplete="off" />` : ""}
+          <div class="dialog-actions">${buttons}</div>
+        </div>`;
+      document.body.appendChild(backdrop);
+      const done = (result) => { backdrop.remove(); document.removeEventListener("keydown", onKey, true); resolve(result); };
+      const currentInput = () => backdrop.querySelector("#dialog-input")?.value ?? null;
+      const tap = (i) => {
+        const a = actions[i];
+        done({ action: a.value, inputValue: input ? currentInput() : null });
+      };
+      const onKey = (e) => {
+        if (e.key === "Escape") {
+          e.preventDefault(); e.stopPropagation();
+          const cancelIdx = actions.findIndex((a) => a.value === null);
+          tap(cancelIdx >= 0 ? cancelIdx : 0);
+        } else if (e.key === "Enter" && input) {
+          e.preventDefault();
+          const submitIdx = actions.findIndex((a) => a.submit);
+          tap(submitIdx >= 0 ? submitIdx : actions.length - 1);
+        }
+      };
+      backdrop.addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-i]");
+        if (btn) tap(Number(btn.dataset.i));
+      });
+      document.addEventListener("keydown", onKey, true);
+      if (input) {
+        const inp = backdrop.querySelector("#dialog-input");
+        inp?.focus();
+        inp?.select?.();
+      } else {
+        backdrop.querySelector(".dialog-actions button:last-child")?.focus();
+      }
+    });
+  }
+
+  function confirmDialog(message, { title = "Are you sure?", confirmLabel = "Confirm", danger = false } = {}) {
+    return appDialog({
+      title,
+      message,
+      actions: [
+        { label: "Cancel", value: false },
+        { label: confirmLabel, value: true, kind: danger ? "btn-danger" : "btn-primary", submit: true },
+      ],
+    }).then((r) => r.action === true);
+  }
+
+  async function promptDialog({ title, label, value = "", type = "text", attrs = "", confirmLabel = "Save" }) {
+    const r = await appDialog({
+      title,
+      input: { label, value, type, attrs },
+      actions: [
+        { label: "Cancel", value: null },
+        { label: confirmLabel, value: "__ok", kind: "btn-primary", submit: true },
+      ],
+    });
+    return r.action === "__ok" ? r.inputValue : null;
+  }
+
+  // Global dismissal: Esc closes the top-most open modal; clicking the dimmed
+  // backdrop closes it. Both are suppressed while a write is in flight.
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || uiBusyDepth > 0) return;
+    const open = [...document.querySelectorAll(".modal-backdrop:not(.hidden)")].pop();
+    if (open) closeModal(open.id);
+  });
+  document.addEventListener("click", (e) => {
+    if (uiBusyDepth > 0) return;
+    const t = e.target;
+    if (t instanceof Element && t.classList.contains("modal-backdrop")) closeModal(t.id);
+  });
+
   let currentUser = null;
   let membership = null; // { business_id, role, full_name, businesses: {...} }
   let cache = { products: [], customers: [], sales: [], payments: [], expenses: [], suppliers: [], purchases: [], materials: [], tables: [] };
@@ -1082,9 +1234,17 @@
   }
   function abbreviateCurrency(value) { return "$" + abbreviateNumber(value); }
 
-  function openModal(id) { show(id); }
+  let lastFocusedEl = null; // restored when the modal closes
+  function openModal(id) {
+    lastFocusedEl = document.activeElement;
+    show(id);
+    const first = document.querySelector(`#${id} input:not([type="hidden"]), #${id} select`);
+    (first || document.querySelector(`#${id} .close`))?.focus();
+  }
   function closeModal(id) {
     hide(id);
+    if (lastFocusedEl && document.contains(lastFocusedEl)) { try { lastFocusedEl.focus(); } catch {} }
+    lastFocusedEl = null;
     document.querySelectorAll(`#${id} input`).forEach((i) => (i.value = ""));
     const errId = id.replace("-modal", "-error");
     if (document.getElementById(errId)) clearError(errId);

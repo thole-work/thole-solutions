@@ -523,7 +523,7 @@
     <div class="header-actions">
       <button class="header-action" id="notifications-btn" title="Stock notifications" aria-label="Stock notifications" onclick="TholeApp.switchTab('products')">&#128276;<span class="status-badge" id="notifications-count">0</span></button>
       <button class="header-action" id="cart-btn" title="Purchase orders" aria-label="Purchase orders" onclick="TholeApp.switchTab('purchases')">&#128722;<span class="status-badge" id="cart-count">0</span></button>
-      <button class="header-action" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme" onclick="TholeApp.toggleTheme()">&#127769;</button>
+      <button class="header-action" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme" onclick="TholeApp.toggleTheme()"><svg viewBox="0 0 24 24" style="width:18px;height:18px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
       <div class="profile-panel">
         <div class="profile-avatar" id="profile-avatar" aria-hidden="true">—</div>
         <div class="profile-copy">
@@ -579,7 +579,7 @@
 
   <main>
     <div id="pull-refresh-indicator" aria-hidden="true">
-      <span class="icon">↻</span>
+      <span class="icon"><svg viewBox="0 0 24 24" style="width:12px;height:12px;display:block;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg></span>
       <span class="label">Pull to sync</span>
     </div>
 
@@ -1952,8 +1952,8 @@
 
     const cur = await getOpenPosSession();
     if (cur.unavailable) {
-      stateEl.textContent = required
-        ? "⚠ Session tracking is required but unavailable — check RLS/policies on pos_sessions."
+      stateEl.innerHTML = required
+        ? '<svg viewBox="0 0 24 24" style="width:16px;height:16px;vertical-align:-3px;margin-right:4px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Session tracking is required but unavailable — check RLS/policies on pos_sessions.'
         : "Session tracking unavailable (optional feature).";
       return;
     }
@@ -2035,7 +2035,8 @@
       console.error("loadTables error:", error);
       cache.tables = [];
       if (errBox) {
-        errBox.textContent = "⚠ Tables are enabled but unavailable (" + error.message + "). Check RLS/policies on restaurant_tables.";
+        errBox.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;vertical-align:-3px;margin-right:4px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ';
+        errBox.appendChild(document.createTextNode("Tables are enabled but unavailable (" + error.message + "). Check RLS/policies on restaurant_tables."));
         errBox.classList.remove("hidden");
       }
       renderTables();
@@ -2925,7 +2926,9 @@
     if (isDark) document.documentElement.classList.add('theme-dark');
     else document.documentElement.classList.remove('theme-dark');
     const btn = document.getElementById('theme-toggle');
-    if (btn) btn.textContent = isDark ? '☀️' : '🌙';
+    if (btn) btn.innerHTML = isDark
+      ? '<svg viewBox="0 0 24 24" style="width:18px;height:18px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>'
+      : '<svg viewBox="0 0 24 24" style="width:18px;height:18px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
   }
 
   function toggleTheme() {

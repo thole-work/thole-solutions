@@ -1149,7 +1149,7 @@
     document.querySelectorAll('.nav-item[data-tab="materials"]').forEach((el) => {
       el.classList.toggle("hidden", !needsRawMaterials);
     });
-    const tablesVisible = tableServiceEnabled();
+    const tablesVisible = tableServiceEnabled() || membership?.role === "owner" || membership?.role === "manager";
     document.querySelectorAll('.nav-item[data-tab="tables"]').forEach((el) => {
       el.classList.toggle("hidden", !tablesVisible);
     });
@@ -1393,7 +1393,7 @@
   // LOAD EVERYTHING
   // ============================================================
   async function loadEverything() {
-    await Promise.all([loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses(), loadSuppliers(), loadPurchases(), loadMaterials()]);
+    await Promise.all([loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses(), loadSuppliers(), loadPurchases(), loadMaterials(), loadTables()]);
     updateHeaderStatus();
     if (membership.role === "owner") await loadTeam();
     if (membership.role === "owner" || membership.role === "manager") await loadReports();
@@ -1562,6 +1562,7 @@
     cart = [];
     ["s-discount", "s-tax-rate", "s-tip"].forEach((id) => { const el = document.getElementById(id); if (el) el.value = 0; });
     renderCart();
+    populateCheckoutTables();
     openModal("sale-modal");
   }
   function onSaleProductChange() {
@@ -1627,6 +1628,7 @@
       if (cur.unavailable) return setError("sale-error", "Session tracking is required but currently unavailable. Contact your manager.");
       if (!cur.session) return setError("sale-error", "No cash session is open. Open one at the top of the Sales tab first.");
     }
+    const tableId = document.getElementById("s-table")?.value || null;
 
     submittingSale = true;
     try {
@@ -1650,6 +1652,7 @@
         subtotal: totals.subtotal, discount: totals.discount, discount_type: totals.discountType,
         tax_rate: totals.taxRate, tax: totals.tax, tip: totals.tip,
         order_type: orderType, payment_method: method, receipt_number: receiptNumber,
+        table_id: tableId,
       }).select().single();
       if (orderErr) return setError("sale-error", orderErr.message);
 
@@ -1674,6 +1677,10 @@
       }
 
       cart = [];
+      if (tableId) {
+        const { error: tblErr } = await sb.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId);
+        if (tblErr) console.error("table occupancy update failed:", tblErr);
+      }
       closeModal("sale-modal");
       await Promise.all([loadProducts(), loadSales()]);
       renderDashboard();
@@ -1850,6 +1857,129 @@
     if (error) return alert("Could not update the setting: " + error.message);
     membership.businesses.settings = settings;
     await renderPosSessionCard();
+  }
+
+  // ============================================================
+  // TABLES (restaurant_tables — restaurant type, or settings.table_service)
+  // ============================================================
+  async function loadTables() {
+    const grid = document.getElementById("tables-grid");
+    if (!grid || !tableServiceEnabled()) { cache.tables = []; renderTables(); return; }
+    const errBox = document.getElementById("tables-unavailable");
+    const { data, error } = await sb.from("restaurant_tables").select("*")
+      .eq("business_id", membership.business_id).order("table_number");
+    if (error) {
+      console.error("loadTables error:", error);
+      cache.tables = [];
+      if (errBox) {
+        errBox.textContent = "⚠ Tables are enabled but unavailable (" + error.message + "). Check RLS/policies on restaurant_tables.";
+        errBox.classList.remove("hidden");
+      }
+      renderTables();
+      return;
+    }
+    cache.tables = data ?? [];
+    errBox?.classList.add("hidden");
+    renderTables();
+  }
+
+  function tableStatusStyle(status) {
+    if (status === "occupied") return "background:var(--danger-soft); color:var(--danger);";
+    if (status === "reserved") return "background:var(--amber-soft); color:var(--amber);";
+    return "background:var(--sky-soft); color:var(--accent);";
+  }
+
+  function renderTables() {
+    const grid = document.getElementById("tables-grid");
+    if (!grid) return;
+    const canManage = membership?.role === "owner" || membership?.role === "manager";
+    const enabled = tableServiceEnabled();
+    document.getElementById("add-table-btn")?.classList.toggle("hidden", !canManage);
+    const toggleBtn = document.getElementById("table-service-toggle");
+    if (toggleBtn) {
+      let label = null;
+      if (!enabled) label = "Enable table service";
+      else if (businessTypeKey !== "restaurant") label = "Disable table service";
+      toggleBtn.textContent = label;
+      toggleBtn.classList.toggle("hidden", label === null);
+    }
+    grid.innerHTML = cache.tables.map((t) => `
+      <div style="border:1px solid var(--line); border-radius:14px; background:var(--card); padding:14px; text-align:center;">
+        <div style="cursor:pointer;" onclick="cycleTableStatus('${t.id}')" title="Tap to cycle status">
+          <div style="font-weight:600; font-size:16px;">${escapeHtml(t.table_number ?? "?")}</div>
+          <div style="font-size:11px; color:var(--ink-faint); margin-bottom:8px;">${t.name ? escapeHtml(t.name) + " · " : ""}${t.capacity != null && t.capacity !== "" ? t.capacity + " seats" : "&nbsp;"}</div>
+          <span class="cat-badge" style="${tableStatusStyle((t.status ?? "free").toLowerCase())}">${escapeHtml((t.status ?? "free").toLowerCase())}</span>
+        </div>
+        ${canManage ? `<span style="font-size:11px; text-decoration:underline; cursor:pointer; color:var(--ink-faint);" onclick="openEditTable('${t.id}')">Edit</span>` : ""}
+      </div>`).join("");
+    const emptyEl = document.getElementById("tables-empty");
+    if (emptyEl) emptyEl.classList.toggle("hidden", cache.tables.length > 0);
+  }
+
+  const NEXT_TABLE_STATUS = { free: "reserved", reserved: "occupied", occupied: "free" };
+
+  async function cycleTableStatus(id) {
+    const t = cache.tables.find((x) => x.id === id);
+    if (!t) return;
+    const current = (t.status ?? "free").toLowerCase();
+    const next = NEXT_TABLE_STATUS[current] ?? "free";
+    if (!confirm(`Mark table ${t.table_number} as "${next}"?`)) return;
+    const { error } = await sb.from("restaurant_tables").update({ status: next }).eq("id", id);
+    if (error) return alert("Could not update the table: " + error.message);
+    t.status = next;
+    renderTables();
+  }
+
+  function openEditTable(id) {
+    const t = cache.tables.find((x) => x.id === id);
+    if (!t) return;
+    editingRecord = { table: "restaurant_tables", id };
+    document.getElementById("table-modal-title").textContent = "Edit table";
+    document.getElementById("table-submit-btn").textContent = "Save changes";
+    document.getElementById("t-number").value = t.table_number ?? "";
+    document.getElementById("t-name").value = t.name ?? "";
+    document.getElementById("t-capacity").value = t.capacity ?? "";
+    document.getElementById("table-delete-btn").classList.remove("hidden");
+    openModal("table-modal");
+  }
+
+  async function submitTable() {
+    clearError("table-error");
+    const number = sanitizeInput(document.getElementById("t-number").value);
+    const name = sanitizeInput(document.getElementById("t-name").value) || null;
+    const capRaw = document.getElementById("t-capacity").value;
+    const capacity = capRaw === "" ? null : parseInt(capRaw, 10);
+    if (!validateString(number, 50)) return setError("table-error", "A table number/label is required (max 50 characters).");
+    if (capacity !== null && (isNaN(capacity) || capacity < 0)) return setError("table-error", "Seats must be zero or more.");
+
+    const payload = { table_number: number, name, capacity };
+    const { error } = editingRecord
+      ? await sb.from("restaurant_tables").update(payload).eq("id", editingRecord.id)
+      : await sb.from("restaurant_tables").insert({ business_id: membership.business_id, ...payload });
+    if (error) return setError("table-error", error.message);
+
+    closeModal("table-modal");
+    await loadTables();
+  }
+
+  function populateCheckoutTables() {
+    const row = document.getElementById("s-table-row");
+    const sel = document.getElementById("s-table");
+    if (!row || !sel) return;
+    row.classList.toggle("hidden", cache.tables.length === 0);
+    sel.innerHTML = `<option value="">No table</option>` + cache.tables.map((t) =>
+      `<option value="${t.id}">Table ${escapeHtml(t.table_number)}${t.capacity ? ` (${t.capacity})` : ""}</option>`).join("");
+  }
+
+  async function toggleTableService() {
+    if (membership.role !== "owner" && membership.role !== "manager") return alert("Only owners and managers can change this setting.");
+    const settings = { ...(membership.businesses.settings ?? {}) };
+    settings.table_service = !(settings.table_service || businessTypeKey === "restaurant");
+    const { error } = await sb.from("businesses").update({ settings }).eq("id", membership.business_id);
+    if (error) return alert("Could not update the setting: " + error.message);
+    membership.businesses.settings = settings;
+    applyBusinessTypeVisibility(businessTypeKey);
+    await loadTables();
   }
 
   // ============================================================
@@ -2693,6 +2823,7 @@
     suggestReorder, prefillPurchase,
     addToCart, removeCartLine, renderCart, submitSale,
     openPosSession, closePosSession, toggleSessionRequirement, renderPosSessionCard,
+    cycleTableStatus, openEditTable, submitTable, toggleTableService, loadTables,
     voidSale, voidPurchase, copyInviteCode, toggleMoreMenu,
     loadReports, setReportFilterMode, resetReportFilter,
     onSaleProductChange, onProduceProductChange, addRecipeItem, removeRecipeItem,

@@ -199,6 +199,9 @@
   /* metric cards */
   .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 28px; }
   .metric-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 16px 18px; box-shadow: var(--shadow-1); backdrop-filter: blur(16px); overflow-wrap: anywhere; color: var(--ink); }
+  .brief-row { display: flex; align-items: center; gap: var(--sp-4); flex-wrap: wrap; margin-bottom: var(--sp-1); }
+  .delta-chip { font-size: var(--text-xs); font-weight: 600; padding: 3px 10px; border-radius: var(--r-pill); background: var(--accent-soft); color: var(--accent); }
+  .delta-chip.down { background: var(--danger-soft); color: var(--danger); }
   .metric-card .label { font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); margin-bottom: 6px; }
   .metric-card .value { font-size: var(--text-xl); font-weight: 600; }
   .metric-card .note { margin-top: 10px; color: var(--ink-soft); font-size: var(--text-xs); line-height: 1.5; }
@@ -615,6 +618,15 @@
 
     <section id="tab-dashboard" class="tab-panel">
       <div class="page-header"><h2>Dashboard</h2><p>Key business health metrics in one place.</p></div>
+      <div class="report-card compact-card" id="daily-brief">
+        <h3>Daily brief</h3>
+        <div class="brief-row">
+          <div><span class="card-label">Today</span><strong class="num" id="brief-today">$0.00</strong></div>
+          <span id="brief-delta" class="delta-chip">—</span>
+          <div><span class="card-label">Orders</span><strong class="num" id="brief-orders">0</strong></div>
+        </div>
+        <p id="brief-insight" class="card-note">Loading…</p>
+      </div>
       <div class="metrics">
         <div class="metric-card"><div class="label">Revenue</div><div class="value num" id="m-revenue">0</div><div class="note">Total sales value for the current data set.</div></div>
         <div class="metric-card"><div class="label">Net profit</div><div class="value num" id="m-profit">0</div><div class="note">Revenue minus expenses.</div></div>
@@ -1615,7 +1627,7 @@
   // LOAD EVERYTHING
   // ============================================================
   async function loadEverything() {
-    await Promise.all([loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses(), loadSuppliers(), loadPurchases(), loadMaterials(), loadTables()]);
+    await Promise.all([loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses(), loadSuppliers(), loadPurchases(), loadMaterials(), loadTables(), loadDailyBrief()]);
     updateHeaderStatus();
     if (membership.role === "owner") await loadTeam();
     if (membership.role === "owner" || membership.role === "manager") await loadReports();
@@ -1635,6 +1647,67 @@
     document.getElementById("cart-count").textContent = purchaseCount > 99 ? "99+" : purchaseCount;
     document.getElementById("notifications-btn").title = lowStockCount ? `${lowStockCount} low-stock notification${lowStockCount === 1 ? "" : "s"}` : "No stock notifications";
     document.getElementById("cart-btn").title = `${purchaseCount} purchase order${purchaseCount === 1 ? "" : "s"}`;
+  }
+
+  // ============================================================
+  // DAILY BRIEF — answers "how are we doing today?" the moment the
+  // app opens (internal trigger), with a data insight that rotates daily.
+  // ============================================================
+  async function loadDailyBrief() {
+    const todayEl = document.getElementById("brief-today");
+    if (!todayEl) return;
+    const since = new Date(); since.setHours(0, 0, 0, 0);
+    since.setDate(since.getDate() - 13); // 14-day window including today
+    const { data, error } = await sb.from("orders")
+      .select("total_amount, created_at").neq("status", "refunded").gte("created_at", since.toISOString());
+    if (error) { console.error("loadDailyBrief error:", error); return; }
+    const rows = data ?? [];
+    const dayKey = (d) => new Date(d).toLocaleDateString("en-CA"); // local YYYY-MM-DD
+    const today = dayKey(new Date());
+    const yest = dayKey(new Date(Date.now() - 864e5));
+    let sumToday = 0, sumYest = 0, ordersToday = 0;
+    const perDay = new Map(), perWeekday = new Map();
+    for (const r of rows) {
+      const k = dayKey(r.created_at);
+      const amt = Number(r.total_amount);
+      if (k === today) { sumToday += amt; ordersToday += 1; }
+      if (k === yest) sumYest += amt;
+      perDay.set(k, (perDay.get(k) ?? 0) + amt);
+      const wd = new Date(`${k}T12:00:00`).toLocaleDateString(undefined, { weekday: "long" });
+      perWeekday.set(wd, (perWeekday.get(wd) ?? 0) + amt);
+    }
+    todayEl.textContent = money(sumToday);
+    document.getElementById("brief-orders").textContent = ordersToday;
+    const deltaEl = document.getElementById("brief-delta");
+    deltaEl.classList.remove("down");
+    if (!rows.length || (sumToday === 0 && sumYest === 0)) {
+      deltaEl.textContent = "no sales yet";
+    } else if (sumYest === 0) {
+      deltaEl.textContent = "yesterday was quiet";
+    } else {
+      const pct = Math.round(((sumToday - sumYest) / sumYest) * 100);
+      deltaEl.textContent = `${pct >= 0 ? "+" : ""}${pct}% vs yesterday`;
+      deltaEl.classList.toggle("down", pct < 0);
+    }
+    // Variable reward: one real-data insight, rotated by day of year.
+    const insights = [];
+    if (perWeekday.size >= 3) {
+      const best = [...perWeekday.entries()].sort((a, b) => b[1] - a[1])[0];
+      insights.push(`Your strongest weekday is ${best[0]} (${abbreviateCurrency(best[1])} over 14 days).`);
+    }
+    if (perDay.size >= 4) {
+      const top = [...perDay.entries()].sort((a, b) => b[1] - a[1])[0];
+      if (top[0] !== today) {
+        const when = new Date(`${top[0]}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+        insights.push(`Best recent day was ${when} at ${money(top[1])}.`);
+      }
+    }
+    if (sumYest > 0 && sumToday > sumYest)
+      insights.push(`You're ahead of yesterday's pace by ${money(sumToday - sumYest)}.`);
+    const el = document.getElementById("brief-insight");
+    if (!insights.length) { el.textContent = "Record a few sales to unlock daily insights."; return; }
+    const doy = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 864e5);
+    el.textContent = insights[doy % insights.length];
   }
 
   function renderDashboard() {

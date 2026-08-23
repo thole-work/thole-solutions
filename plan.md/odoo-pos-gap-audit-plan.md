@@ -135,8 +135,8 @@ here in full force — nothing below is assumed.
 
 | # | Feature | Status | Notes |
 |---|---|---|---|
-| 1 | Floor plan / table map | ⬜ Missing (schema ready) | No floor-plan UI/CSS in the app, but the `restaurant_tables` table exists (`table_number`, `capacity`, `status`, `current_order_id`) and `orders.table_id` references it; needs table-management UI + a write path, not new tables |
-| 2 | Table transfer/merge | ⬜ Missing | Depends on #1 existing first; nothing to transfer/merge |
+| 1 | Floor plan / table map | 🟡 Partial (2026-08-23) | Tables tab shipped: tile grid with free/reserved/occupied statuses, CRUD, checkout table assignment writing `orders.table_id` + auto-occupy. Not yet: drag-and-drop layout editor, live order linkage (`current_order_id`) — needs an open-order lifecycle |
+| 2 | Table transfer/merge | ⬜ Missing | Requires orders that "sit" on tables (open-order lifecycle); today's sales complete instantly, so there is nothing to transfer/merge yet |
 | 3 | Bill splitting (by item) | ⬜ Missing | No "split" logic beyond `String.split()` string-parsing calls (dates); no sub-order concept |
 | 4 | Split payment (by method) | ⬜ Missing (foundation done) | Cart checkout now records a single `payment_method`; multi-method per order still needs the split UI. The batched write path makes it a small increment now |
 | 5 | Course management | ⬜ Missing | |
@@ -148,7 +148,7 @@ here in full force — nothing below is assumed.
 | 11 | Ingredient-level stock via BOM | ✅ Built (Raw Materials / Produce flow) | `recipe_items` (`product_id`, `raw_material_id`, `quantity_required`) links products to materials; `submitProduce()` validates stock, deducts `raw_materials.stock_qty`, adds `products.stock_qty`, and logs `stock_movements` — this is live and running, not gated off. Note: `recipe_consumes_materials` as a settings toggle was **not found** — consumption is unconditional here, and this is a "produce a batch" workflow, not automatic per-sale ingredient deduction |
 | 12 | Combo meals | ⬜ Missing | |
 | 13 | QR-code table ordering | ⬜ Missing | |
-| 14 | Table reservations | ⬜ Missing | |
+| 14 | Table reservations | 🟡 Partial (manual) | "Reserved" is one tap in the table status cycle (persisted to `restaurant_tables.status`); no booking times/guest data shown on the floor plan |
 | 15 | Self-service kiosk mode | ⬜ Missing | |
 | 16 | Customer identification / loyalty | 🟡 Partial | `customers` table exists and is linked to `orders`/`payments` (name, walk-in option in sale form); no loyalty-points or history-rollup logic found |
 | 17 | Dine-in/takeout/delivery presets | ✅ Built (2026-08-23) | Order-type select (takeaway/dine_in/delivery) in cart checkout writes `orders.order_type` |
@@ -444,6 +444,28 @@ Do **not** create a new table — one already exists. Use its real columns:
   two devices same business; flag-off behavior identical to today.
 
 ### Step 5 — Confirm table-service scope, then floor plan if yes
+**✅ SHIPPED 2026-08-23 (v1 scope confirmed with the person).** Tables tab
+built on the existing `restaurant_tables` + `orders.table_id` schema:
+- Grid of table tiles (number, name, seats) with status badges
+  free/reserved/occupied; tap cycles status via confirm dialog (PATCH
+  persisted); Add/Edit/Delete modal reuses the generic editingRecord +
+  deleteRecord infrastructure.
+- Checkout gained an optional "Assign table" select (visible only when tables
+  exist); `orders.table_id` is written and the table auto-flips to
+  `occupied` on successful checkout. Staff free tables manually by tapping.
+- Visibility follows ground rule #7: always on for `restaurant` business
+  type; other types opt in via `businesses.settings.table_service`
+  (owners/managers see the tab even when disabled, with an enable toggle;
+  staff only when enabled). All reads are defensive if RLS blocks
+  `restaurant_tables`.
+- E2E-verified against mocked REST: grid render, cycle persistence, add →
+  reload → render, checkout payload carries `table_id`, auto-occupancy patch.
+**Known v1 limits:** there is no open-order lifecycle (sales complete
+instantly), so `restaurant_tables.current_order_id` stays unused and bills
+can't "sit" on a table yet — that requires a held/open-order concept (future:
+#3 bill splitting depends on it). Table transfer/merge (#2) likewise deferred.
+
+Original scope notes:
 Before building #1 (floor plan), #2 (transfer/merge), #6 (KDS), or #7
 (kitchen notes): confirm with the person whether table service is actually
 in scope (see §5). If yes:

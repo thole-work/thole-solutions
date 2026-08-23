@@ -2780,7 +2780,7 @@
     revenueChartInstance = new Chart(canvas, {
       type: "line",
       data: { labels: entries.map(([date]) => new Date(`${date}T00:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" })), datasets: [{ label: "Revenue", data: entries.map(([, total]) => total), borderColor: t.accent, backgroundColor: t.fillSoft, fill: true, tension: 0.35, pointRadius: 3, pointBackgroundColor: t.accent }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: t.line }, ticks: { color: t.inkSoft, callback: (value) => abbreviateCurrency(value) } }, x: { grid: { display: false }, ticks: { color: t.inkSoft } } } } },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: t.line }, ticks: { color: t.inkSoft, callback: (value) => abbreviateCurrency(value) } }, x: { grid: { display: false }, ticks: { color: t.inkSoft } } } },
     });
   }
 

@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Thole Solutions</title>
 <link rel="icon" type="image/png" href="logo.png" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -19,7 +19,7 @@
     --card: #FFFFFF;
     --ink: #14162E;
     --ink-soft: #565B78;
-    --ink-faint: #8B8FA8;
+    --ink-faint: #676C87;
     --line: #E1E3EE;
     --accent: #1D1F91;
     --accent-dark: #14166B;
@@ -30,6 +30,35 @@
     --amber-soft: #F5EBD8;
     --danger: #A6432C;
     --danger-soft: #F4E6E1;
+
+    /* ---- type scale (single source of truth) ---- */
+    --text-2xs: 11px;
+    --text-xs: 12px;
+    --text-sm: 14px;
+    --text-base: 15px;
+    --text-lg: 18px;
+    --text-xl: 22px;
+    --text-2xl: 28px;
+
+    /* ---- radius scale ---- */
+    --r-sm: 6px;
+    --r-md: 10px;
+    --r-lg: 14px;
+    --r-xl: 18px;
+    --r-pill: 999px;
+
+    /* ---- spacing scale (4pt core; use for new work) ---- */
+    --sp-1: 4px;
+    --sp-2: 8px;
+    --sp-3: 12px;
+    --sp-4: 16px;
+    --sp-5: 24px;
+    --sp-6: 32px;
+
+    /* ---- elevation ---- */
+    --shadow-1: 0 8px 24px rgba(15,23,42,0.06);
+    --shadow-2: 0 10px 24px rgba(15,23,42,0.10);
+    --shadow-3: 0 20px 40px rgba(15,23,42,0.14);
   }
   * { box-sizing: border-box; scrollbar-width: none; -ms-overflow-style: none; }
   *::-webkit-scrollbar { display: none; width: 0; height: 0; }
@@ -43,7 +72,7 @@
   }
   .nav-item:hover, .nav-item:focus-visible {
     transform: translateY(-2px);
-    box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    box-shadow: var(--shadow-1);
     background: var(--paper);
     color: var(--ink);
   }
@@ -53,11 +82,11 @@
   }
   .btn-small:hover, .btn-ghost:hover, .signout-btn:hover, #theme-toggle:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 24px rgba(15,23,42,0.08);
+    box-shadow: var(--shadow-2);
   }
   .metric-card:hover, .report-card:hover, .checklist li:hover, .ledger-row:hover {
     transform: translateY(-2px);
-    box-shadow: 0 14px 26px rgba(15,23,42,0.08);
+    box-shadow: var(--shadow-2);
   }
   .modal {
     animation: modalIn 0.24s ease;
@@ -97,21 +126,22 @@
     object-position: center;
     display: block;
   }
-  .brand-mark { width: 44px; height: 44px; border-radius: 10px; overflow: hidden; margin-bottom: 18px; }
+  .brand-mark { width: 44px; height: 44px; border-radius: var(--r-md); overflow: hidden; margin-bottom: 18px; }
   .brand-mark img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  #auth-screen h1 { font-size: 26px; margin-bottom: 4px; }
-  #auth-screen p.sub { color: var(--ink-soft); font-size: 14px; margin: 6px 0 26px; }
-  label { display: block; font-size: 12px; color: var(--ink-soft); margin: 14px 0 4px; }
+  #auth-screen h1 { font-size: var(--text-2xl); margin-bottom: var(--sp-1); }
+  #auth-screen p.sub { color: var(--ink-soft); font-size: var(--text-sm); margin: 6px 0 26px; }
+  label { display: block; font-size: var(--text-xs); color: var(--ink-soft); margin: 14px 0 4px; }
   input, select, textarea {
-    width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px;
-    background: var(--card); font-size: 15px; font-family: 'Inter', sans-serif; color: var(--ink);
+    width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-sm);
+    background: var(--card); font-size: var(--text-base); font-family: 'Inter', sans-serif; color: var(--ink);
   }
   input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
-  .btn-primary { width: 100%; margin-top: 20px; padding: 12px; border: none; border-radius: 6px; background: var(--accent); color: white; font-size: 15px; font-weight: 500; }
+  .nav-item:focus-visible, .logout-link:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .btn-primary { width: 100%; margin-top: 20px; padding: var(--sp-3); border: none; border-radius: var(--r-sm); background: var(--accent); color: white; font-size: var(--text-base); font-weight: 500; }
   .btn-primary:hover { background: var(--accent-dark); }
-  .switch { text-align: center; margin-top: 18px; font-size: 13px; color: var(--ink-soft); }
+  .switch { text-align: center; margin-top: 18px; font-size: var(--text-xs); color: var(--ink-soft); }
   .switch a { color: var(--accent); cursor: pointer; text-decoration: underline; }
-  .error { background: var(--danger-soft); color: var(--danger); padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-top: 14px; }
+  .error { background: var(--danger-soft); color: var(--danger); padding: 10px 12px; border-radius: var(--r-sm); font-size: var(--text-xs); margin-top: 14px; }
 
   /* ---------- APP SHELL ---------- */
   #app-screen { display: grid; grid-template-columns: 220px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); min-height: 100vh; height: 100vh; overflow: hidden; }
@@ -120,76 +150,76 @@
     display: flex; flex-direction: column; flex-shrink: 0;
   }
   .side-header { padding: 22px 18px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
-  .side-header img { width: 32px; height: 32px; border-radius: 7px; flex-shrink: 0; }
-  .side-header .biz { font-family: 'Source Serif 4', serif; font-weight: 600; font-size: 15px; line-height: 1.2; }
-  .side-header .type-tag { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+  .side-header img { width: 32px; height: 32px; border-radius: var(--r-sm); flex-shrink: 0; }
+  .side-header .biz { font-family: 'Source Serif 4', serif; font-weight: 600; font-size: var(--text-base); line-height: 1.2; }
+  .side-header .type-tag { font-size: var(--text-2xs); color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
   nav { flex: 1; padding: 14px 10px; }
   .nav-item {
-    display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 7px;
-    font-size: 14px; color: var(--ink-soft); cursor: pointer; margin-bottom: 2px;
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-sm);
+    font-size: var(--text-sm); color: var(--ink-soft); cursor: pointer; margin-bottom: 2px;
   }
   .nav-item:hover { background: var(--paper); color: var(--ink); }
   .nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
-  .nav-icon { width: 24px; text-align: center; font-size: 18px; display: inline-flex; align-items: center; justify-content: center; }
+  .nav-icon { width: 24px; text-align: center; font-size: var(--text-lg); display: inline-flex; align-items: center; justify-content: center; }
   .nav-icon svg { width: 20px; height: 20px; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .mobile-more-btn { display: none; }
   #mobile-more-panel, #mobile-more-backdrop { display: none; }
   .side-footer { display: none; }
-  .user-name { font-size: 13px; font-weight: 500; }
-  .user-role { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; }
-  .logout-link { font-size: 12px; color: var(--ink-faint); text-decoration: underline; cursor: pointer; margin-top: 6px; display: inline-block; }
+  .user-name { font-size: var(--text-xs); font-weight: 500; }
+  .user-role { font-size: var(--text-2xs); color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; }
+  .logout-link { font-size: var(--text-xs); color: var(--ink-faint); text-decoration: underline; cursor: pointer; margin-top: 6px; display: inline-block; }
 
   main { grid-column: 2; grid-row: 2; display: flex; flex-direction: column; width: 100%; padding: 28px 40px 24px; overflow: hidden; min-width: 0; }
-  #app-topbar { grid-column: 1 / -1; grid-row: 1; display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 24px; min-height: 78px; z-index: 30; background: var(--card); color: var(--ink); padding: 14px 28px; border-bottom: 1px solid var(--line); box-shadow: 0 8px 24px rgba(15,23,42,0.06); }
+  #app-topbar { grid-column: 1 / -1; grid-row: 1; display: flex; justify-content: space-between; align-items: center; width: 100%; gap: var(--sp-5); min-height: 78px; z-index: 30; background: var(--card); color: var(--ink); padding: 14px 28px; border-bottom: 1px solid var(--line); box-shadow: var(--shadow-1); }
   #app-topbar .title-group { min-width: 0; }
-  #app-topbar h2 { margin: 0; font-size: 19px; color: var(--ink); }
-  #app-topbar p { margin: 4px 0 0; color: var(--ink-soft); font-size: 12px; }
-  #app-topbar .header-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; }
-  #app-topbar .header-action { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 9px; background: var(--card); color: var(--ink-soft); font-size: 18px; cursor: pointer; }
+  #app-topbar h2 { margin: 0; font-size: var(--text-lg); color: var(--ink); }
+  #app-topbar p { margin: 4px 0 0; color: var(--ink-soft); font-size: var(--text-xs); }
+  #app-topbar .header-actions { display: flex; align-items: center; justify-content: flex-end; gap: var(--sp-2); min-width: 0; }
+  #app-topbar .header-action { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--card); color: var(--ink-soft); font-size: var(--text-lg); cursor: pointer; }
   #app-topbar .header-action:hover { color: var(--accent); background: var(--accent-soft); }
-  #app-topbar .status-badge { position: absolute; top: -5px; right: -5px; min-width: 17px; height: 17px; padding: 0 4px; display: grid; place-items: center; border-radius: 999px; background: var(--danger); color: white; font: 10px 'JetBrains Mono', monospace; }
-  #app-topbar .profile-panel { display: flex; align-items: center; gap: 10px; padding-left: 12px; margin-left: 4px; border-left: 1px solid var(--line); }
-  #app-topbar .profile-avatar { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 13px; }
+  #app-topbar .status-badge { position: absolute; top: -5px; right: -5px; min-width: 17px; height: 17px; padding: 0 4px; display: grid; place-items: center; border-radius: var(--r-pill); background: var(--danger); color: white; font: 10px 'JetBrains Mono', monospace; }
+  #app-topbar .profile-panel { display: flex; align-items: center; gap: 10px; padding-left: var(--sp-3); margin-left: var(--sp-1); border-left: 1px solid var(--line); }
+  #app-topbar .profile-avatar { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: var(--text-xs); }
   #app-topbar .profile-copy { min-width: 100px; }
   #app-topbar .profile-copy .user-name { font-weight: 600; color: var(--ink); }
-  #app-topbar .profile-copy .user-role { margin-top: 2px; font-size: 10px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; }
-  #app-topbar .user-panel .signout-btn { border: 1px solid var(--line); border-radius: 7px; padding: 8px 11px; font-size: 12px; font-weight: 600; background: var(--card); color: var(--ink-soft); cursor: pointer; width: auto; min-width: 0; }
+  #app-topbar .profile-copy .user-role { margin-top: 2px; font-size: var(--text-2xs); color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; }
+  #app-topbar .user-panel .signout-btn { border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px 11px; font-size: var(--text-xs); font-weight: 600; background: var(--card); color: var(--ink-soft); cursor: pointer; width: auto; min-width: 0; }
   #app-topbar .user-panel .signout-btn:hover { background: var(--paper); color: var(--ink); }
   /* theme toggle button */
-  #theme-toggle { border: none; background: transparent; width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 16px; }
+  #theme-toggle { border: none; background: transparent; width: 36px; height: 36px; border-radius: var(--r-md); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: var(--text-base); }
   #theme-toggle:hover { background: rgba(255,255,255,0.06); transform: translateY(-1px); }
-  .tab-panel { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
+  .tab-panel { flex: 1; min-height: 0; overflow-y: auto; padding-right: var(--sp-1); overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
   .tab-panel .page-header { display: none; }
   #pull-refresh-indicator { display: none; }
-  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 12px; flex-wrap: wrap; }
-  .btn-small { padding: 9px 16px; border: none; border-radius: 6px; background: var(--accent); color: white; font-size: 13px; font-weight: 500; }
+  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: var(--sp-3); flex-wrap: wrap; }
+  .btn-small { padding: 9px 16px; border: none; border-radius: var(--r-sm); background: var(--accent); color: white; font-size: var(--text-xs); font-weight: 500; }
   .btn-small:hover { background: var(--accent-dark); }
-  .btn-ghost { padding: 9px 16px; border: 1px solid var(--line); border-radius: 6px; background: none; color: var(--ink-soft); font-size: 13px; }
+  .btn-ghost { padding: 9px 16px; border: 1px solid var(--line); border-radius: var(--r-sm); background: none; color: var(--ink-soft); font-size: var(--text-xs); }
 
   /* metric cards */
   .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 28px; }
-  .metric-card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; box-shadow: 0 18px 34px rgba(15,23,42,0.06); backdrop-filter: blur(16px); overflow-wrap: anywhere; color: var(--ink); }
-  .metric-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); margin-bottom: 6px; }
-  .metric-card .value { font-size: 24px; font-weight: 600; }
-  .metric-card .note { margin-top: 10px; color: var(--ink-soft); font-size: 12px; line-height: 1.5; }
+  .metric-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 16px 18px; box-shadow: var(--shadow-1); backdrop-filter: blur(16px); overflow-wrap: anywhere; color: var(--ink); }
+  .metric-card .label { font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); margin-bottom: 6px; }
+  .metric-card .value { font-size: var(--text-xl); font-weight: 600; }
+  .metric-card .note { margin-top: 10px; color: var(--ink-soft); font-size: var(--text-xs); line-height: 1.5; }
   .metric-card.warn .value { color: var(--danger); }
 
   .report-card.compact-card { padding: 18px; }
-  .dashboard-summary-grid { display: grid; gap: 10px; margin-top: 8px; }
-  .dashboard-summary-grid div { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-  .card-label { color: var(--ink-faint); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .dashboard-summary-grid { display: grid; gap: 10px; margin-top: var(--sp-2); }
+  .dashboard-summary-grid div { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); }
+  .card-label { color: var(--ink-faint); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.04em; }
 
   .reports-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 22px; }
-  .reports-toolbar { display: flex; justify-content: space-between; align-items: end; gap: 14px; margin-bottom: 18px; padding: 14px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+  .reports-toolbar { display: flex; justify-content: space-between; align-items: end; gap: 14px; margin-bottom: 18px; padding: 14px 16px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md); }
   .reports-toolbar label { margin: 0 0 5px; }
-  .reports-toolbar .filter-group { display: flex; gap: 8px; align-items: end; }
+  .reports-toolbar .filter-group { display: flex; gap: var(--sp-2); align-items: end; }
   .reports-toolbar .filter-group select { min-width: 112px; }
   .reports-toolbar .filter-group input { min-width: 148px; }
   .reports-toolbar .clear-report-filter { padding: 9px 12px; white-space: nowrap; }
-  .report-period-note { color: var(--ink-soft); font-size: 12px; margin: 0; }
+  .report-period-note { color: var(--ink-soft); font-size: var(--text-xs); margin: 0; }
   .report-kpi { min-width: 0; }
   .report-kpi .value { overflow-wrap: anywhere; }
-  .report-kpi .trend { margin-top: 8px; font-size: 12px; color: var(--ink-soft); }
+  .report-kpi .trend { margin-top: var(--sp-2); font-size: var(--text-xs); color: var(--ink-soft); }
   .report-kpi .trend.positive { color: #16805C; }
   .report-kpi .trend.negative { color: var(--danger); }
   .report-chart-card { min-height: 300px; }
@@ -204,75 +234,75 @@
     .report-chart-card { min-height: 270px; }
     .report-chart-wrap { height: 210px; }
   }
-  .report-card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px; box-shadow: 0 20px 40px rgba(15,23,42,0.06); backdrop-filter: blur(18px); color: var(--ink); }
-  .report-card h3 { margin: 0 0 12px; font-size: 15px; }
-  .report-card header, .report-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
-  .report-card-header p { margin: 0; color: var(--ink-soft); font-size: 12px; line-height: 1.4; }
+  .report-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-xl); padding: 18px; box-shadow: var(--shadow-1); backdrop-filter: blur(18px); color: var(--ink); }
+  .report-card h3 { margin: 0 0 12px; font-size: var(--text-base); }
+  .report-card header, .report-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); margin-bottom: var(--sp-3); }
+  .report-card-header p { margin: 0; color: var(--ink-soft); font-size: var(--text-xs); line-height: 1.4; }
   .report-card canvas { width: 100%; max-height: 140px; }
   .report-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; margin-bottom: 22px; }
   .report-insight-card { display: flex; flex-direction: column; justify-content: space-between; }
-  .insight-list { display: grid; gap: 12px; }
-  .insight-list div { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-  .insight-list span { color: var(--ink-faint); font-size: 12px; }
-  .insight-list strong { font-size: 15px; }
+  .insight-list { display: grid; gap: var(--sp-3); }
+  .insight-list div { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); }
+  .insight-list span { color: var(--ink-faint); font-size: var(--text-xs); }
+  .insight-list strong { font-size: var(--text-base); }
   .report-summary-card { display: flex; flex-direction: column; gap: 6px; }
-  .report-summary-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); }
+  .report-summary-card .label { font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); }
   /* Removed unused report chart controls to simplify reports layout */
-  .report-summary-card .value { font-size: 22px; font-weight: 700; color: var(--ink); }
-  .report-summary-card .note { color: var(--ink-soft); font-size: 12px; }
-  .onboarding-card h3 { margin: 0; font-size: 18px; }
-  .onboarding-card p { margin: 8px 0 0; color: var(--ink-soft); font-size: 13px; }
-  .onboarding-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 18px; }
-  .onboarding-badge { font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 7px 12px; }
-  .checklist { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
-  .checklist li { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); }
+  .report-summary-card .value { font-size: var(--text-xl); font-weight: 700; color: var(--ink); }
+  .report-summary-card .note { color: var(--ink-soft); font-size: var(--text-xs); }
+  .onboarding-card h3 { margin: 0; font-size: var(--text-lg); }
+  .onboarding-card p { margin: 8px 0 0; color: var(--ink-soft); font-size: var(--text-xs); }
+  .onboarding-header { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); margin-bottom: 18px; }
+  .onboarding-badge { font-size: var(--text-xs); font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: var(--r-pill); padding: 7px 12px; }
+  .checklist { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--sp-3); }
+  .checklist li { display: flex; align-items: center; gap: var(--sp-3); padding: 14px 16px; border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--card); }
   .checklist li.done { border-color: var(--accent-soft); background: var(--accent-soft); }
-  .checklist li .marker { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; }
+  .checklist li .marker { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: var(--text-xs); }
   .checklist li.done .marker { background: var(--accent); color: white; }
   .checklist li.pending .marker { background: var(--line); color: var(--ink-faint); }
-  .checklist li .checklist-label { flex: 1; min-width: 0; color: var(--ink); font-size: 14px; line-height: 1.35; }
-  .checklist li button { border: none; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 600; cursor: pointer; padding: 8px 12px; }
+  .checklist li .checklist-label { flex: 1; min-width: 0; color: var(--ink); font-size: var(--text-sm); line-height: 1.35; }
+  .checklist li button { border: none; border-radius: var(--r-pill); background: var(--accent-soft); color: var(--accent); font-size: var(--text-xs); font-weight: 600; cursor: pointer; padding: var(--sp-2) var(--sp-3); }
   .checklist li button:hover { background: #e6e9ff; }
 
   @media (max-width: 720px) {
-    .onboarding-card { padding: 16px; margin-bottom: 22px; }
+    .onboarding-card { padding: var(--sp-4); margin-bottom: 22px; }
     .onboarding-header { flex-direction: column; align-items: stretch; }
     .onboarding-badge { margin-top: 6px; align-self: flex-start; }
     .checklist li { flex-direction: column; align-items: stretch; gap: 10px; }
-    .checklist li .checklist-label { font-size: 15px; }
+    .checklist li .checklist-label { font-size: var(--text-base); }
     .checklist li button { width: 100%; }
   }
 
   /* ledger table */
-  .ledger { background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-  .ledger-head { display: grid; padding: 10px 18px; background: var(--paper); border-bottom: 1px solid var(--line); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-faint); }
-  .ledger-row { display: grid; padding: 13px 18px; border-bottom: 1px solid var(--line); align-items: center; font-size: 14px; }
+  .ledger { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+  .ledger-head { display: grid; padding: 10px 18px; background: var(--paper); border-bottom: 1px solid var(--line); font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-faint); }
+  .ledger-row { display: grid; padding: 13px 18px; border-bottom: 1px solid var(--line); align-items: center; font-size: var(--text-sm); }
   .ledger-row:last-child { border-bottom: none; }
-  .cat-badge { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 20px; background: var(--sky-soft); color: var(--accent); text-transform: uppercase; letter-spacing: 0.03em; }
-  .low-tag { color: var(--danger); font-size: 12px; font-weight: 500; }
-  .empty-state { text-align: center; padding: 50px 20px; color: var(--ink-faint); font-size: 14px; }
+  .cat-badge { display: inline-block; font-size: var(--text-2xs); padding: 2px 8px; border-radius: var(--r-xl); background: var(--sky-soft); color: var(--accent); text-transform: uppercase; letter-spacing: 0.03em; }
+  .low-tag { color: var(--danger); font-size: var(--text-xs); font-weight: 500; }
+  .empty-state { text-align: center; padding: 50px 20px; color: var(--ink-faint); font-size: var(--text-sm); }
 
   /* modal */
   .modal-backdrop { position: fixed; inset: 0; background: rgba(28,28,30,0.4); display: flex; align-items: center; justify-content: center; z-index: 20; padding: 20px; }
-  .modal { background: var(--paper); width: 100%; max-width: 440px; border-radius: 12px; padding: 24px; max-height: 85vh; overflow-y: auto; }
-  .modal .close { text-align: right; font-size: 13px; color: var(--ink-soft); cursor: pointer; margin-bottom: 4px; }
-  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .modal { background: var(--paper); width: 100%; max-width: 440px; border-radius: var(--r-md); padding: var(--sp-5); max-height: 85vh; overflow-y: auto; }
+  .modal .close { text-align: right; font-size: var(--text-xs); color: var(--ink-soft); cursor: pointer; margin-bottom: var(--sp-1); }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
 
   /* ---------- APP DIALOGS / TOASTS / BUSY STATES ---------- */
   .dialog-backdrop { position: fixed; inset: 0; background: rgba(28,28,30,0.4); display: flex; align-items: center; justify-content: center; z-index: 45; padding: 20px; }
-  .app-dialog { background: var(--paper); width: 100%; max-width: 400px; border-radius: 12px; padding: 24px; max-height: 85vh; overflow-y: auto; animation: modalIn 0.22s ease; }
-  .app-dialog h3 { margin: 0 0 8px; font-size: 17px; }
-  .app-dialog p.msg { color: var(--ink-soft); font-size: 14px; line-height: 1.5; margin: 0; }
-  .dialog-actions { display: flex; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
-  .dialog-actions button { flex: 1; min-width: 104px; padding: 10px 14px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease; }
-  .dialog-actions button:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(15,23,42,0.10); }
+  .app-dialog { background: var(--paper); width: 100%; max-width: 400px; border-radius: var(--r-md); padding: var(--sp-5); max-height: 85vh; overflow-y: auto; animation: modalIn 0.22s ease; }
+  .app-dialog h3 { margin: 0 0 8px; font-size: var(--text-lg); }
+  .app-dialog p.msg { color: var(--ink-soft); font-size: var(--text-sm); line-height: 1.5; margin: 0; }
+  .dialog-actions { display: flex; gap: var(--sp-2); margin-top: 20px; flex-wrap: wrap; }
+  .dialog-actions button { flex: 1; min-width: 104px; padding: 10px 14px; border-radius: var(--r-sm); font-size: var(--text-sm); font-weight: 500; cursor: pointer; border: none; transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease; }
+  .dialog-actions button:hover { transform: translateY(-1px); box-shadow: var(--shadow-2); }
   .dialog-actions .btn-primary { background: var(--accent); color: #fff; }
   .dialog-actions .btn-danger { background: var(--danger); color: #fff; }
   .dialog-actions .btn-ghost { border: 1px solid var(--line); background: var(--card); color: var(--ink-soft); }
   @media (max-width: 480px) { .dialog-actions { flex-direction: column-reverse; } .dialog-actions button { width: 100%; } }
 
-  #toast-stack { position: fixed; right: 16px; bottom: 16px; z-index: 80; display: grid; gap: 8px; pointer-events: none; }
-  .toast { background: var(--card); color: var(--ink); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 13px; font-weight: 500; box-shadow: 0 12px 28px rgba(15,23,42,0.18); opacity: 0; transform: translateY(8px); transition: opacity 0.22s ease, transform 0.22s ease; max-width: 340px; overflow-wrap: anywhere; }
+  #toast-stack { position: fixed; right: 16px; bottom: 16px; z-index: 80; display: grid; gap: var(--sp-2); pointer-events: none; }
+  .toast { background: var(--card); color: var(--ink); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-4); font-size: var(--text-xs); font-weight: 500; box-shadow: var(--shadow-3); opacity: 0; transform: translateY(8px); transition: opacity 0.22s ease, transform 0.22s ease; max-width: 340px; overflow-wrap: anywhere; }
   .toast.show { opacity: 1; transform: translateY(0); }
   .toast-success { border-left-color: #16805C; }
   .toast-error { border-left-color: var(--danger); }
@@ -329,10 +359,10 @@
     .side-header, .side-footer { display: none; }
     nav { display: flex; justify-content: space-around; padding: 10px 4px; width: 100%; }
     .nav-item {
-      flex-direction: column; gap: 4px; padding: 10px 6px; font-size: 12px;
-      text-align: center; flex: 1; border-radius: 10px;
+      flex-direction: column; gap: var(--sp-1); padding: 10px 6px; font-size: var(--text-xs);
+      text-align: center; flex: 1; border-radius: var(--r-md);
     }
-    .nav-icon { font-size: 22px; }
+    .nav-icon { font-size: var(--text-xl); }
 
     nav .nav-secondary { display: none; }
     .mobile-more-btn { display: flex; }
@@ -341,37 +371,37 @@
       display: block; position: fixed; inset: 0; background: rgba(28,28,30,0.35); z-index: 16;
     }
     #mobile-more-panel.open {
-      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2);
       position: fixed; left: 10px; right: 10px; bottom: 72px;
-      background: var(--card); border-radius: 14px; padding: 10px; z-index: 17;
+      background: var(--card); border-radius: var(--r-lg); padding: 10px; z-index: 17;
       box-shadow: 0 -4px 16px rgba(0,0,0,0.12);
       max-height: min(62vh, 420px); overflow-y: auto;
     }
     #mobile-more-panel .nav-item {
-      flex-direction: column; justify-content: center; align-items: center; gap: 4px; padding: 10px 8px;
-      font-size: 12px; text-align: center; border-radius: 10px; min-height: 72px;
+      flex-direction: column; justify-content: center; align-items: center; gap: var(--sp-1); padding: 10px 8px;
+      font-size: var(--text-xs); text-align: center; border-radius: var(--r-md); min-height: 72px;
     }
-    #mobile-more-panel .nav-icon { font-size: 18px; width: 24px; }
+    #mobile-more-panel .nav-icon { font-size: var(--text-lg); width: 24px; }
 
     main { flex: 1; min-height: 0; padding: 16px 14px 90px; }
     .field-row { grid-template-columns: 1fr; }
 
     .ledger-head { display: none; }
     .ledger-row {
-      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px;
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-1);
       padding: 14px 16px;
     }
     .ledger-row > div:first-child { flex: 1; min-width: 60%; }
 
     .modal-backdrop { align-items: flex-end; padding: 0; }
-    .modal { max-width: 100%; border-radius: 16px 16px 0 0; max-height: 92vh; }
+    .modal { max-width: 100%; border-radius: var(--r-lg) var(--r-lg) 0 0; max-height: 92vh; }
 
     .metrics { grid-template-columns: 1fr; }
     .metric-card, .report-card, .report-card.compact-card { padding: 14px 14px; }
-    .report-grid { grid-template-columns: 1fr; gap: 16px; }
+    .report-grid { grid-template-columns: 1fr; gap: var(--sp-4); }
     .dashboard-summary-grid { grid-template-columns: 1fr; }
     .report-summary-card { width: 100%; }
-    .ledger { font-size: 13px; }
+    .ledger { font-size: var(--text-xs); }
     .ledger-row { padding: 12px 14px; }
     .ledger-row > div { min-width: 0; }
     .ledger-row > div:first-child { flex: 1 1 100%; min-width: 0; }
@@ -390,20 +420,20 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: var(--sp-2);
       position: fixed;
       top: 86px;
       left: 50%;
       transform: translate(-50%, -120%);
       z-index: 35;
-      padding: 8px 12px;
-      border-radius: 999px;
+      padding: var(--sp-2) var(--sp-3);
+      border-radius: var(--r-pill);
       background: rgba(255,255,255,0.96);
       color: var(--ink-soft);
       border: 1px solid var(--line);
-      box-shadow: 0 10px 24px rgba(15,23,42,0.10);
+      box-shadow: var(--shadow-2);
       backdrop-filter: blur(10px);
-      font-size: 12px;
+      font-size: var(--text-xs);
       font-weight: 600;
       pointer-events: none;
       opacity: 0;
@@ -411,7 +441,7 @@
     }
     #pull-refresh-indicator.show { opacity: 1; transform: translate(-50%, 0); }
     #pull-refresh-indicator.active { color: var(--accent); border-color: var(--accent-soft); }
-    #pull-refresh-indicator .icon { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 11px; }
+    #pull-refresh-indicator .icon { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: var(--text-2xs); }
 
     #app-topbar {
       flex-direction: row;
@@ -444,7 +474,7 @@
     #app-topbar .user-actions {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: var(--sp-2);
     }
     #app-topbar .user-panel .signout-btn { width: auto; padding: 6px 9px; }
   }
@@ -498,7 +528,7 @@
   <div class="brand-mark" style="margin:0 auto 18px;"><img src="logo.png" alt="Thole Solutions" /></div>
   <h1>You're all set</h1>
   <p class="sub">Share this code with your staff so they can join:</p>
-  <div class="num" style="font-size:28px; font-weight:600; letter-spacing:0.05em; background:var(--accent-soft); color:var(--accent); padding:16px; border-radius:10px; margin:16px 0;" id="invite-code-display">—</div>
+  <div class="num" style="font-size: var(--text-2xl); font-weight:600; letter-spacing:0.05em; background:var(--accent-soft); color:var(--accent); padding: var(--sp-4); border-radius: var(--r-md); margin:16px 0;" id="invite-code-display">—</div>
   <p class="sub" style="margin-top:0;">They'll enter it under "Redeem an invite code" when they sign up.</p>
   <button class="btn-primary" onclick="finishInviteReveal()">Go to dashboard</button>
 </div>
@@ -560,7 +590,7 @@
     <div class="side-footer">
       <div class="user-name" id="user-name-display">—</div>
       <div class="user-role" id="user-role-display">—</div>
-      <span class="logout-link" onclick="confirmSignOut()"><svg viewBox="0 0 24 24" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Sign out</span>
+      <span class="logout-link" onclick="confirmSignOut()"><svg viewBox="0 0 24 24" style="width:16px;height:16px;vertical-align:middle;margin-right: var(--sp-1);"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Sign out</span>
     </div>
   </aside>
 
@@ -607,7 +637,7 @@
     <section id="tab-products" class="tab-panel hidden">
       <div class="page-header"><h2>Products & Stock</h2><p>Your catalog and current stock on hand.</p></div>
       <div class="toolbar">
-        <div style="display:flex; gap:8px; flex:1;">
+        <div style="display:flex; gap: var(--sp-2); flex:1;">
           <input type="text" id="product-search" placeholder="Search products…" oninput="renderProducts()" style="max-width:220px;" />
           <select id="cat-filter" onchange="renderProducts()"><option value="">All categories</option></select>
         </div>
@@ -620,7 +650,7 @@
       <div class="page-header"><h2>Sales</h2><p>Record a sale — stock updates automatically.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="sales-filter-mode" onchange="const f=document.getElementById('sales-date-filter'); f.type=this.value; f.value=''; loadSales();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+          <select id="sales-filter-mode" onchange="const f=document.getElementById('sales-date-filter'); f.type=this.value; f.value=''; loadSales();" style="padding: var(--sp-2); border:1px solid var(--line); border-radius: var(--r-sm); background:var(--card); color:var(--ink);">
             <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
           <input type="date" id="sales-date-filter" onchange="loadSales()" placeholder="YYYY" />
@@ -633,7 +663,7 @@
             <h3>Cash session</h3>
             <p id="pos-session-state">Checking session…</p>
           </div>
-          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <div style="display:flex; gap: var(--sp-2); flex-wrap:wrap;">
             <button class="btn-ghost hidden" id="pos-flag-btn" onclick="toggleSessionRequirement()"></button>
             <button class="btn-small hidden" id="pos-open-btn" onclick="openPosSession()">Open session</button>
             <button class="btn-small hidden" id="pos-close-btn" onclick="closePosSession()">Close session</button>
@@ -653,7 +683,7 @@
       <div class="page-header"><h2>Payments</h2><p>Money received from customers.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="payments-filter-mode" onchange="const f=document.getElementById('payments-date-filter'); f.type=this.value; f.value=''; loadPayments();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+          <select id="payments-filter-mode" onchange="const f=document.getElementById('payments-date-filter'); f.type=this.value; f.value=''; loadPayments();" style="padding: var(--sp-2); border:1px solid var(--line); border-radius: var(--r-sm); background:var(--card); color:var(--ink);">
             <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
           <input type="date" id="payments-date-filter" onchange="loadPayments()" placeholder="YYYY" />
@@ -667,7 +697,7 @@
       <div class="page-header"><h2>Expenses</h2><p>Overhead costs — rent, wages, utilities, supplies.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="expenses-filter-mode" onchange="const f=document.getElementById('expenses-date-filter'); f.type=this.value; f.value=''; loadExpenses();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+          <select id="expenses-filter-mode" onchange="const f=document.getElementById('expenses-date-filter'); f.type=this.value; f.value=''; loadExpenses();" style="padding: var(--sp-2); border:1px solid var(--line); border-radius: var(--r-sm); background:var(--card); color:var(--ink);">
             <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
           <input type="date" id="expenses-date-filter" onchange="loadExpenses()" placeholder="YYYY" />
@@ -687,7 +717,7 @@
       <div class="page-header"><h2>Purchase Orders</h2><p>Restocking — this updates product stock automatically.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="purchases-filter-mode" onchange="const f=document.getElementById('purchases-date-filter'); f.type=this.value; f.value=''; loadPurchases();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+          <select id="purchases-filter-mode" onchange="const f=document.getElementById('purchases-date-filter'); f.type=this.value; f.value=''; loadPurchases();" style="padding: var(--sp-2); border:1px solid var(--line); border-radius: var(--r-sm); background:var(--card); color:var(--ink);">
             <option value="date">Day</option><option value="week">Week</option><option value="month">Month</option><option value="number">Year</option>
           </select>
           <input type="date" id="purchases-date-filter" onchange="loadPurchases()" placeholder="YYYY" />
@@ -697,22 +727,22 @@
       <div class="report-card compact-card hidden" id="reorder-suggestions-card">
         <h3>Suggested reorder</h3>
         <p class="card-label">Products at or below their reorder threshold. Start a PO for any of them.</p>
-        <div class="checklist" id="reorder-suggestions-list" style="margin-top:12px;"></div>
+        <div class="checklist" id="reorder-suggestions-list" style="margin-top: var(--sp-3);"></div>
       </div>
       <div class="ledger" id="purchases-ledger"></div>
     </section>
     
     <section id="tab-team" class="tab-panel hidden">
       <div class="page-header"><h2>Team</h2><p>Everyone with access to this business.</p></div>
-      <div style="background:var(--accent-soft); border-radius:10px; padding:16px 18px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <div style="background:var(--accent-soft); border-radius: var(--r-md); padding:16px 18px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <div>
-          <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); margin-bottom:4px;">Invite code</div>
-          <div class="num" style="font-size:20px; font-weight:600; color:var(--accent);" id="team-invite-code">—</div>
+          <div style="font-size: var(--text-2xs); text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); margin-bottom: var(--sp-1);">Invite code</div>
+          <div class="num" style="font-size: var(--text-xl); font-weight:600; color:var(--accent);" id="team-invite-code">—</div>
         </div>
         <button class="btn-ghost" onclick="copyInviteCode()">Copy</button>
       </div>
       <div class="ledger" id="team-ledger"></div>
-      <p style="font-size:12px; color:var(--ink-faint); margin-top:14px;">Share this code with new staff — they use it under "Redeem an invite code" when they sign up. You can promote them to Manager here after.</p>
+      <p style="font-size: var(--text-xs); color:var(--ink-faint); margin-top:14px;">Share this code with new staff — they use it under "Redeem an invite code" when they sign up. You can promote them to Manager here after.</p>
     </section>
 
     <section id="tab-reports" class="tab-panel hidden">
@@ -794,7 +824,7 @@
         <button class="btn-ghost hidden" id="table-service-toggle" onclick="toggleTableService()"></button>
         <button class="btn-small hidden" id="add-table-btn" onclick="openModal('table-modal')">+ Add table</button>
       </div>
-      <div id="tables-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:12px;"></div>
+      <div id="tables-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap: var(--sp-3);"></div>
       <div class="empty-state hidden" id="tables-empty">No tables yet — add your first one.</div>
     </section>
   </main>
@@ -838,7 +868,7 @@
     <div id="cart-lines" style="margin-top:14px;"></div>
     <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0;">
       <span class="card-label">Order total</span>
-      <strong class="num" id="cart-total" style="font-size:18px;">$0.00</strong>
+      <strong class="num" id="cart-total" style="font-size: var(--text-lg);">$0.00</strong>
     </div>
     <div class="field-row">
       <div><label>Discount</label><input type="number" id="s-discount" value="0" min="0" oninput="renderCart()" /></div>
@@ -1004,7 +1034,7 @@
   <div class="modal">
     <div class="close" onclick="closeModal('recipe-modal')">Close</div>
     <h3>Recipe for <span id="recipe-product-name"></span></h3>
-    <p style="font-size:12px; color:var(--ink-faint); margin-top:-6px;">How much of each raw material makes ONE unit of this product.</p>
+    <p style="font-size: var(--text-xs); color:var(--ink-faint); margin-top:-6px;">How much of each raw material makes ONE unit of this product.</p>
     <div id="recipe-items-list" style="margin:14px 0;"></div>
     <div class="field-row">
       <div><label>Raw material</label><select id="ri-material"></select></div>
@@ -1022,7 +1052,7 @@
     <label>Product</label>
     <select id="prod-product" onchange="onProduceProductChange()"></select>
     <label>Batch quantity</label><input type="number" id="prod-qty" value="1" onchange="onProduceProductChange()" />
-    <div id="produce-requirements" style="margin:14px 0; font-size:13px; color:var(--ink-soft);"></div>
+    <div id="produce-requirements" style="margin:14px 0; font-size: var(--text-xs); color:var(--ink-soft);"></div>
     <button class="btn-primary" id="produce-submit-btn" onclick="submitProduce()">Produce</button>
     <div id="produce-error" class="error hidden"></div>
   </div>
@@ -1236,14 +1266,45 @@
   function abbreviateCurrency(value) { return "$" + abbreviateNumber(value); }
 
   let lastFocusedEl = null; // restored when the modal closes
+  let activeModalId = null; // focus-trap scope while a form modal is open
+  function focusablesIn(scope) {
+    return [...scope.querySelectorAll(
+      'button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex="0"]'
+    )];
+  }
+  // Keep Tab cycling inside the topmost overlay (dialog beats form modal).
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Tab") return;
+    const backdrops = document.querySelectorAll(".dialog-backdrop");
+    const scope = (backdrops.length && backdrops[backdrops.length - 1].querySelector(".app-dialog"))
+      || (activeModalId ? document.getElementById(activeModalId) : null);
+    if (!scope) return;
+    const items = focusablesIn(scope);
+    if (!items.length) { e.preventDefault(); return; }
+    const first = items[0], last = items[items.length - 1];
+    const active = document.activeElement;
+    const inside = active && scope.contains(active);
+    if (!inside || (e.shiftKey && active === first)) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus(); }
+  }, true);
+  // Enter/Space activate click-based controls that are not native buttons.
+  document.addEventListener("keydown", (e) => {
+    if ((e.key === "Enter" || e.key === " ") && e.target instanceof Element
+        && e.target.matches('.nav-item, .logout-link')) {
+      e.preventDefault();
+      e.target.click();
+    }
+  });
   function openModal(id) {
     lastFocusedEl = document.activeElement;
+    activeModalId = id;
     show(id);
     const first = document.querySelector(`#${id} input:not([type="hidden"]), #${id} select`);
     (first || document.querySelector(`#${id} .close`))?.focus();
   }
   function closeModal(id) {
     hide(id);
+    if (activeModalId === id) activeModalId = null;
     if (lastFocusedEl && document.contains(lastFocusedEl)) { try { lastFocusedEl.focus(); } catch {} }
     lastFocusedEl = null;
     document.querySelectorAll(`#${id} input`).forEach((i) => (i.value = ""));
@@ -1632,8 +1693,8 @@
           <div>
             <div>${escapeHtml(p.name)}</div>
             ${p.category ? `<span class="cat-badge">${escapeHtml(p.category)}</span>` : ""}
-            ${showRecipeLink ? `<span style="color:var(--accent); font-size:11px; text-decoration:underline; margin-left:8px;" onclick="event.stopPropagation(); openRecipeModal('${p.id}')">Recipe</span>` : ""}
-            ${margin !== null ? `<div style="font-size:11px; color:var(--ink-faint); margin-top:2px;">${margin}% margin</div>` : ""}
+            ${showRecipeLink ? `<span style="color:var(--accent); font-size: var(--text-2xs); text-decoration:underline; margin-left: var(--sp-2);" onclick="event.stopPropagation(); openRecipeModal('${p.id}')">Recipe</span>` : ""}
+            ${margin !== null ? `<div style="font-size: var(--text-2xs); color:var(--ink-faint); margin-top:2px;">${margin}% margin</div>` : ""}
           </div>
           <div class="${isLow ? "low-tag" : "num"}">${p.stock_qty !== null ? p.stock_qty + " " + escapeHtml(p.unit) : "—"}</div>
           <div class="num" style="text-align:right">${money(p.price)}</div>
@@ -1775,9 +1836,9 @@
     el.innerHTML = cart.length === 0
       ? `<div class="empty-state" style="padding:14px;">No items yet — add products above.</div>`
       : cart.map((l, i) => `<div style="display:flex; align-items:center; gap:10px; padding:8px 2px; border-bottom:1px solid var(--line);">
-          <div style="flex:1; min-width:0;">${escapeHtml(l.name)}<br /><span class="num" style="color:var(--ink-faint); font-size:12px;">${l.qty} × ${money(l.unit_price)}</span></div>
+          <div style="flex:1; min-width:0;">${escapeHtml(l.name)}<br /><span class="num" style="color:var(--ink-faint); font-size: var(--text-xs);">${l.qty} × ${money(l.unit_price)}</span></div>
           <div class="num" style="text-align:right;">${money(l.qty * l.unit_price)}</div>
-          <span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="removeCartLine(${i})">Remove</span>
+          <span style="color:var(--danger); font-size: var(--text-xs); text-decoration:underline; cursor:pointer;" onclick="removeCartLine(${i})">Remove</span>
         </div>`).join("");
     const totalEl = document.getElementById("cart-total");
     if (totalEl) totalEl.textContent = money(cartTotals().total);
@@ -1869,9 +1930,9 @@
         const isRefunded = o.status === "refunded";
         return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;${isRefunded ? " opacity:0.55;" : ""}">
         <div>${o.customers ? escapeHtml(o.customers.name) : "Walk-in"}${isRefunded ? ' <span class="cat-badge" style="background:var(--danger-soft); color:var(--danger);">refunded</span>' : ""}</div>
-        <div style="color:var(--ink-faint); font-size:12px;">${new Date(o.created_at).toLocaleDateString()}</div>
+        <div style="color:var(--ink-faint); font-size: var(--text-xs);">${new Date(o.created_at).toLocaleDateString()}</div>
         <div class="num" style="text-align:right">${money(o.total_amount)}</div>
-        <div style="text-align:right;">${isRefunded ? "" : `<span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidSale('${o.id}')">Refund</span>`}</div>
+        <div style="text-align:right;">${isRefunded ? "" : `<span style="color:var(--danger); font-size: var(--text-xs); text-decoration:underline; cursor:pointer;" onclick="voidSale('${o.id}')">Refund</span>`}</div>
       </div>`;
       }).join("");
   }
@@ -1960,7 +2021,7 @@
     const cur = await getOpenPosSession();
     if (cur.unavailable) {
       stateEl.innerHTML = required
-        ? '<svg viewBox="0 0 24 24" style="width:16px;height:16px;vertical-align:-3px;margin-right:4px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Session tracking is required but unavailable — check RLS/policies on pos_sessions.'
+        ? '<svg viewBox="0 0 24 24" style="width:16px;height:16px;vertical-align:-3px;margin-right: var(--sp-1);fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Session tracking is required but unavailable — check RLS/policies on pos_sessions.'
         : "Session tracking unavailable (optional feature).";
       return;
     }
@@ -2049,7 +2110,7 @@
       console.error("loadTables error:", error);
       cache.tables = [];
       if (errBox) {
-        errBox.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;vertical-align:-3px;margin-right:4px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ';
+        errBox.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;vertical-align:-3px;margin-right: var(--sp-1);fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ';
         errBox.appendChild(document.createTextNode("Tables are enabled but unavailable (" + error.message + "). Check RLS/policies on restaurant_tables."));
         errBox.classList.remove("hidden");
       }
@@ -2082,13 +2143,13 @@
       toggleBtn.classList.toggle("hidden", label === null);
     }
     grid.innerHTML = cache.tables.map((t) => `
-      <div style="border:1px solid var(--line); border-radius:14px; background:var(--card); padding:14px; text-align:center;">
+      <div style="border:1px solid var(--line); border-radius: var(--r-lg); background:var(--card); padding:14px; text-align:center;">
         <div style="cursor:pointer;" onclick="cycleTableStatus('${t.id}')" title="Tap to cycle status">
-          <div style="font-weight:600; font-size:16px;">${escapeHtml(t.table_number ?? "?")}</div>
-          <div style="font-size:11px; color:var(--ink-faint); margin-bottom:8px;">${t.name ? escapeHtml(t.name) + " · " : ""}${t.capacity != null && t.capacity !== "" ? t.capacity + " seats" : "&nbsp;"}</div>
+          <div style="font-weight:600; font-size: var(--text-base);">${escapeHtml(t.table_number ?? "?")}</div>
+          <div style="font-size: var(--text-2xs); color:var(--ink-faint); margin-bottom: var(--sp-2);">${t.name ? escapeHtml(t.name) + " · " : ""}${t.capacity != null && t.capacity !== "" ? t.capacity + " seats" : "&nbsp;"}</div>
           <span class="cat-badge" style="${tableStatusStyle((t.status ?? "free").toLowerCase())}">${escapeHtml((t.status ?? "free").toLowerCase())}</span>
         </div>
-        ${canManage ? `<span style="font-size:11px; text-decoration:underline; cursor:pointer; color:var(--ink-faint);" onclick="openEditTable('${t.id}')">Edit</span>` : ""}
+        ${canManage ? `<span style="font-size: var(--text-2xs); text-decoration:underline; cursor:pointer; color:var(--ink-faint);" onclick="openEditTable('${t.id}')">Edit</span>` : ""}
       </div>`).join("");
     const emptyEl = document.getElementById("tables-empty");
     if (emptyEl) emptyEl.classList.toggle("hidden", cache.tables.length > 0);
@@ -2232,7 +2293,7 @@
       `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Customer</div><div>Method</div><div style="text-align:right">Amount</div></div>` +
       cache.payments.map((p) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr; cursor:pointer;" onclick="openEditPayment('${p.id}')">
         <div>${p.customers ? escapeHtml(p.customers.name) : "—"}</div>
-        <div style="color:var(--ink-faint); font-size:12px; text-transform:capitalize;">${escapeHtml(p.method.replace("_"," "))}</div>
+        <div style="color:var(--ink-faint); font-size: var(--text-xs); text-transform:capitalize;">${escapeHtml(p.method.replace("_"," "))}</div>
         <div class="num" style="text-align:right">${money(p.amount)}</div>
       </div>`).join("");
   }
@@ -2296,7 +2357,7 @@
       `<div class="ledger-head" style="grid-template-columns: 1fr 2fr 1fr;"><div>Category</div><div>Description</div><div style="text-align:right">Amount</div></div>` +
       cache.expenses.map((e) => `<div class="ledger-row" style="grid-template-columns: 1fr 2fr 1fr; cursor:pointer;" onclick="openEditExpense('${e.id}')">
         <div><span class="cat-badge" style="background:var(--amber-soft); color:var(--amber);">${escapeHtml(e.category)}</span></div>
-        <div style="color:var(--ink-soft); font-size:13px;">${escapeHtml(e.description ?? "—")}</div>
+        <div style="color:var(--ink-soft); font-size: var(--text-xs);">${escapeHtml(e.description ?? "—")}</div>
         <div class="num" style="text-align:right">${money(e.amount)}</div>
       </div>`).join("");
   }
@@ -2409,7 +2470,7 @@
     } else {
       list.innerHTML = low.map((p) => `<li>
         <span class="marker pending">!</span>
-        <span class="checklist-label">${escapeHtml(p.name)} — ${p.stock_qty} ${escapeHtml(p.unit ?? "")} left (threshold ${p.low_stock_threshold})<br /><span style="color:var(--ink-faint); font-size:12px;">Suggested: ${p.deficit} × ${money(Number(p.cost_price) || 0)}</span></span>
+        <span class="checklist-label">${escapeHtml(p.name)} — ${p.stock_qty} ${escapeHtml(p.unit ?? "")} left (threshold ${p.low_stock_threshold})<br /><span style="color:var(--ink-faint); font-size: var(--text-xs);">Suggested: ${p.deficit} × ${money(Number(p.cost_price) || 0)}</span></span>
         <button onclick="prefillPurchase('${p.id}')">Start PO</button>
       </li>`).join("");
     }
@@ -2484,9 +2545,9 @@
       `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;"><div>Supplier</div><div>Date</div><div style="text-align:right">Total</div><div></div></div>` +
       cache.purchases.map((po) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;">
         <div>${po.suppliers ? escapeHtml(po.suppliers.name) : "No supplier on file"}</div>
-        <div style="color:var(--ink-faint); font-size:12px;">${new Date(po.created_at).toLocaleDateString()}</div>
+        <div style="color:var(--ink-faint); font-size: var(--text-xs);">${new Date(po.created_at).toLocaleDateString()}</div>
         <div class="num" style="text-align:right">${money(po.total_amount)}</div>
-        <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidPurchase('${po.id}')">Void</span></div>
+        <div style="text-align:right;"><span style="color:var(--danger); font-size: var(--text-xs); text-decoration:underline; cursor:pointer;" onclick="voidPurchase('${po.id}')">Void</span></div>
       </div>`).join("");
   }
 
@@ -2526,11 +2587,11 @@
       data.map((u) => {
         const isSelf = u.user_id === currentUser.id;
         return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 0.8fr;">
-          <div>${escapeHtml(u.full_name || "—")}${isSelf ? ' <span style="color:var(--ink-faint); font-size:12px;">(you)</span>' : ""}</div>
+          <div>${escapeHtml(u.full_name || "—")}${isSelf ? ' <span style="color:var(--ink-faint); font-size: var(--text-xs);">(you)</span>' : ""}</div>
           <div>
             ${isSelf
               ? `<span class="cat-badge">${escapeHtml(u.role)}</span>`
-              : `<select onchange="changeRole('${u.user_id}', this.value)" style="padding:5px 8px; font-size:12px;">
+              : `<select onchange="changeRole('${u.user_id}', this.value)" style="padding:5px 8px; font-size: var(--text-xs);">
                   <option value="staff" ${u.role === "staff" ? "selected" : ""}>Staff</option>
                   <option value="manager" ${u.role === "manager" ? "selected" : ""}>Manager</option>
                   <option value="owner" ${u.role === "owner" ? "selected" : ""}>Owner</option>
@@ -2538,7 +2599,7 @@
             }
           </div>
           <div style="text-align:right;">
-            ${isSelf ? "" : `<span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="removeTeamMember('${u.user_id}')">Remove</span>`}
+            ${isSelf ? "" : `<span style="color:var(--danger); font-size: var(--text-xs); text-decoration:underline; cursor:pointer;" onclick="removeTeamMember('${u.user_id}')">Remove</span>`}
           </div>
         </div>`;
       }).join("");
@@ -2842,12 +2903,12 @@
   async function renderRecipeItems() {
     const { data } = await sb.from("recipe_items").select("*, raw_materials(name, unit)").eq("product_id", recipeProductId);
     const el = document.getElementById("recipe-items-list");
-    if (!data || data.length === 0) { el.innerHTML = `<div class="empty-state" style="padding:16px;">No recipe set yet.</div>`; return; }
+    if (!data || data.length === 0) { el.innerHTML = `<div class="empty-state" style="padding: var(--sp-4);">No recipe set yet.</div>`; return; }
     el.innerHTML = data.map((ri) => `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--line);">
-      <div style="font-size:14px;">${escapeHtml(ri.raw_materials.name)}</div>
+      <div style="font-size: var(--text-sm);">${escapeHtml(ri.raw_materials.name)}</div>
       <div style="display:flex; align-items:center; gap:10px;">
         <span class="num">${ri.quantity_required} ${escapeHtml(ri.raw_materials.unit)}</span>
-        <span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="removeRecipeItem('${ri.id}')">Remove</span>
+        <span style="color:var(--danger); font-size: var(--text-xs); text-decoration:underline; cursor:pointer;" onclick="removeRecipeItem('${ri.id}')">Remove</span>
       </div>
     </div>`).join("");
   }
@@ -2978,6 +3039,11 @@
     // Tab navigation
     document.querySelectorAll('.nav-item').forEach((el) => {
       el.addEventListener('click', () => switchTab(el.dataset.tab));
+    });
+    // Keyboard access for click-based controls (audit F-3)
+    document.querySelectorAll('.nav-item, .logout-link').forEach((el) => {
+      if (!el.hasAttribute('role')) el.setAttribute('role', 'button');
+      if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
     });
     // Modal submits — all modal buttons carry onclick="submitX()" in the HTML.
     // Do NOT also addEventListener here: buttons with ids would fire twice

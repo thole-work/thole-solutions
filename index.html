@@ -975,7 +975,7 @@
       <div><label>Quantity received</label><input type="number" id="po-qty" value="1" /></div>
       <div><label>Unit cost</label><input type="number" id="po-cost" /></div>
     </div>
-    <button class="btn-primary" onclick="submitPurchase()">Save purchase</button>
+    <button class="btn-primary" id="purchase-submit-btn" onclick="submitPurchase()">Save purchase</button>
     <div id="purchase-error" class="error hidden"></div>
   </div>
 </div>
@@ -1022,7 +1022,7 @@
     <select id="prod-product" onchange="onProduceProductChange()"></select>
     <label>Batch quantity</label><input type="number" id="prod-qty" value="1" onchange="onProduceProductChange()" />
     <div id="produce-requirements" style="margin:14px 0; font-size:13px; color:var(--ink-soft);"></div>
-    <button class="btn-primary" onclick="submitProduce()">Produce</button>
+    <button class="btn-primary" id="produce-submit-btn" onclick="submitProduce()">Produce</button>
     <div id="produce-error" class="error hidden"></div>
   </div>
 </div>
@@ -1258,7 +1258,7 @@
 
   async function deleteRecord(table, modalId) {
     if (!editingRecord || editingRecord.table !== table) return;
-    if (!confirm("Delete this permanently? This can't be undone.")) return;
+    if (!(await confirmDialog("Delete this permanently? This can't be undone.", { title: "Confirm delete", confirmLabel: "Delete", danger: true }))) return;
     const { error } = await sb.from(table).delete().eq("id", editingRecord.id);
     if (error) return setError(modalId.replace("-modal", "-error"), error.message);
     closeModal(modalId);
@@ -1875,16 +1875,22 @@
   }
 
   async function voidSale(orderId) {
-    if (!confirm("Refund this sale? Stock will be restored and a refund payment recorded. This can't be undone.")) return;
-
     const { data: freshOrder, error: orderFetchErr } = await sb.from("orders").select("status, customer_id, total_amount").eq("id", orderId).single();
-    if (orderFetchErr || !freshOrder) return alert("Unable to load this sale. Please refresh and try again.");
-    if (freshOrder.status === "refunded") return alert("This sale has already been refunded.");
+    if (orderFetchErr || !freshOrder) { toast("Unable to load this sale — please refresh and try again.", "error"); return; }
+    if (freshOrder.status === "refunded") { toast("This sale has already been refunded.", "info"); return; }
 
-    const methodInput = prompt("Refund method — type one of: cash, bank_transfer, mobile_money", "cash");
-    if (methodInput === null) return;
-    const method = methodInput.trim().toLowerCase();
-    if (!["cash", "bank_transfer", "mobile_money"].includes(method)) return alert("Invalid refund method. Sale was not refunded.");
+    const r = await appDialog({
+      title: "Refund this sale?",
+      message: `Refund ${money(freshOrder.total_amount)}? Stock will be restored and a refund payment recorded. This can't be undone.`,
+      actions: [
+        { label: "Cancel", value: null },
+        { label: "Bank transfer", value: "bank_transfer" },
+        { label: "Mobile money", value: "mobile_money" },
+        { label: "Cash", value: "cash", kind: "btn-primary" },
+      ],
+    });
+    const method = r.action;
+    if (!method) return;
 
     const { data: items } = await sb.from("order_items").select("*").eq("order_id", orderId);
     for (const item of items ?? []) {
@@ -1904,13 +1910,14 @@
       customer_id: freshOrder.customer_id ?? null, order_id: orderId,
       amount: Number(freshOrder.total_amount), method, created_by: currentUser.id,
     });
-    if (refundPayErr) return alert("Stock was restored but the refund payment could not be recorded: " + refundPayErr.message);
+    if (refundPayErr) { toast("Stock was restored but the refund payment could not be recorded: " + refundPayErr.message, "error", 6000); return; }
 
     const { error: statusErr } = await sb.from("orders").update({ status: "refunded" }).eq("id", orderId);
-    if (statusErr) return alert("Could not mark the sale as refunded: " + statusErr.message);
+    if (statusErr) { toast("Could not mark the sale as refunded: " + statusErr.message, "error", 6000); return; }
 
     await Promise.all([loadProducts(), loadSales(), loadPayments()]);
     renderDashboard();
+    toast(`Refunded ${money(freshOrder.total_amount)} via ${method.replaceAll("_", " ")}`);
   }
 
   // ============================================================
@@ -1965,22 +1972,23 @@
   }
 
   async function openPosSession() {
-    const input = prompt("Counted opening cash (float):", "0");
-    if (input === null) return;
-    const openingFloat = parseFloat(input);
-    if (isNaN(openingFloat) || openingFloat < 0) return alert("Enter a valid opening float.");
+    const res = await promptDialog({ title: "Open cash session", label: "Counted opening cash (float)", value: "0", confirmLabel: "Open session" });
+    if (res === null) return;
+    const openingFloat = parseFloat(res);
+    if (isNaN(openingFloat) || openingFloat < 0) { toast("Enter a valid opening float — session not opened.", "error"); return; }
     const { error } = await sb.from("pos_sessions").insert({
       business_id: membership.business_id, opened_by: currentUser.id,
       opening_float: openingFloat, status: "open", opened_at: new Date().toISOString(),
     });
-    if (error) return alert("Could not open the session: " + error.message);
+    if (error) { toast("Could not open the session: " + error.message, "error", 6000); return; }
     await renderPosSessionCard();
+    toast(`Session opened · float ${money(openingFloat)}`);
   }
 
   async function closePosSession() {
     const cur = await getOpenPosSession();
-    if (cur.unavailable) return alert("Session tracking is unavailable.");
-    if (!cur.session) return alert("There is no open session to close.");
+    if (cur.unavailable) { toast("Session tracking is unavailable.", "error"); return; }
+    if (!cur.session) { toast("There is no open session to close.", "info"); return; }
     const s = cur.session;
 
     const [{ data: cashOrders }, { data: cashRefunds }] = await Promise.all([
@@ -1993,20 +2001,26 @@
       + (cashOrders ?? []).reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0)
       - (cashRefunds ?? []).reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
 
-    const input = prompt(`Expected cash in drawer: ${money(expected)}\nCounted actual cash:`, expected.toFixed(2));
-    if (input === null) return;
-    const actual = parseFloat(input);
-    if (isNaN(actual) || actual < 0) return alert("Enter a valid counted amount.");
+    const res = await promptDialog({
+      title: "Close cash session",
+      label: `Expected in drawer: ${money(expected)}. Counted actual cash:`,
+      value: expected.toFixed(2),
+      confirmLabel: "Close session",
+    });
+    if (res === null) return;
+    const actual = parseFloat(res);
+    if (isNaN(actual) || actual < 0) { toast("Enter a valid counted amount — session still open.", "error"); return; }
 
     const { error } = await sb.from("pos_sessions").update({
       closed_by: currentUser.id, closed_at: new Date().toISOString(),
       actual_cash: actual, expected_cash: expected, status: "closed",
     }).eq("id", s.id);
-    if (error) return alert("Could not close the session: " + error.message);
+    if (error) { toast("Could not close the session: " + error.message, "error", 6000); return; }
 
     const variance = actual - expected;
-    alert(variance === 0 ? "Session closed. Cash balanced." : `Session closed. Variance: ${money(Math.abs(variance))} ${variance > 0 ? "over" : "short"}.`);
     await renderPosSessionCard();
+    if (variance === 0) toast("Session closed. Cash balanced.");
+    else toast(`Session closed. Variance: ${money(Math.abs(variance))} ${variance > 0 ? "over" : "short"}.`, variance < 0 ? "error" : "info", 5200);
   }
 
   async function toggleSessionRequirement() {
@@ -2083,11 +2097,12 @@
     if (!t) return;
     const current = (t.status ?? "free").toLowerCase();
     const next = NEXT_TABLE_STATUS[current] ?? "free";
-    if (!confirm(`Mark table ${t.table_number} as "${next}"?`)) return;
+    if (!(await confirmDialog(`Mark table ${t.table_number} as "${next}"?`, { title: "Update table", confirmLabel: `Mark ${next}` }))) return;
     const { error } = await sb.from("restaurant_tables").update({ status: next }).eq("id", id);
-    if (error) return alert("Could not update the table: " + error.message);
+    if (error) { toast("Could not update the table: " + error.message, "error", 6000); return; }
     t.status = next;
     renderTables();
+    toast(`Table ${t.table_number} marked ${next}`, "info");
   }
 
   function openEditTable(id) {
@@ -2132,14 +2147,15 @@
   }
 
   async function toggleTableService() {
-    if (membership.role !== "owner" && membership.role !== "manager") return alert("Only owners and managers can change this setting.");
+    if (membership.role !== "owner" && membership.role !== "manager") { toast("Only owners and managers can change this setting.", "error"); return; }
     const settings = { ...(membership.businesses.settings ?? {}) };
     settings.table_service = !(settings.table_service || businessTypeKey === "restaurant");
     const { error } = await sb.from("businesses").update({ settings }).eq("id", membership.business_id);
-    if (error) return alert("Could not update the setting: " + error.message);
+    if (error) { toast("Could not update the setting: " + error.message, "error", 6000); return; }
     membership.businesses.settings = settings;
     applyBusinessTypeVisibility(businessTypeKey);
     await loadTables();
+    toast(settings.table_service ? "Table service enabled." : "Table service disabled.", "info");
   }
 
   // ============================================================
@@ -2453,7 +2469,7 @@
   }
 
   async function voidPurchase(poId) {
-    if (!confirm("Void this purchase? Stock added will be removed. This can't be undone.")) return;
+    if (!(await confirmDialog("Void this purchase? Stock added will be removed. This can't be undone.", { title: "Void purchase", confirmLabel: "Void purchase", danger: true }))) return;
 
     const { data: items } = await sb.from("purchase_order_items").select("*").eq("purchase_order_id", poId);
     for (const item of items ?? []) {

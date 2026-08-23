@@ -156,10 +156,6 @@
     display: flex; flex-direction: column; flex-shrink: 0;
     box-shadow: var(--shadow-2);
   }
-  .side-header { padding: 22px 18px 16px; border-bottom: 1px solid rgba(255,255,255,0.12); display: flex; align-items: center; gap: 10px; }
-  .side-header img { width: 32px; height: 32px; border-radius: var(--r-sm); flex-shrink: 0; }
-  .side-header .biz { font-family: 'Source Serif 4', serif; font-weight: 600; font-size: var(--text-base); line-height: 1.2; color: #fff; }
-  .side-header .type-tag { font-size: var(--text-2xs); color: rgba(255,255,255,0.55); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
   nav { flex: 1; padding: 14px 12px; overflow-y: auto; }
   aside .nav-item {
     display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-md);
@@ -184,12 +180,21 @@
   .logout-link { font-size: var(--text-xs); color: var(--ink-faint); text-decoration: underline; cursor: pointer; margin-top: 6px; display: inline-block; }
 
   main { grid-column: 2; grid-row: 2; display: flex; flex-direction: column; width: 100%; padding: 28px 40px 24px; overflow: hidden; min-width: 0; }
-  #app-topbar { grid-column: 1 / -1; grid-row: 1; display: flex; justify-content: space-between; align-items: center; width: 100%; gap: var(--sp-5); min-height: 78px; z-index: 30; background: var(--card); color: var(--ink); padding: 14px 28px; border-bottom: 1px solid var(--line); box-shadow: var(--shadow-1); }
-  #app-topbar .title-group { min-width: 0; }
-  #app-topbar h2 { margin: 0; font-size: var(--text-lg); color: var(--ink); }
-  #app-topbar p { margin: 4px 0 0; color: var(--ink-soft); font-size: var(--text-xs); }
+  #app-topbar { grid-column: 1 / -1; grid-row: 1; display: flex; justify-content: space-between; align-items: center; width: 100%; gap: var(--sp-4); min-height: 54px; z-index: 30; background: var(--card); color: var(--ink); padding: 8px 20px; border-bottom: 1px solid var(--line); box-shadow: var(--shadow-1); }
+  #app-topbar .title-group { min-width: 0; display: flex; align-items: center; gap: var(--sp-3); }
+  #app-topbar .topbar-logo { width: 28px; height: 28px; border-radius: var(--r-sm); flex-shrink: 0; }
+  #app-topbar .brand .biz { display: block; font-family: 'Source Serif 4', serif; font-weight: 600; font-size: var(--text-base); line-height: 1.15; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+  #app-topbar .brand .type-tag { display: block; font-size: var(--text-2xs); color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; }
+  #app-topbar .topbar-divider { width: 1px; height: 26px; background: var(--line); flex-shrink: 0; }
+  #app-topbar .page-copy { min-width: 0; }
+  #app-topbar h2 { margin: 0; font-size: var(--text-sm); font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #app-topbar p { margin: 0; color: var(--ink-faint); font-size: var(--text-2xs); }
   #app-topbar .header-actions { display: flex; align-items: center; justify-content: flex-end; gap: var(--sp-2); min-width: 0; }
-  #app-topbar .header-action { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--card); color: var(--ink-soft); font-size: var(--text-lg); cursor: pointer; }
+  #app-topbar .header-action { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--card); color: var(--ink-soft); cursor: pointer; }
+  #app-topbar .header-action svg { width: 17px; height: 17px; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .pos-cta { display: inline-flex; align-items: center; gap: var(--sp-2); padding: 8px 18px; border: none; border-radius: var(--r-pill); background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%); color: #fff; font-size: var(--text-sm); font-weight: 600; cursor: pointer; box-shadow: 0 3px 12px rgba(29,31,145,0.30); }
+  .pos-cta svg { width: 16px; height: 16px; display: block; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; }
+  .pos-cta:hover { box-shadow: 0 5px 16px rgba(29,31,145,0.38); transform: translateY(-1px); }
   #app-topbar .header-action:hover { color: var(--accent); background: var(--accent-soft); }
   #app-topbar .status-badge { position: absolute; top: -5px; right: -5px; min-width: 17px; height: 17px; padding: 0 4px; display: grid; place-items: center; border-radius: var(--r-pill); background: var(--danger); color: white; font: 10px 'JetBrains Mono', monospace; }
   #app-topbar .profile-panel { display: flex; align-items: center; gap: 10px; padding-left: var(--sp-3); margin-left: var(--sp-1); border-left: 1px solid var(--line); }
@@ -566,12 +571,21 @@
 <div id="app-screen" class="hidden">
   <header id="app-topbar">
     <div class="title-group">
-      <h2 id="page-title">Dashboard</h2>
-      <p id="page-sub">Overview of your workspace right now.</p>
+      <img src="logo.png" alt="" class="topbar-logo" />
+      <div class="brand">
+        <span class="biz" id="biz-name">—</span>
+        <span class="type-tag" id="biz-type">—</span>
+      </div>
+      <span class="topbar-divider" aria-hidden="true"></span>
+      <div class="page-copy">
+        <h2 id="page-title">Dashboard</h2>
+        <p id="page-sub">Overview of your workspace right now.</p>
+      </div>
     </div>
     <div class="header-actions">
-      <button class="header-action" id="notifications-btn" title="Stock notifications" aria-label="Stock notifications" onclick="TholeApp.switchTab('products')">&#128276;<span class="status-badge" id="notifications-count">0</span></button>
-      <button class="header-action" id="cart-btn" title="Purchase orders" aria-label="Purchase orders" onclick="TholeApp.switchTab('purchases')">&#128722;<span class="status-badge" id="cart-count">0</span></button>
+      <button class="pos-cta" id="new-sale-btn" title="Place an order" aria-label="Place an order" onclick="TholeApp.openSaleModal()"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg> New sale</button>
+      <button class="header-action" id="notifications-btn" title="Stock notifications" aria-label="Stock notifications" onclick="TholeApp.switchTab('products')"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="status-badge" id="notifications-count">0</span></button>
+      <button class="header-action" id="cart-btn" title="Purchase orders" aria-label="Purchase orders" onclick="TholeApp.switchTab('purchases')"><svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg><span class="status-badge" id="cart-count">0</span></button>
       <button class="header-action" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme" onclick="TholeApp.toggleTheme()"><svg viewBox="0 0 24 24" style="width:18px;height:18px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
       <div class="profile-panel">
         <div class="profile-avatar" id="profile-avatar" aria-hidden="true">—</div>
@@ -584,13 +598,6 @@
     </div>
   </header>
   <aside>
-    <div class="side-header">
-      <img src="logo.png" alt="" />
-      <div>
-        <div class="biz" id="biz-name">—</div>
-        <div class="type-tag" id="biz-type">—</div>
-      </div>
-    </div>
     <nav>
       <div class="nav-item nav-primary active" data-tab="dashboard" onclick="switchTab('dashboard')"><span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span> Dashboard</div>
       <div class="nav-item nav-primary" data-tab="products" onclick="switchTab('products')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M16.5 9.4 7.55 4.24a1 1 0 0 0-1.1 0L3 6"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-5-2.88a2 2 0 0 0-2 0L7 6.27a2 2 0 0 0-1 1.73v8a2 2 0 0 0 1 1.73l5 2.88a2 2 0 0 0 2 0l5-2.88a2 2 0 0 0 1-1.73Z"/><path d="M3.29 7 12 12l8.71-5"/><path d="M12 22V12"/></svg></span> Products & Stock</div>
@@ -683,7 +690,7 @@
           </select>
           <input type="date" id="sales-date-filter" onchange="loadSales()" placeholder="YYYY" />
         </div>
-        <button class="btn-small" onclick="openSaleModal()">+ Record sale</button>
+        <button class="btn-small" onclick="openSaleModal()">New sale</button>
       </div>
       <div class="report-card compact-card hidden" id="pos-session-card">
         <header class="report-card-header">
@@ -885,7 +892,7 @@
 <div id="sale-modal" class="modal-backdrop hidden">
   <div class="modal">
     <div class="close" onclick="closeModal('sale-modal')">Close</div>
-    <h3>Record a sale</h3>
+    <h3>New sale</h3>
     <label>Product</label>
     <select id="s-product" onchange="onSaleProductChange()"></select>
     <div class="field-row">

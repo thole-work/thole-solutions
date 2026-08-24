@@ -1,7 +1,5 @@
 ### Table: app_users
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `user_id` | `uuid` | NOT NULL |  |  |
 | `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
 | `role` | `text` | NOT NULL |  |  |
@@ -10,9 +8,7 @@
 | `created_at` | `timestamp with time zone` | NULL |  |  |
 
 ### Table: audit_log
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `business_id` | `uuid` | NULL |  | `REFERENCES businesses(id)` |
 | `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
 | `user_id` | `uuid` | NULL |  |  |
@@ -25,9 +21,7 @@
 | `created_at` | `timestamp with time zone` | NULL |  |  |
 
 ### Table: branches
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
 | `branch_key` | `text` | NOT NULL |  |  |
 | `name` | `text` | NOT NULL |  |  |
@@ -37,9 +31,7 @@
 | `created_at` | `timestamp with time zone` | NULL |  |  |
 
 ### Table: business_members
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `user_id` | `uuid` | NOT NULL |  |  |
 | `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
 | `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
@@ -52,24 +44,18 @@
 | `updated_at` | `timestamp with time zone` | NULL |  |  |
 
 ### Table: business_type_modules
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `business_type_id` | `uuid` | NOT NULL | `PRIMARY KEY` | `REFERENCES business_types(id)` |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `business_type_id` | `uuid` | NOT NULL | `PRIMARY KEY` | `REFERENCES business_types(id)` |
 | `module_key` | `text` | NOT NULL | `PRIMARY KEY` | `REFERENCES modules(key)` |
 | `is_default` | `boolean` | NOT NULL |  |  |
 
 ### Table: business_types
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `type_key` | `text` | NOT NULL |  |  |
 | `display_name` | `text` | NOT NULL |  |  |
 | `created_at` | `timestamp with time zone` | NULL |  |  |
 
 ### Table: businesses
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `name` | `text` | NOT NULL |  |  |
 | `business_type_id` | `uuid` | NOT NULL |  | `REFERENCES business_types(id)` |
 | `invite_code` | `text` | NOT NULL |  |  |
@@ -81,9 +67,7 @@
 | `tax_id` | `text` | NULL |  |  |
 
 ### Table: customer_balances
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `customer_id` | `uuid` | NULL |  |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `customer_id` | `uuid` | NULL |  |  |
 | `business_id` | `uuid` | NULL |  |  |
 | `name` | `text` | NULL |  |  |
 | `total_invoiced` | `numeric` | NULL |  |  |
@@ -91,9 +75,7 @@
 | `balance_owed` | `numeric` | NULL |  |  |
 
 ### Table: customers
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
 | `name` | `text` | NULL |  |  |
 | `phone` | `text` | NULL |  |  |
@@ -102,9 +84,7 @@
 | `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
 
 ### Table: expenses
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
 | `category` | `text` | NOT NULL |  |  |
 | `description` | `text` | NULL |  |  |
@@ -115,9 +95,7 @@
 | `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
 
 ### Table: invites
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
 | `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
 | `invited_by` | `uuid` | NULL |  |  |
@@ -131,9 +109,7 @@
 | `created_at` | `timestamp with time zone` | NULL |  |  |
 
 ### Table: labor_shifts
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
 | `user_id` | `uuid` | NULL |  |  |
 | `role` | `text` | NOT NULL |  |  |
@@ -145,16 +121,12 @@
 | `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
 
 ### Table: modules
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `key` | `text` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `key` | `text` | NOT NULL | `PRIMARY KEY` |  |
 | `display_name` | `text` | NOT NULL |  |  |
 | `description` | `text` | NULL |  |  |
 
 ### Table: order_items
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `order_id` | `uuid` | NOT NULL |  | `REFERENCES orders(id)` |
 | `product_id` | `uuid` | NOT NULL |  | `REFERENCES products(id)` |
 | `quantity` | `numeric` | NOT NULL |  |  |
@@ -162,9 +134,7 @@
 | `line_total` | `numeric` | NULL |  |  |
 
 ### Table: orders
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
 | `customer_id` | `uuid` | NULL |  | `REFERENCES customers(id)` |
 | `created_by` | `uuid` | NULL |  | `REFERENCES app_users(user_id)` |
@@ -185,9 +155,7 @@
 | `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
 
 ### Table: payments
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
 | `direction` | `text` | NOT NULL |  |  |
 | `party_type` | `text` | NOT NULL |  |  |
@@ -202,9 +170,7 @@
 | `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
 
 ### Table: pos_sessions
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
 | `opened_by` | `uuid` | NULL |  |  |
 | `closed_by` | `uuid` | NULL |  |  |
@@ -217,9 +183,7 @@
 | `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
 
 ### Table: produce_batches
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
 | `product_id` | `uuid` | NOT NULL |  | `REFERENCES products(id)` |
 | `batch_qty` | `numeric` | NOT NULL |  |  |
@@ -233,9 +197,7 @@
 | `created_at` | `timestamp with time zone` | NULL |  |  |
 
 ### Table: products
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
 | `name` | `text` | NOT NULL |  |  |
 | `category` | `text` | NULL |  |  |
@@ -253,9 +215,7 @@
 | `cost_price` | `numeric` | NULL |  |  |
 
 ### Table: purchase_order_items
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `purchase_order_id` | `uuid` | NOT NULL |  | `REFERENCES purchase_orders(id)` |
 | `product_id` | `uuid` | NULL |  | `REFERENCES products(id)` |
 | `raw_material_id` | `uuid` | NULL |  | `REFERENCES raw_materials(id)` |
@@ -264,9 +224,7 @@
 | `line_total` | `numeric` | NULL |  |  |
 
 ### Table: purchase_orders
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
 | `supplier_id` | `uuid` | NULL |  | `REFERENCES suppliers(id)` |
 | `status` | `text` | NOT NULL |  |  |
@@ -276,9 +234,7 @@
 | `received_at` | `timestamp with time zone` | NULL |  |  |
 
 ### Table: raw_materials
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
 | `name` | `text` | NOT NULL |  |  |
 | `unit` | `text` | NOT NULL |  |  |
@@ -289,17 +245,13 @@
 | `kitchen_stock_qty` | `numeric` | NOT NULL |  |  |
 
 ### Table: recipe_items
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `product_id` | `uuid` | NOT NULL |  | `REFERENCES products(id)` |
 | `raw_material_id` | `uuid` | NOT NULL |  | `REFERENCES raw_materials(id)` |
 | `quantity_required` | `numeric` | NOT NULL |  |  |
 
 ### Table: restaurant_tables
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
 | `table_number` | `text` | NOT NULL |  |  |
 | `name` | `text` | NULL |  |  |
@@ -310,9 +262,7 @@
 | `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
 
 ### Table: stock_movements
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
 | `item_type` | `text` | NOT NULL |  |  |
 | `product_id` | `uuid` | NULL |  | `REFERENCES products(id)` |
@@ -327,9 +277,7 @@
 | `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
 
 ### Table: supplier_balances
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `supplier_id` | `uuid` | NULL |  |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `supplier_id` | `uuid` | NULL |  |  |
 | `business_id` | `uuid` | NULL |  |  |
 | `name` | `text` | NULL |  |  |
 | `total_purchased` | `numeric` | NULL |  |  |
@@ -337,9 +285,7 @@
 | `balance_owed` | `numeric` | NULL |  |  |
 
 ### Table: suppliers
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
 | `name` | `text` | NOT NULL |  |  |
 | `phone` | `text` | NULL |  |  |
@@ -348,9 +294,7 @@
 | `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
 
 ### Table: usage_events
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `business_id` | `uuid` | NULL |  | `REFERENCES businesses(id)` |
 | `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
 | `user_id` | `uuid` | NULL |  |  |
@@ -362,9 +306,7 @@
 | `created_at` | `timestamp with time zone` | NULL |  |  |
 
 ### Table: waste_log
-| Column | Type | Nullability | Key | Relations |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
 | `product_id` | `uuid` | NULL |  | `REFERENCES products(id)` |
 | `raw_material_id` | `uuid` | NULL |  | `REFERENCES raw_materials(id)` |

@@ -66,14 +66,6 @@
 | `phone` | `text` | NULL |  |  |
 | `tax_id` | `text` | NULL |  |  |
 
-### Table: customer_balances
-| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `customer_id` | `uuid` | NULL |  |  |
-| `business_id` | `uuid` | NULL |  |  |
-| `name` | `text` | NULL |  |  |
-| `total_invoiced` | `numeric` | NULL |  |  |
-| `total_paid` | `numeric` | NULL |  |  |
-| `balance_owed` | `numeric` | NULL |  |  |
-
 ### Table: customers
 | Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `business_id` | `uuid` | NOT NULL |  | `REFERENCES businesses(id)` |
@@ -205,7 +197,6 @@
 | `unit` | `text` | NULL |  |  |
 | `stock_qty` | `numeric` | NULL |  |  |
 | `low_stock_threshold` | `numeric` | NULL |  |  |
-| `automation_rules` | `jsonb` | NULL |  |  |
 | `is_active` | `boolean` | NULL |  |  |
 | `created_at` | `timestamp with time zone` | NULL |  |  |
 | `product_type` | `text` | NOT NULL |  |  |
@@ -244,6 +235,10 @@
 | `created_at` | `timestamp with time zone` | NULL |  |  |
 | `kitchen_stock_qty` | `numeric` | NOT NULL |  |  |
 
+### Table: receipt_number_counters
+| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `business_id` | `uuid` | NOT NULL | `PRIMARY KEY` | `REFERENCES businesses(id)` |
+| `last_number` | `integer` | NOT NULL |  |  |
+
 ### Table: recipe_items
 | Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |
 | `product_id` | `uuid` | NOT NULL |  | `REFERENCES products(id)` |
@@ -275,14 +270,6 @@
 | `created_at` | `timestamp with time zone` | NULL |  |  |
 | `location` | `text` | NOT NULL |  |  |
 | `branch_id` | `uuid` | NULL |  | `REFERENCES branches(id)` |
-
-### Table: supplier_balances
-| Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `supplier_id` | `uuid` | NULL |  |  |
-| `business_id` | `uuid` | NULL |  |  |
-| `name` | `text` | NULL |  |  |
-| `total_purchased` | `numeric` | NULL |  |  |
-| `total_paid` | `numeric` | NULL |  |  |
-| `balance_owed` | `numeric` | NULL |  |  |
 
 ### Table: suppliers
 | Column | Type | Nullability | Key | Relations |\n| :--- | :--- | :--- | :--- | :--- |\n| `id` | `uuid` | NOT NULL | `PRIMARY KEY` |  |

@@ -48,32 +48,42 @@ Completes Phase 2 of the rollout doc.
 Implementation notes (2026-08-24): `MEMBERSHIP_SELECT` nests `business_types(display_name, type_key, business_type_modules(module_key))` so modules arrive with membership in one round-trip. Gating helpers: `hasModule(key)` + `businessUsesRawMaterials()` → `inventory` module + `isProductionBusiness()` → `production` module (replaces both `=== "factory"` checks). Behind `FEATURES.typeModules`; falls back to legacy type-key strings when the module list is unavailable/empty. Conservative scope: only the two already-gated nav items (`stock-movements`, `efficiency`) follow modules today — extending to purchasing/store tabs deferred until validated.
 
 ### Step 4 — Audit & usage events (~2 days)
-- [ ] Thin helpers: `logAudit(action, entityType, entityId, before, after)` + `logUsage(eventType, pageKey)`
-- [ ] Wire into create/update/delete for highest-value entities first: orders, payments, products, stock_movements
-- [ ] Fire-and-forget (never block or fail the user action on log errors)
+- [x] Thin helpers: `logAudit(action, entityType, entityId, before, after)` + `logUsage(eventType, pageKey)`
+- [x] Wire into create/update/delete for highest-value entities first: orders, payments, products, stock_movements
+- [x] Fire-and-forget (never block or fail the user action on log errors)
+
+Implementation notes (2026-08-24): helpers live beside `logStockMovement`; both behind `FEATURES.eventLogging`, guarded on membership/session, `.then/.catch` so failures only `console.warn`. Wired: order create (POS + offline sync, tagged `source:'offline_sync'`), order append-update (after-only snapshot + `items_replaced` count), KDS status transitions, payment completion (order update audit + one summary usage event with method split), `voidSale` (with before status), payments CRUD (before from cache when editing; writes now use `.select().single()` to capture entity ids), product create/update/duplicate/soft-delete via generic `deleteRecord`, `page_view` per tab switch, `session_start`, and a lightweight usage ping inside `logStockMovement` (the movements table is itself the audit trail — no duplicate audit rows). RLS INSERT policies for `audit_log`/`usage_events` must exist for events to actually land — diagnostic added at `database/event_logging_rls_check.sql` (anon insert currently 401s as expected).
 
 ### Step 5 — Transactional integrity via SQL RPCs (~2 days)
 Requires DB migrations.
-- [ ] `place_order(cart jsonb, table_id)` RPC: inserts order + items + updates table atomically; replaces await chain (2777–2815) and delete-all/reinsert append (2719–2728)
-- [ ] `record_payments(payments jsonb)` RPC: single-transaction multi-payment insert (2907–2921)
-- [ ] Retry loop around stock compare-and-set (1959–1967)
-- [ ] Add `.eq('business_id', bid)` to child-table queries: `order_items` (2719), `recipe_items` (5593, 5623–5659), `purchase_order_items` (5071, 3161)
+- [x] `place_order(cart jsonb, table_id)` RPC: inserts order + items + updates table atomically; replaces await chain (2777–2815) and delete-all/reinsert append (2719–2728)
+- [x] `record_payments(payments jsonb)` RPC: single-transaction multi-payment insert (2907–2921)
+- [x] Retry loop around stock compare-and-set (1959–1967)
+- [x] Add `.eq('business_id', bid)` to child-table queries: `order_items` (2719), `recipe_items` (5593, 5623–5659), `purchase_order_items` (5071, 3161)
+
+Implementation notes (2026-08-24): migration at `database/transactional_integrity.sql` — `place_order(p_business_id, p_order, p_items, p_order_id default null)` handles both create (+ table occupancy) and append/replace-items in one SECURITY INVOKER transaction; `line_total` computed server-side; rejects voided/completed appends; membership re-checked in-function. Frontend adopts behind `FEATURES.atomicRpc` (`placeOrderViaRpc` helper) and falls back to the legacy await-chains on any RPC error; offline-sync path intentionally left on legacy inserts. `record_payments` mirrors the exact client-side allocation math. Stock CAS now detects 0-row updates via `.select()` and retries up to 3× (previously silent no-op on race). **Deviation on bullet 4**: live DB confirms `order_items`/`recipe_items`/`purchase_order_items` have **no** `business_id` column (42703), so `.eq('business_id')` there would error — implemented as parent-scoped verification instead: fixed the one real gap (`voidSale`'s orders fetch lacked the filter); all other child queries verified safe (ids originate from business-scoped cache/queries, e.g. reports' `validOrderIds`). Post-apply: run the grant/tighten statements in the migration footer before enabling the flag in production traffic.
 
 ### Step 6 — Server-side aggregation (~2 days)
-- [ ] `dashboard_summary(business_id, date_from, date_to)` SQL function returning revenue/today sales/orders/expenses/purchases/waste in one round-trip; replace full-history fetches (4142–4158)
-- [ ] Efficiency tab totals move to same RPC pattern (3304–3330)
-- [ ] KDS open-orders query gets explicit ordering + sensible cap (2174)
+- [x] `dashboard_summary(business_id, date_from, date_to)` SQL function returning revenue/today sales/orders/expenses/purchases/waste in one round-trip; replace full-history fetches (4142–4158)
+- [x] Efficiency tab totals move to same RPC pattern (3304–3330)
+- [x] KDS open-orders query gets explicit ordering + sensible cap (2174)
+
+Implementation notes (2026-08-24): migration at `database/dashboard_summary.sql` — single STABLE SECURITY INVOKER function (no date params: the UI only ever showed all-time totals + UTC-today, which the function mirrors exactly via `(now() at time zone 'utc')::date`). Also returns `labor_cost` and `avg_yield_pct` so the efficiency tab's full `labor_shifts`/`produce_batches`/`waste_log` scans are gone too. Frontend: shared `fetchDashboardSummary()` helper behind `FEATURES.serverAggregation`; both `renderDashboard` and `renderEfficiency` consume it and fall back to the original fetch+reduce code on any RPC error. Net effect on the happy path: dashboard 4 full-table queries → 1 RPC; efficiency 4 full-table queries → 0 extra. KDS query already ordered oldest-first; added `.limit(100)` ceiling. Post-apply: run revoke/grant statements in the migration footer before production traffic.
 
 ### Step 7 — Branch-aware UI (~3 days)
 Completes Phase 3 of the rollout doc.
-- [ ] Branch selector in topbar (owner/manager), persisted per business (`thole:branch:<bizId>`), default = first active branch or "All branches"
-- [ ] Write-path: stamp `selectedBranchId` on inserts into `orders`, `payments`, `expenses`, `stock_movements`, `waste_log`, `labor_shifts`, `produce_batches`, `customers`, `suppliers`, `restaurant_tables`
-- [ ] Read-path: filter lists by selection when a specific branch chosen
+- [x] Branch selector in topbar (owner/manager), persisted per business (`thole:branch:<bizId>`), default = first active branch or "All branches"
+- [x] Write-path: stamp `selectedBranchId` on inserts into `orders`, `payments`, `expenses`, `stock_movements`, `waste_log`, `labor_shifts`, `produce_batches`, `customers`, `suppliers`, `restaurant_tables`
+- [x] Read-path: filter lists by selection when a specific branch chosen
+
+Implementation notes (2026-08-24): **Deviation** — live DB confirms `waste_log` and `produce_batches` have no `branch_id` column (42703), so those two inserts can't be stamped until a migration adds the column; all other 8 tables verified and stamped via a single `stampBranch()` helper (covers POS orders incl. RPC + offline sync + legacy, payments via `record_payments` rows + legacy loop + CRUD modal, expenses, stock movements via `logStockMovement`, customers ×2, suppliers, restaurant_tables, labor_shifts). Selector appears only when the business has ≥2 active branches AND role owner/manager — single-branch businesses see zero change; default falls back to "All branches" rather than first-active for that same reason (plan-literal default kept for ≥2 branches). Read-path via `applyBranchFilter(query, table)` + `BRANCH_SCOPED_TABLES` set, applied inside `pagedLoad` (covers sales/payments/expenses/customers/suppliers/movements lists), KDS queue, dashboard/efficiency fallback fetches, and `dashboard_summary` (new optional `p_branch_id` param; unfiltered tables without the column documented in SQL). Selection persisted per business in localStorage, validated against loaded branches on every login.
 
 ### Step 8 — Balances & schema drift cleanup (~1 day)
-- [ ] Adopt `customer_balances` / `supplier_balances` if maintained server-side; otherwise drop tables from schema and keep client-side math
-- [ ] Verify/implement `orders.receipt_number` assignment (trigger or write from app)
-- [ ] Decide: `products.cost_price` UI field vs drop; `total_sold` trigger vs drop; `automation_rules` keep-or-drop
+- [x] Adopt `customer_balances` / `supplier_balances` if maintained server-side; otherwise drop tables from schema and keep client-side math
+- [x] Verify/implement `orders.receipt_number` assignment (trigger or write from app)
+- [x] Decide: `products.cost_price` UI field vs drop; `total_sold` trigger vs drop; `automation_rules` keep-or-drop
+
+Implementation notes (2026-08-24): decisions confirmed with owner → migration at `database/schema_drift_cleanup.sql`. Drops both balance tables (verified empty + unmaintained). Receipt numbering: per-business counter table (`receipt_number_counters`) + BEFORE trigger assigning on the pending→completed transition only — matches the app's actual flow (POS orders are created 'pending', completed at payment), never renumbers, and receipts immediately show real sequential numbers via the existing read path. `total_sold`: three triggers (order_items insert/delete, order→voided) keeping non-voided sales volume accurate; append-to-order's delete+reinsert nets out correctly; clamped at 0. `automation_rules` dropped; `cost_price` backfilled from recipe ingredient costs and auto-maintained by a recipe_items trigger (future margins UI can read it for free). All trigger functions are SECURITY DEFINER with pinned search_path so bookkeeping can never break a user action through RLS (e.g. cashiers completing sales don't need products UPDATE rights). No frontend changes required this step.
 
 ### Step 9 — Admin monitoring (Phase 4 of rollout doc) (~2 days)
 - [ ] Platform admin dashboard: business count, active users, sessions, invites, usage totals

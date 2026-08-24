@@ -180,6 +180,10 @@
   #app-topbar h2 { margin: 0; font-size: 18px; color: white; }
   #app-topbar p { margin: 4px 0 0; color: rgba(255,255,255,0.85); font-size: 12px; }
   #app-topbar .profile-wrapper { position: relative; }
+  #branch-wrapper { display: none; align-items: center; gap: 6px; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.22); border-radius: 10px; padding: 5px 8px; }
+  #branch-wrapper.show { display: flex; }
+  #branch-select { background: transparent; color: white; border: none; outline: none; font-size: 12.5px; font-weight: 600; cursor: pointer; max-width: 150px; }
+  #branch-select option { color: var(--ink); background: var(--card); }
   #app-topbar .profile-avatar { width: 38px; height: 38px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.35); background: #5CACF7; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s, border-color 0.2s; letter-spacing: 0; }
   #app-topbar .profile-avatar:hover { background: #4a9bf5; border-color: rgba(255,255,255,0.5); }
   .profile-dropdown { display: none; position: absolute; top: calc(100% + 8px); right: 0; background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,0.18); min-width: 200px; z-index: 100; padding: 6px 0; animation: dropdownSlideIn 0.15s ease; }
@@ -846,6 +850,10 @@
       <div class="title-group">
         <h2 id="page-title">Dashboard</h2>
         <p id="page-sub">Overview of your workspace right now.</p>
+      </div>
+      <div id="branch-wrapper" title="Branch">
+        <span aria-hidden="true">🏪</span>
+        <select id="branch-select" onchange="onBranchChange(this.value)" aria-label="Select branch"></select>
       </div>
       <div class="profile-wrapper">
         <button class="profile-avatar" id="profile-avatar" onclick="toggleProfileMenu(event)" title="Menu">
@@ -1706,11 +1714,29 @@
   const FEATURES = {
     businessMembers: true, // read/write membership via business_members (falls back to app_users)
     typeModules: true, // derive raw-materials/production gating from business_type_modules (falls back to type_key strings)
+    eventLogging: true, // fire-and-forget writes to audit_log / usage_events (Step 4)
+    atomicRpc: true, // place_order/record_payments SQL RPCs; falls back to legacy await-chains on error (Step 5)
+    serverAggregation: true, // dashboard_summary RPC instead of full-history fetches; falls back on error (Step 6)
   };
 
   let currentUser = null;
   let membership = null; // { business_id, role, full_name, businesses: {...} }
   let businessModules = null; // Set of module_key from business_type_modules — null = unknown/unavailable (legacy fallback)
+  // BRANCH AWARENESS (Step 7) — selectedBranchId null = "All branches"
+  let branches = [];
+  let selectedBranchId = null;
+  const BRANCH_SCOPED_TABLES = new Set(["orders", "payments", "expenses", "customers", "suppliers", "stock_movements", "labor_shifts", "restaurant_tables"]);
+  function branchStorageKey() { return `thole:branch:${membership?.business_id || "unknown"}`; }
+  // Read-path: narrow a query to the selected branch (tables whose rows carry branch_id)
+  function applyBranchFilter(query, table) {
+    if (selectedBranchId && table && BRANCH_SCOPED_TABLES.has(table)) return query.eq("branch_id", selectedBranchId);
+    return query;
+  }
+  // Write-path: stamp the selected branch onto an insert payload (no-op when "All branches")
+  function stampBranch(payload) {
+    if (selectedBranchId && payload && typeof payload === "object" && !Array.isArray(payload)) payload.branch_id = selectedBranchId;
+    return payload;
+  }
   let cache = { products: [], customers: [], sales: [], payments: [], expenses: [], purchases: [], materials: [], suppliers: [], movements: [] };
   let editingRecord = null; // { table: 'products', id: '...' } — null means "adding new"
   let businessTypeKey = null;
@@ -1968,13 +1994,23 @@
   }
 
   async function adjustStockColumn(table, id, column, qtyChange, businessId) {
-    const { data: fresh, error: freshErr } = await sb.from(table).select(column).eq("id", id).eq("business_id", businessId).single();
-    if (freshErr || !fresh || fresh[column] === null) return { error: freshErr || new Error("No stock data") };
-    const current = Number(fresh[column]);
-    const newQty = current + qtyChange;
-    const { error } = await sb.from(table).update({ [column]: newQty }).eq("id", id).eq(column, current).eq("business_id", businessId);
-    if (error) return { error };
-    return { oldQty: current, newQty };
+    // Step 5: compare-and-set with retries — a concurrent writer between our read and
+    // update makes the conditional update match 0 rows; re-read and try again.
+    const CAS_ATTEMPTS = 3;
+    for (let attempt = 1; attempt <= CAS_ATTEMPTS; attempt++) {
+      const { data: fresh, error: freshErr } = await sb.from(table).select(column).eq("id", id).eq("business_id", businessId).single();
+      if (freshErr || !fresh || fresh[column] === null) return { error: freshErr || new Error("No stock data") };
+      const current = Number(fresh[column]);
+      const newQty = current + qtyChange;
+      const { data, error } = await sb.from(table)
+        .update({ [column]: newQty })
+        .eq("id", id).eq(column, current).eq("business_id", businessId)
+        .select();
+      if (error) return { error };
+      if (data && data.length > 0) return { oldQty: current, newQty, attempts: attempt };
+      // 0 rows updated → another writer changed the value mid-flight; retry
+    }
+    return { error: new Error(`Stock update conflicted after ${CAS_ATTEMPTS} attempts`) };
   }
 
   async function logStockMovement({ itemType, productId, materialId, qtyChange, reason, refType, refId, location }) {
@@ -1990,9 +2026,42 @@
     };
     if (itemType === "product") payload.product_id = productId;
     else if (itemType === "raw_material") payload.raw_material_id = materialId;
+    stampBranch(payload);
     const { error } = await sb.from("stock_movements").insert(payload);
     if (error) console.error("stock movement log failed:", error.message);
+    else logUsage("stock_movement", null, "stock_movement", null, { reason: payload.reason, quantity_change: qtyChange });
     return !error;
+  }
+
+  // Fire-and-forget audit/usage logging — never awaited, never blocks or fails the user action.
+  // metadata is NOT NULL in both tables, so always send an object.
+  function logAudit(action, entityType, entityId, beforeData = null, afterData = null, metadata = {}) {
+    if (!FEATURES.eventLogging || !membership?.business_id || !currentUser?.id) return;
+    sb.from("audit_log").insert({
+      business_id: membership.business_id,
+      user_id: currentUser.id,
+      action,
+      entity_type: entityType,
+      entity_id: entityId || null,
+      before_data: beforeData,
+      after_data: afterData,
+      metadata,
+    }).then(({ error }) => { if (error) console.warn("audit_log write failed:", error.message); })
+      .catch((e) => console.warn("audit_log write failed:", e?.message || e));
+  }
+
+  function logUsage(eventType, pageKey = null, entityType = null, entityId = null, metadata = {}) {
+    if (!FEATURES.eventLogging || !membership?.business_id || !currentUser?.id) return;
+    sb.from("usage_events").insert({
+      business_id: membership.business_id,
+      user_id: currentUser.id,
+      event_type: eventType,
+      page_key: pageKey,
+      entity_type: entityType,
+      entity_id: entityId || null,
+      metadata,
+    }).then(({ error }) => { if (error) console.warn("usage_events write failed:", error.message); })
+      .catch((e) => console.warn("usage_events write failed:", e?.message || e));
   }
 
   function getDerivedAvailability(productId) {
@@ -2010,7 +2079,7 @@
     loading[key] = true;
     const ver = ++reqVersion[key];
     const offset = append ? pagination[key] : 0;
-    let query = sb.from(table).select(select || '*').eq('business_id', membership.business_id);
+    let query = applyBranchFilter(sb.from(table).select(select || '*').eq('business_id', membership.business_id), table);
     if (extraFilters) extraFilters.forEach(f => { query = query.eq(f[0], f[1]); });
     if (orderBy) query = query.order(orderBy, { ascending });
     query = query.range(offset, offset + PAGE_SIZE - 1);
@@ -2096,7 +2165,7 @@
         posState.discountType = draft.discountType;
         
         const { subtotal, discount, tax, total } = posCalcTotals();
-        const { data: order } = await sb.from('orders').insert({
+        const { data: order } = await sb.from('orders').insert(stampBranch({
           business_id: membership.business_id,
           table_id: posState.tableId || null,
           customer_id: posState.customerId || null,
@@ -2110,7 +2179,7 @@
           total_amount: total,
           payment_method: 'cash',
           created_by: currentUser.id,
-        }).select().single();
+        })).select().single();
         
         const items = posState.cart.map(item => ({
           order_id: order.id,
@@ -2119,7 +2188,7 @@
           unit_price: item.price,
         }));
         await sb.from('order_items').insert(items);
-        
+
         // Payment record
         await sb.from('payments').insert({
           business_id: membership.business_id,
@@ -2130,6 +2199,8 @@
           direction: 'in',
           created_by: currentUser.id,
         });
+        logAudit("create", "order", order.id, null, order, { source: 'offline_sync' });
+        logUsage("order_placed", "pos", "order", order.id, { source: 'offline_sync' });
         
         // Update table
         if (posState.tableId) {
@@ -2185,11 +2256,12 @@
   }
   
   async function loadKDSOrders() {
-    const { data } = await sb.from('orders')
+    const { data } = await applyBranchFilter(sb.from('orders')
       .select('id, status, created_at, business_id, order_items(id, quantity, product_id, products(name)), restaurant_tables!table_id(table_number, name)')
       .eq('business_id', membership.business_id)
       .in('status', ['pending', 'preparing', 'ready'])
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: true })
+      .limit(100), 'orders'); // oldest first; sane ceiling so a stuck queue can't grow the payload unbounded
     const prev = new Map(kdsOrders);
     kdsOrders.clear();
     (data || []).forEach(o => kdsOrders.set(o.id, o));
@@ -2312,9 +2384,11 @@
         await Promise.all(stockOps);
       }
       await sb.from('orders').update({ status: 'served' }).eq('id', orderId).eq('business_id', membership.business_id);
+      logAudit("update", "order", orderId, null, { status: 'served' });
       loadProducts();
     } else {
       await sb.from('orders').update({ status: newStatus }).eq('id', orderId).eq('business_id', membership.business_id);
+      logAudit("update", "order", orderId, null, { status: newStatus });
     }
     await loadKDSOrders();
   }
@@ -2719,6 +2793,26 @@
     renderPaymentLines();
   }
 
+  // Step 5: atomic order write via SQL RPC. Returns {ok, data} — caller falls back to the
+  // legacy await-chain when the RPC is missing/fails (safety rule: keep legacy flows alive).
+  async function placeOrderViaRpc(orderId, orderFields, cartItems) {
+    if (!FEATURES.atomicRpc) return { ok: false };
+    const items = cartItems.map(item => ({ product_id: item.product_id, quantity: item.qty, unit_price: item.price }));
+    try {
+      const { data, error } = await sb.rpc('place_order', {
+        p_business_id: membership.business_id,
+        p_order: orderFields,
+        p_items: items,
+        p_order_id: orderId || null,
+      });
+      if (error) throw error;
+      return { ok: true, data };
+    } catch (e) {
+      console.warn('place_order RPC failed, using legacy flow:', e?.message || e);
+      return { ok: false };
+    }
+  }
+
   async function submitOrder() {
     if (posState.cart.length === 0) return showToast('Cart is empty', 'error');
     const btn = document.getElementById('pos-pay-btn');
@@ -2729,18 +2823,6 @@
     // APPENDING TO EXISTING TABLE ORDER
     if (posState.orderId) {
       const orderId = posState.orderId;
-      // Replace all order_items with the current cart
-      const { error: delErr } = await sb.from('order_items').delete().eq('order_id', orderId);
-      if (delErr) { setBtnLoading(btn, false); return showToast(delErr.message, 'error'); }
-
-      const newItems = posState.cart.map(item => ({
-        order_id: orderId,
-        product_id: item.product_id,
-        quantity: item.qty,
-        unit_price: item.price,
-      }));
-      const { error: insErr } = await sb.from('order_items').insert(newItems);
-      if (insErr) { setBtnLoading(btn, false); return showToast(insErr.message, 'error'); }
 
       // Recalc totals on the order (keep current status — don't reset)
       const orderSubtotal = posState.cart.reduce((s, i) => s + i.line_total, 0);
@@ -2754,14 +2836,38 @@
       const orderTax = orderTaxable * taxRate;
       const orderTotal = orderTaxable + orderTax;
 
-      await sb.from('orders').update({
-        subtotal: orderSubtotal,
-        discount: orderDiscount,
-        discount_type: posState.discountType || 'amount',
-        tax_rate: taxRate,
-        tax: orderTax,
-        total_amount: orderTotal,
-      }).eq('id', orderId).eq('business_id', membership.business_id);
+      const rpcResult = await placeOrderViaRpc(orderId, {
+        branch_id: selectedBranchId || '',
+        subtotal: orderSubtotal, discount: orderDiscount, discount_type: posState.discountType || 'amount',
+        tax_rate: taxRate, tax: orderTax, total_amount: orderTotal,
+      }, posState.cart);
+
+      if (!rpcResult.ok) {
+        // Legacy path: replace all order_items with the current cart
+        // (order_items has no business_id column — orderId is verified as
+        // business-owned when it was loaded into posState via payTableOrder).
+        const { error: delErr } = await sb.from('order_items').delete().eq('order_id', orderId);
+        if (delErr) { setBtnLoading(btn, false); return showToast(delErr.message, 'error'); }
+
+        const newItems = posState.cart.map(item => ({
+          order_id: orderId,
+          product_id: item.product_id,
+          quantity: item.qty,
+          unit_price: item.price,
+        }));
+        const { error: insErr } = await sb.from('order_items').insert(newItems);
+        if (insErr) { setBtnLoading(btn, false); return showToast(insErr.message, 'error'); }
+
+        await sb.from('orders').update({
+          subtotal: orderSubtotal,
+          discount: orderDiscount,
+          discount_type: posState.discountType || 'amount',
+          tax_rate: taxRate,
+          tax: orderTax,
+          total_amount: orderTotal,
+        }).eq('id', orderId).eq('business_id', membership.business_id);
+      }
+      logAudit("update", "order", orderId, null, { subtotal: orderSubtotal, discount: orderDiscount, tax: orderTax, total_amount: orderTotal }, { items_replaced: posState.cart.length });
 
       showToast('Order updated — kitchen notified', 'success');
       playKDSSound('new');
@@ -2788,7 +2894,25 @@
       const groupTax = (groupSubtotal - groupDiscount) * taxRate;
       const groupTotal = groupSubtotal - groupDiscount + groupTax;
 
-      const { data: order, error: orderErr } = await sb.from('orders').insert({
+      // Step 5: atomic insert of order + items (+ table occupancy) in one transaction
+      const rpcResult = await placeOrderViaRpc(null, {
+        branch_id: selectedBranchId || '',
+        table_id: posState.tableId || '',
+        customer_id: posState.customerId || '',
+        order_type: posState.tableId ? 'dine_in' : (posState.orderType || 'takeout'),
+        subtotal: groupSubtotal, discount: groupDiscount, discount_type: posState.discountType || 'amount',
+        tax_rate: taxRate, tax: groupTax, tip: 0, total_amount: groupTotal,
+      }, items);
+
+      if (rpcResult.ok) {
+        orderIds.push(rpcResult.data.order_id);
+        logAudit("create", "order", rpcResult.data.order_id, null, { status: 'pending', total_amount: groupTotal });
+        logUsage("order_placed", "pos", "order", rpcResult.data.order_id);
+        continue;
+      }
+
+      // Legacy await-chain fallback
+      const { data: order, error: orderErr } = await sb.from('orders').insert(stampBranch({
         business_id: membership.business_id,
         table_id: posState.tableId || null,
         customer_id: posState.customerId || null,
@@ -2803,9 +2927,11 @@
         total_amount: groupTotal,
         payment_method: null,
         created_by: currentUser.id,
-      }).select().single();
+      })).select().single();
       if (orderErr) { setBtnLoading(btn, false); return showToast(orderErr.message, 'error'); }
       orderIds.push(order.id);
+      logAudit("create", "order", order.id, null, order);
+      logUsage("order_placed", "pos", "order", order.id);
 
       const orderItems = items.map(item => ({
         order_id: order.id,
@@ -2915,24 +3041,46 @@
       change_given: changeGiven,
     }).eq('id', orderId).eq('business_id', membership.business_id);
     if (orderErr) { setBtnLoading(btn, false); return setError('payment-error', orderErr.message); }
+    logAudit("update", "order", orderId, null, { status: 'completed', tip: paymentState.tip, total_amount: finalTotal, payment_method: methodSummary });
 
     // 2. Create one payment record per method used (capped so change isn't counted as revenue)
+    const paymentRows = [];
     let remainingToAllocate = finalTotal;
     for (const line of linesUsed) {
       let amt = parseFloat(line.amount) || 0;
       if (amt > remainingToAllocate) amt = remainingToAllocate; // trims the overpaid/change portion
       if (amt <= 0) continue;
-      await sb.from('payments').insert({
-        business_id: membership.business_id,
-        order_id: orderId,
-        customer_id: order.customer_id,
-        amount: amt,
-        method: line.method,
-        direction: 'in',
-        created_by: currentUser.id,
-      });
+      paymentRows.push(stampBranch({ order_id: orderId, customer_id: order.customer_id, amount: amt, method: line.method }));
       remainingToAllocate -= amt;
     }
+    let paymentsOk = false;
+    if (FEATURES.atomicRpc && paymentRows.length > 0) {
+      try {
+        const { data: payData, error: payErr } = await sb.rpc('record_payments', {
+          p_business_id: membership.business_id,
+          p_payments: paymentRows,
+        });
+        if (payErr) throw payErr;
+        paymentsOk = true;
+      } catch (e) {
+        console.warn('record_payments RPC failed, using legacy flow:', e?.message || e);
+      }
+    }
+    if (!paymentsOk) {
+      for (const row of paymentRows) {
+        await sb.from('payments').insert({
+          business_id: membership.business_id,
+          branch_id: row.branch_id || null,
+          order_id: row.order_id,
+          customer_id: row.customer_id,
+          amount: row.amount,
+          method: row.method,
+          direction: 'in',
+          created_by: currentUser.id,
+        });
+      }
+    }
+    logUsage("payment_completed", "pos", "order", orderId, { methods: paymentRows.map((r) => r.method), total: finalTotal });
 
     // 3. Free table
     if (order.table_id) {
@@ -3303,7 +3451,7 @@
     if (clockOut) payload.clock_out = new Date(clockOut).toISOString();
 
     setBtnLoading(btn, true);
-    const { error } = await sb.from('labor_shifts').insert(payload);
+    const { error } = await sb.from('labor_shifts').insert(stampBranch(payload));
     setBtnLoading(btn, false);
     if (error) return setError('shift-error', error.message);
     closeModal('shift-modal');
@@ -3315,35 +3463,44 @@
   // ========== EFFICIENCY METRICS ==========
   async function renderEfficiency() {
     try {
-      const { data: allSales } = await sb.from('orders').select('total_amount, status, created_at').eq('business_id', membership.business_id);
-    const revenue = (allSales || []).filter(o => o.status === 'completed').reduce((s, o) => s + Number(o.total_amount || 0), 0);
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const todaySales = (allSales || []).filter(o => o.status === 'completed' && o.created_at && o.created_at.slice(0, 10) === todayStr).reduce((s, o) => s + Number(o.total_amount || 0), 0);
-    const todayOrders = (allSales || []).filter(o => o.status === 'completed' && o.created_at && o.created_at.slice(0, 10) === todayStr).length;
+      const summary = await fetchDashboardSummary();
+      let revenue, totalLaborCost = 0, wasteCost = 0, avgYield = null;
+      if (summary) {
+        revenue = Number(summary.revenue || 0);
+        totalLaborCost = Number(summary.labor_cost || 0);
+        wasteCost = Number(summary.waste_cost || 0);
+        avgYield = summary.avg_yield_pct === null ? null : Number(summary.avg_yield_pct);
+      } else {
+        const { data: allSales } = await applyBranchFilter(sb.from('orders').select('total_amount, status, created_at').eq('business_id', membership.business_id), 'orders');
+        revenue = (allSales || []).filter(o => o.status === 'completed').reduce((s, o) => s + Number(o.total_amount || 0), 0);
+      }
       const materialCost = cache.materials.reduce((s, m) => s + (Number(m.stock_qty) * Number(m.cost_per_unit || 0)), 0);
       const foodCostPct = revenue > 0 ? ((materialCost / revenue) * 100).toFixed(1) : '—';
       document.getElementById('eff-food-cost').textContent = foodCostPct === '—' ? '—' : foodCostPct + '%';
 
-      const { data: shifts } = await sb.from('labor_shifts').select('hourly_rate, clock_in, clock_out, break_minutes').eq('business_id', membership.business_id);
-      let totalLaborCost = 0;
-      if (shifts) {
-        shifts.forEach(s => {
-          if (s.clock_out) {
-            const hours = (new Date(s.clock_out) - new Date(s.clock_in)) / 36e5 - (s.break_minutes || 0) / 60;
-            totalLaborCost += Math.max(0, hours) * Number(s.hourly_rate || 0);
-          }
-        });
+      if (!summary) {
+        const { data: shifts } = await applyBranchFilter(sb.from('labor_shifts').select('hourly_rate, clock_in, clock_out, break_minutes').eq('business_id', membership.business_id), 'labor_shifts');
+        if (shifts) {
+          shifts.forEach(s => {
+            if (s.clock_out) {
+              const hours = (new Date(s.clock_out) - new Date(s.clock_in)) / 36e5 - (s.break_minutes || 0) / 60;
+              totalLaborCost += Math.max(0, hours) * Number(s.hourly_rate || 0);
+            }
+          });
+        }
+        const { data: waste } = await sb.from('waste_log').select('quantity, unit_cost').eq('business_id', membership.business_id);
+        wasteCost = (waste || []).reduce((s, w) => s + Number(w.quantity || 0) * Number(w.unit_cost || 0), 0);
+        const { data: batches } = await sb.from('produce_batches').select('batch_qty, actual_yield').eq('business_id', membership.business_id).not('actual_yield', 'is', null);
+        if (batches && batches.length > 0) {
+          avgYield = batches.reduce((s, b) => s + (Number(b.actual_yield) / Number(b.batch_qty) * 100), 0) / batches.length;
+        }
       }
       const laborPct = revenue > 0 ? ((totalLaborCost / revenue) * 100).toFixed(1) : '—';
       document.getElementById('eff-labor-cost').textContent = laborPct === '—' ? '—' : laborPct + '%';
 
-      const { data: waste } = await sb.from('waste_log').select('quantity, unit_cost').eq('business_id', membership.business_id);
-      const wasteCost = (waste || []).reduce((s, w) => s + Number(w.quantity || 0) * Number(w.unit_cost || 0), 0);
       document.getElementById('eff-waste-cost').textContent = money(wasteCost);
 
-      const { data: batches } = await sb.from('produce_batches').select('batch_qty, actual_yield').eq('business_id', membership.business_id).not('actual_yield', 'is', null);
-      if (batches && batches.length > 0) {
-        const avgYield = batches.reduce((s, b) => s + (Number(b.actual_yield) / Number(b.batch_qty) * 100), 0) / batches.length;
+      if (avgYield !== null && !isNaN(avgYield)) {
         document.getElementById('eff-yield').textContent = avgYield.toFixed(1) + '%';
       } else {
         document.getElementById('eff-yield').textContent = '—';
@@ -3484,7 +3641,7 @@
       if (error) return showToast(error.message, 'error');
     } else {
       payload.status = 'available';
-      const { error } = await sb.from('restaurant_tables').insert(payload);
+      const { error } = await sb.from('restaurant_tables').insert(stampBranch(payload));
       if (error) return showToast(error.message, 'error');
     }
 
@@ -3561,9 +3718,9 @@
     const name = document.getElementById('cust-picker-new-name').value.trim();
     if (!name) return showToast('Name is required', 'error');
     const phone = document.getElementById('cust-picker-new-phone').value.trim() || null;
-    const { data, error } = await sb.from('customers').insert({
+    const { data, error } = await sb.from('customers').insert(stampBranch({
       business_id: membership.business_id, name, phone
-    }).select().single();
+    })).select().single();
     if (error) return showToast(error.message, 'error');
     selectCustomer(data.id, data.name);
     showToast('Customer created', 'success');
@@ -3737,6 +3894,7 @@
     const payload = table === "products" ? { is_active: false } : { status: "voided" };
     const { error } = await sb.from(table).update(payload).eq("id", editingRecord.id).eq("business_id", membership.business_id);
     if (error) return setError(modalId.replace("-modal", "-error"), error.message);
+    logAudit(table === "products" ? "soft_delete" : "void", table, editingRecord.id, null, payload);
     closeModal(modalId);
     showToast("Record deleted");
     await loadEverything();
@@ -3840,8 +3998,10 @@
       updateProfileAvatar(userName);
       applyRolePermissions(data.role);
       applyBusinessTypeVisibility(data.businesses.business_types?.type_key);
+      await loadBranches();
       hide("auth-screen"); hide("onboarding-screen"); show("app-screen");
       setDefaultDateFilters();
+      logUsage("session_start", "dashboard");
       await loadEverything();
       updateTopbar(document.querySelector('.nav-item.active')?.dataset.tab || 'dashboard');
     } catch(err) {
@@ -3856,6 +4016,52 @@
     document.querySelectorAll('.nav-item[data-tab="stock-movements"], .nav-item[data-tab="efficiency"]').forEach((el) => {
       el.classList.toggle("hidden", !needsRawMaterials);
     });
+  }
+
+  // ============================================================
+  // BRANCH SELECTOR (Step 7)
+  // ============================================================
+  async function loadBranches() {
+    try {
+      const { data, error } = await sb.from("branches").select("id, name")
+        .eq("business_id", membership.business_id).eq("is_active", true)
+        .order("created_at");
+      if (error) throw error;
+      branches = data || [];
+    } catch (e) {
+      console.warn("branch load failed:", e?.message || e);
+      branches = [];
+    }
+    // Restore persisted choice; validate it still exists. Default per plan:
+    // first active branch once the business is genuinely multi-branch (>=2),
+    // otherwise "All branches" so single-branch businesses see zero change.
+    const stored = localStorage.getItem(branchStorageKey());
+    selectedBranchId = branches.some((b) => b.id === stored)
+      ? stored
+      : (branches.length >= 2 ? branches[0].id : null);
+    renderBranchSelector();
+  }
+
+  function renderBranchSelector() {
+    const wrap = document.getElementById("branch-wrapper");
+    const sel = document.getElementById("branch-select");
+    if (!wrap || !sel) return;
+    const canPick = branches.length >= 2 && ["owner", "manager"].includes(membership?.role);
+    wrap.classList.toggle("show", canPick);
+    if (!canPick) return; // selection state stays valid for read/write filtering
+    sel.innerHTML = '<option value="">All branches</option>' +
+      branches.map((b) => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join("");
+    sel.value = selectedBranchId || "";
+  }
+
+  async function onBranchChange(val) {
+    selectedBranchId = val || null;
+    try { localStorage.setItem(branchStorageKey(), val); } catch (e) {}
+    logUsage("branch_switched", null, "branch", selectedBranchId);
+    showToast(selectedBranchId
+      ? `Showing ${(branches.find((b) => b.id === selectedBranchId) || {}).name || "branch"}`
+      : "Showing all branches");
+    await loadEverything();
   }
 
   function hasModule(moduleKey) {
@@ -4077,6 +4283,7 @@
     setTimeout(() => section.classList.remove("is-entering"), 260);
     document.querySelectorAll(".nav-item").forEach((el) => el.classList.toggle("active", el.dataset.tab === tab));
     updateTopbar(tab);
+    logUsage("page_view", tab);
     if (tab === "efficiency") { renderEfficiency(); loadWaste(); loadShifts(); loadProduceBatches(); }
     if (tab === "suppliers") loadSuppliers();
     if (tab === "stock-movements") loadMovements();
@@ -4235,26 +4442,57 @@
     if (table === "produce_batches" && activeTab === "efficiency") { loadProduceBatches(); renderEfficiency(); }
   }
 
+  // Step 6: one-round-trip aggregates for dashboard + efficiency tab.
+  // Returns null when the flag is off or the RPC is missing/fails — callers fall back
+  // to the legacy full-history fetches (safety rule: keep legacy flows alive).
+  async function fetchDashboardSummary() {
+    if (!FEATURES.serverAggregation) return null;
+    try {
+      const { data, error } = await sb.rpc('dashboard_summary', {
+        p_business_id: membership.business_id,
+        p_branch_id: selectedBranchId || null,
+      });
+      if (error) throw error;
+      return data;
+    } catch (e) {
+      console.warn('dashboard_summary RPC failed, using legacy aggregation:', e?.message || e);
+      return null;
+    }
+  }
+
   async function renderDashboard() {
     const bid = membership.business_id;
     try {
+    const summary = await fetchDashboardSummary();
+    let revenue, todaySales, todayOrders, salesCount, expenseTotal, purchaseTotal, wasteCost;
+    if (summary) {
+      revenue = Number(summary.revenue || 0);
+      todaySales = Number(summary.today_sales || 0);
+      todayOrders = Number(summary.today_orders || 0);
+      salesCount = Number(summary.sales_count || 0);
+      expenseTotal = Number(summary.expense_total || 0);
+      purchaseTotal = Number(summary.purchase_total || 0);
+      wasteCost = Number(summary.waste_cost || 0);
+    } else {
     const [{ data: allSales }, { data: allExpenses }, { data: allPurchases }] = await Promise.all([
-      sb.from('orders').select('total_amount, status, created_at').eq('business_id', bid),
-      sb.from('expenses').select('amount').eq('business_id', bid),
+      applyBranchFilter(sb.from('orders').select('total_amount, status, created_at').eq('business_id', bid), 'orders'),
+      applyBranchFilter(sb.from('expenses').select('amount').eq('business_id', bid), 'expenses'),
       sb.from('purchase_orders').select('total_amount, status').eq('business_id', bid),
     ]);
-    const revenue = (allSales || []).filter(o => o.status === 'completed').reduce((s, o) => s + Number(o.total_amount || 0), 0);
+    revenue = (allSales || []).filter(o => o.status === 'completed').reduce((s, o) => s + Number(o.total_amount || 0), 0);
     const todayStr = new Date().toISOString().slice(0, 10);
-    const todaySales = (allSales || []).filter(o => o.status === 'completed' && o.created_at && o.created_at.slice(0, 10) === todayStr).reduce((s, o) => s + Number(o.total_amount || 0), 0);
-    const todayOrders = (allSales || []).filter(o => o.status === 'completed' && o.created_at && o.created_at.slice(0, 10) === todayStr).length;
-    const expenseTotal = (allExpenses || []).reduce((s, e) => s + Number(e.amount || 0), 0);
-    const purchaseTotal = (allPurchases || []).filter(p => p.status !== 'voided').reduce((s, p) => s + Number(p.total_amount || 0), 0);
+    todaySales = (allSales || []).filter(o => o.status === 'completed' && o.created_at && o.created_at.slice(0, 10) === todayStr).reduce((s, o) => s + Number(o.total_amount || 0), 0);
+    todayOrders = (allSales || []).filter(o => o.status === 'completed' && o.created_at && o.created_at.slice(0, 10) === todayStr).length;
+    expenseTotal = (allExpenses || []).reduce((s, e) => s + Number(e.amount || 0), 0);
+    purchaseTotal = (allPurchases || []).filter(p => p.status !== 'voided').reduce((s, p) => s + Number(p.total_amount || 0), 0);
 
-    let wasteCost = 0;
+    wasteCost = 0;
     try {
       const { data: waste } = await sb.from('waste_log').select('quantity, unit_cost').eq('business_id', bid);
       wasteCost = (waste || []).reduce((s, w) => s + Number(w.quantity || 0) * Number(w.unit_cost || 0), 0);
     } catch(e) {}
+    salesCount = allSales ? allSales.filter(o => o.status === 'completed').length : 0;
+    }
 
     const totalCosts = expenseTotal + purchaseTotal + wasteCost;
     const materialValue = cache.materials.reduce((s, m) => s + (Number(m.stock_qty) * Number(m.cost_per_unit || 0)), 0);
@@ -4273,7 +4511,6 @@
       })
       .filter(p => p.derivedAvail <= 0);
     const lowStockCount = lowStockProducts.length + lowStockMaterials.length + constrainedRecipes.length;
-    const salesCount = allSales ? allSales.filter(o => o.status === 'completed').length : 0;
     const worstStockItems = [...lowStockProducts.map(p => ({ name: p.name, qty: Number(p.stock_qty) })), ...lowStockMaterials.map(m => ({ name: m.name + ' (material)', qty: Number(m.stock_qty) }))];
     worstStockItems.sort((a, b) => a.qty - b.qty);
     const worstStock = worstStockItems.length > 0 ? worstStockItems[0].name : "All items healthy";
@@ -4498,8 +4735,9 @@
     const { error } = await sb.from("products").insert({
       business_id: membership.business_id, name: `${p.name} (copy)`, category: p.category,
       price: p.price, unit: p.unit, stock_qty: p.product_type === 'recipe' ? 0 : (p.stock_qty || 0), low_stock_threshold: p.low_stock_threshold, product_type: p.product_type || 'resale', stock_limit: p.stock_limit || null,
-    });
+    }).select().single();
     if (error) return setError("product-error", error.message);
+    logAudit("create", "product", null, null, { name: `${p.name} (copy)`, duplicated_from: p.id });
     closeModal("product-modal");
     await loadProducts();
   }
@@ -4531,10 +4769,14 @@
       const { error } = await sb.from("products").update(payload).eq("id", editingRecord.id).eq("business_id", membership.business_id);
       setBtnLoading(btn, false);
       if (error) return setError("product-error", error.message);
+      logAudit("update", "product", editingRecord.id,
+        original ? { name: original.name, category: original.category, price: original.price, unit: original.unit, stock_qty: original.stock_qty, low_stock_threshold: original.low_stock_threshold, product_type: original.product_type } : null,
+        payload);
     } else {
-      const { error } = await sb.from("products").insert({ business_id: membership.business_id, ...payload });
+      const { error, data } = await sb.from("products").insert({ business_id: membership.business_id, ...payload }).select().single();
       setBtnLoading(btn, false);
       if (error) return setError("product-error", error.message);
+      logAudit("create", "product", data?.id || null, null, data || payload);
     }
 
     closeModal("product-modal");
@@ -4698,7 +4940,7 @@
     if (membership.role === "staff") { showToast("Staff cannot void sales.", "error"); return; }
 
     // Only restore stock if the order was served or completed (stock was already deducted)
-    const { data: order } = await sb.from("orders").select("status, table_id").eq("id", orderId).single();
+    const { data: order } = await sb.from("orders").select("status, table_id").eq("id", orderId).eq("business_id", membership.business_id).single();
     if (order && ['completed', 'served'].includes(order.status)) {
       const { data: items } = await sb.from("order_items").select("*, products(product_type)").eq("order_id", orderId);
       for (const item of items ?? []) {
@@ -4714,6 +4956,7 @@
       }
     }
     await sb.from("orders").update({ status: "voided" }).eq("id", orderId).eq("business_id", membership.business_id);
+    logAudit("void", "order", orderId, { status: order?.status ?? null }, { status: "voided" });
 
     await Promise.all([loadProducts(), loadSales()]);
     showToast("Sale voided");
@@ -4758,7 +5001,7 @@
     setBtnLoading(btn, true);
     const { error } = editingRecord
       ? await sb.from("customers").update(payload).eq("id", editingRecord.id)
-      : await sb.from("customers").insert({ business_id: membership.business_id, ...payload });
+      : await sb.from("customers").insert(stampBranch({ business_id: membership.business_id, ...payload }));
     setBtnLoading(btn, false);
 
     if (error) return setError("customer-error", error.message);
@@ -4872,12 +5115,16 @@
 
     const payload = { customer_id: customerId, amount, method };
     setBtnLoading(btn, true);
-    const { error } = editingRecord
-      ? await sb.from("payments").update(payload).eq("id", editingRecord.id)
-      : await sb.from("payments").insert({ business_id: membership.business_id, direction: "in", party_type: "customer", created_by: currentUser.id, ...payload });
+    const beforeRecord = editingRecord ? cache.payments.find((p) => p.id === editingRecord.id) : null;
+    const { error, data } = editingRecord
+      ? await sb.from("payments").update(payload).eq("id", editingRecord.id).select().single()
+      : await sb.from("payments").insert(stampBranch({ business_id: membership.business_id, direction: "in", party_type: "customer", created_by: currentUser.id, ...payload })).select().single();
     setBtnLoading(btn, false);
 
     if (error) return setError("payment-crud-error", error.message);
+    logAudit(editingRecord ? "update" : "create", "payment", data?.id || null,
+      beforeRecord ? { customer_id: beforeRecord.customer_id, amount: beforeRecord.amount, method: beforeRecord.method } : null,
+      payload);
     closeModal("payment-crud-modal");
     showToast(editingRecord ? "Payment updated" : "Payment recorded");
     await loadPayments();
@@ -4999,7 +5246,7 @@
     setBtnLoading(btn, true);
     const { error } = editingRecord
       ? await sb.from("expenses").update(payload).eq("id", editingRecord.id)
-      : await sb.from("expenses").insert({ business_id: membership.business_id, created_by: currentUser.id, ...payload });
+      : await sb.from("expenses").insert(stampBranch({ business_id: membership.business_id, created_by: currentUser.id, ...payload }));
     setBtnLoading(btn, false);
 
     if (error) return setError("expense-error", error.message);
@@ -5222,7 +5469,7 @@
     setBtnLoading(btn, true);
     const { error } = editingRecord
       ? await sb.from("suppliers").update(payload).eq("id", editingRecord.id)
-      : await sb.from("suppliers").insert({ business_id: membership.business_id, ...payload });
+      : await sb.from("suppliers").insert(stampBranch({ business_id: membership.business_id, ...payload }));
     setBtnLoading(btn, false);
 
     if (error) return setError("supplier-error", error.message);

@@ -5,9 +5,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Thole Solutions</title>
 <link rel="icon" type="image/png" href="logo.png" />
+<script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
@@ -18,7 +19,7 @@
     --card: #FFFFFF;
     --ink: #14162E;
     --ink-soft: #565B78;
-    --ink-faint: #8B8FA8;
+    --ink-faint: #676C87;
     --line: #E1E3EE;
     --accent: #1D1F91;
     --accent-dark: #14166B;
@@ -1693,10 +1694,18 @@
   // ============================================================
   // CONFIG
   // ============================================================
-  const SUPABASE_URL = "https://qehgsomtcionbovlqgyi.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFlaGdzb210Y2lvbmJvdmxxZ3lpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2ODA4ODQsImV4cCI6MjA5OTI1Njg4NH0.QydTydc8wbbhRhwiNpWCqA74m52MZ3RcgKJOmf538us";
+  const CONFIG = window.THOLE_CONFIG || {};
+  if (!CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY) {
+    document.body.innerHTML = '<div style="padding:40px;font-family:sans-serif;color:#A6432C;">Configuration missing: config.js failed to load.</div>';
+    throw new Error("THOLE_CONFIG missing — check config.js");
+  }
 
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+
+  // Feature flags — flip to false to fall back to legacy flows.
+  const FEATURES = {
+    businessMembers: true, // read/write membership via business_members (falls back to app_users)
+  };
 
   let currentUser = null;
   let membership = null; // { business_id, role, full_name, businesses: {...} }
@@ -1979,7 +1988,9 @@
     };
     if (itemType === "product") payload.product_id = productId;
     else if (itemType === "raw_material") payload.raw_material_id = materialId;
-    await sb.from("stock_movements").insert(payload);
+    const { error } = await sb.from("stock_movements").insert(payload);
+    if (error) console.error("stock movement log failed:", error.message);
+    return !error;
   }
 
   function getDerivedAvailability(productId) {
@@ -2006,8 +2017,9 @@
       const mode = document.getElementById(`${timeFilterKey}-filter-mode`)?.value || 'date';
       query = applyTimeFilter(query, val, mode, timeCol);
     }
-    const { data } = await query;
+    const { data, error } = await query;
     loading[key] = false;
+    if (error) { console.error(`pagedLoad(${key}) failed:`, error.message); showToast(error.message, 'error'); return null; }
     if (ver !== reqVersion[key]) return null;
     if (append) { cache[key] = [...cache[key], ...(data ?? [])]; } else { cache[key] = data ?? []; }
     pagination[key] = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
@@ -3352,15 +3364,24 @@
     const settings = { tax_rate: taxRate, currency_symbol: currency, receipt_footer: receiptFooter };
     setBtnLoading(btn, true);
     try {
-      await sb.from('businesses').update({
+      const { error } = await sb.from('businesses').update({
         name: bizName || undefined,
         address: address || null,
         phone: phone || null,
         tax_id: taxId || null,
         settings
       }).eq('id', membership.business_id);
+      if (error) throw error;
       if (membership.businesses) membership.businesses.settings = settings;
-    } catch(e) { console.error('Failed to save settings:', e); }
+    } catch(e) {
+      console.error('Failed to save settings:', e);
+      setTimeout(() => {
+        setBtnLoading(btn, false);
+        setError('settings-error', e?.message || 'Could not save settings. Please try again.');
+        showToast(e?.message || 'Could not save settings', 'error');
+      }, 300);
+      return;
+    }
     setTimeout(() => {
       setBtnLoading(btn, false);
       showToast('Settings saved');
@@ -3738,6 +3759,7 @@
 
   async function boot() {
     try {
+      bindAuthStateWatcher();
       await setLanguage(currentLang);
       const { data: { session } } = await sb.auth.getSession();
       if (!session) { revealAuth(); showLogin(); return; }
@@ -3750,15 +3772,53 @@
     }
   }
 
+  const MEMBERSHIP_SELECT = "business_id, role, full_name, businesses(name, invite_code, settings, business_types(display_name, type_key))";
+
+  async function fetchActiveMembership() {
+    if (FEATURES.businessMembers) {
+      const { data, error } = await sb
+        .from("business_members")
+        .select(MEMBERSHIP_SELECT)
+        .eq("user_id", currentUser.id)
+        .eq("status", "active")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (!error && data) return data;
+      if (error) console.warn("business_members read failed, falling back to app_users:", error.message);
+    }
+    const { data, error } = await sb
+      .from("app_users")
+      .select(MEMBERSHIP_SELECT)
+      .eq("user_id", currentUser.id)
+      .maybeSingle();
+    if (error) console.error("app_users membership read failed:", error.message);
+    return (!error && data) ? data : null;
+  }
+
+  async function listTeamMembers() {
+    if (FEATURES.businessMembers) {
+      const { data, error } = await sb
+        .from("business_members")
+        .select("user_id, role, full_name")
+        .eq("business_id", membership.business_id)
+        .eq("status", "active")
+        .order("created_at");
+      if (!error) return data || [];
+      console.warn("business_members team read failed, falling back to app_users:", error.message);
+    }
+    const { data } = await sb
+      .from("app_users")
+      .select("user_id, role, full_name")
+      .eq("business_id", membership.business_id)
+      .order("created_at");
+    return data || [];
+  }
+
   async function checkMembership() {
     try {
-      const { data, error } = await sb
-        .from("app_users")
-        .select("business_id, role, full_name, businesses(name, invite_code, settings, business_types(display_name, type_key))")
-        .eq("user_id", currentUser.id)
-        .maybeSingle();
-
-      if (error || !data) {
+      const data = await fetchActiveMembership();
+      if (!data) {
         hide("auth-screen"); hide("app-screen"); show("onboarding-screen");
         return;
       }
@@ -3959,7 +4019,12 @@
   }
 
   async function handleLogout() {
+    teardownRealtime();
     await sb.auth.signOut();
+    resetToAuthScreen();
+  }
+
+  function resetToAuthScreen() {
     currentUser = null; membership = null;
     hide("app-screen"); hide("onboarding-screen");
     // Reset auth screen spinner for next login
@@ -3969,6 +4034,19 @@
     // Briefly show spinner, then reveal form
     setTimeout(() => revealAuth(), 400);
     showLogin();
+  }
+
+  let authWatcherBound = false;
+  function bindAuthStateWatcher() {
+    if (authWatcherBound) return;
+    authWatcherBound = true;
+    sb.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        if (currentUser || membership) resetToAuthScreen();
+      } else if (event === "TOKEN_REFRESH_FAILED") {
+        sb.auth.signOut().catch(() => {});
+      }
+    });
   }
 
   // ============================================================
@@ -4107,6 +4185,10 @@
   }
 
   let realtimeChannel = null;
+  function teardownRealtime() {
+    if (realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
+    if (kdsChannel) { sb.removeChannel(kdsChannel); kdsChannel = null; }
+  }
   function setupRealtimeSubscriptions() {
     if (realtimeChannel) { sb.removeChannel(realtimeChannel); }
     realtimeChannel = sb.channel("business-realtime");
@@ -5161,7 +5243,7 @@
   // ============================================================
   async function loadTeam() {
     document.getElementById("team-invite-code").textContent = membership.businesses.invite_code;
-    const { data } = await sb.from("app_users").select("*").eq("business_id", membership.business_id).order("created_at");
+    const data = await listTeamMembers();
     const el = document.getElementById("team-ledger");
     if (!el) return;
     if (!data || data.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">👤</div>No team members found.<br><span style="font-size:12px;">Share your invite code to add staff.</span></div>`; return; }
@@ -5190,15 +5272,40 @@
   }
 
   async function changeRole(userId, newRole) {
-    const { error } = await sb.from("app_users").update({ role: newRole }).eq("user_id", userId).eq("business_id", membership.business_id);
-    if (error) { showToast(error.message, "error"); }
+    if (FEATURES.businessMembers) {
+      const { error } = await sb.from("business_members")
+        .update({ role: newRole, updated_at: new Date().toISOString() })
+        .eq("user_id", userId).eq("business_id", membership.business_id);
+      if (error) { showToast(error.message, "error"); await loadTeam(); return; }
+      // Mirror to legacy table so the fallback path stays truthful during migration.
+      const { error: mirrorErr } = await sb.from("app_users")
+        .update({ role: newRole })
+        .eq("user_id", userId).eq("business_id", membership.business_id);
+      if (mirrorErr) console.warn("legacy app_users role mirror failed:", mirrorErr.message);
+    } else {
+      const { error } = await sb.from("app_users")
+        .update({ role: newRole })
+        .eq("user_id", userId).eq("business_id", membership.business_id);
+      if (error) showToast(error.message, "error");
+    }
     await loadTeam();
   }
 
   async function removeTeamMember(userId) {
     if (!confirm("Remove this person's access to the business? Their login stays, but they'll need a new invite code to rejoin.")) return;
-    const { error } = await sb.from("app_users").delete().eq("user_id", userId).eq("business_id", membership.business_id);
-    if (error) { showToast(error.message, "error"); return; }
+    // Remove from the primary table first — reads prefer it.
+    if (FEATURES.businessMembers) {
+      const { error } = await sb.from("business_members")
+        .delete().eq("user_id", userId).eq("business_id", membership.business_id);
+      if (error) { showToast(error.message, "error"); return; }
+    }
+    const { error: legacyErr } = await sb.from("app_users")
+      .delete().eq("user_id", userId).eq("business_id", membership.business_id);
+    if (legacyErr) {
+      console.error("legacy app_users removal failed:", legacyErr.message);
+      showToast("Removed from team, but cleanup of legacy access failed — try Remove again.", "error");
+      return;
+    }
     await loadTeam();
   }
 

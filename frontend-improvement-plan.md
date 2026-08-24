@@ -29,17 +29,17 @@ Column-level drift:
 
 ### Step 1 — Hygiene quick wins (~1 day)
 Unblocks everything else safely.
-- [ ] UX F-1/F-2 from `ux-eval-index.md`: remove `maximum-scale=1.0, user-scalable=no` (index.html:8); darken `--ink-faint` to `#676C87` (line 21)
-- [ ] Add `sb.auth.onAuthStateChange` → handle `SIGNED_OUT` / expired tokens reactively
-- [ ] Unsubscribe realtime channels on logout; rebuild after membership check (index.html:4109–4137, 2190–2200)
-- [ ] Surface swallowed errors: `pagedLoad` (2009), `saveSettings` success-toast-in-catch (3354–3371), `logStockMovement` (1982)
-- [ ] Extract Supabase URL/anon key from HTML into `config.js`
+- [x] UX F-1/F-2 from `ux-eval-index.md`: remove `maximum-scale=1.0, user-scalable=no` (index.html:8); darken `--ink-faint` to `#676C87` (line 21)
+- [x] Add `sb.auth.onAuthStateChange` → handle `SIGNED_OUT` / expired tokens reactively
+- [x] Unsubscribe realtime channels on logout; rebuild after membership check (index.html:4109–4137, 2190–2200)
+- [x] Surface swallowed errors: `pagedLoad` (2009), `saveSettings` success-toast-in-catch (3354–3371), `logStockMovement` (1982)
+- [x] Extract Supabase URL/anon key from HTML into `config.js`
 
 ### Step 2 — Membership alignment (`business_members`) (~2 days)
 Completes Phase 2 of the rollout doc.
-- [ ] `checkMembership()` reads active `business_members` first, falls back to `app_users` (index.html:3753–3784)
-- [ ] Team page: list/role-change/remove against `business_members` (5164–5200); keep invite-code RPC bridge alive
-- [ ] Feature flag: `const FEATURES = { businessMembers: true }` at top of script
+- [x] `checkMembership()` reads active `business_members` first, falls back to `app_users` (index.html:3753–3784)
+- [x] Team page: list/role-change/remove against `business_members` (5164–5200); keep invite-code RPC bridge alive
+- [x] Feature flag: `const FEATURES = { businessMembers: true }` at top of script
 
 ### Step 3 — Business-type module alignment (~1 day)
 - [ ] Replace hardcoded `"restaurant"/"factory"` gating (3794–3796) with reads of `business_type_modules` / `modules`

@@ -42,8 +42,10 @@ Completes Phase 2 of the rollout doc.
 - [x] Feature flag: `const FEATURES = { businessMembers: true }` at top of script
 
 ### Step 3 — Business-type module alignment (~1 day)
-- [ ] Replace hardcoded `"restaurant"/"factory"` gating (3794–3796) with reads of `business_type_modules` / `modules`
-- [ ] Nav visibility derives from the module list returned with membership
+- [x] Replace hardcoded `"restaurant"/"factory"` gating (3794–3796) with reads of `business_type_modules` / `modules`
+- [x] Nav visibility derives from the module list returned with membership
+
+Implementation notes (2026-08-24): `MEMBERSHIP_SELECT` nests `business_types(display_name, type_key, business_type_modules(module_key))` so modules arrive with membership in one round-trip. Gating helpers: `hasModule(key)` + `businessUsesRawMaterials()` → `inventory` module + `isProductionBusiness()` → `production` module (replaces both `=== "factory"` checks). Behind `FEATURES.typeModules`; falls back to legacy type-key strings when the module list is unavailable/empty. Conservative scope: only the two already-gated nav items (`stock-movements`, `efficiency`) follow modules today — extending to purchasing/store tabs deferred until validated.
 
 ### Step 4 — Audit & usage events (~2 days)
 - [ ] Thin helpers: `logAudit(action, entityType, entityId, before, after)` + `logUsage(eventType, pageKey)`

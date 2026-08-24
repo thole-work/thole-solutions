@@ -1705,10 +1705,12 @@
   // Feature flags — flip to false to fall back to legacy flows.
   const FEATURES = {
     businessMembers: true, // read/write membership via business_members (falls back to app_users)
+    typeModules: true, // derive raw-materials/production gating from business_type_modules (falls back to type_key strings)
   };
 
   let currentUser = null;
   let membership = null; // { business_id, role, full_name, businesses: {...} }
+  let businessModules = null; // Set of module_key from business_type_modules — null = unknown/unavailable (legacy fallback)
   let cache = { products: [], customers: [], sales: [], payments: [], expenses: [], purchases: [], materials: [], suppliers: [], movements: [] };
   let editingRecord = null; // { table: 'products', id: '...' } — null means "adding new"
   let businessTypeKey = null;
@@ -3772,7 +3774,7 @@
     }
   }
 
-  const MEMBERSHIP_SELECT = "business_id, role, full_name, businesses(name, invite_code, settings, business_types(display_name, type_key))";
+  const MEMBERSHIP_SELECT = "business_id, role, full_name, businesses(name, invite_code, settings, business_types(display_name, type_key, business_type_modules(module_key)))";
 
   async function fetchActiveMembership() {
     if (FEATURES.businessMembers) {
@@ -3824,6 +3826,10 @@
         return;
       }
       membership = data;
+      const moduleRows = data.businesses?.business_types?.business_type_modules;
+      businessModules = (FEATURES.typeModules && Array.isArray(moduleRows) && moduleRows.length > 0)
+        ? new Set(moduleRows.map((row) => row.module_key))
+        : null;
       document.getElementById("biz-name").textContent = data.businesses.name;
       document.getElementById("biz-type").textContent = data.businesses.business_types?.display_name ?? "";
       const userName = data.full_name || currentUser.email;
@@ -3852,8 +3858,18 @@
     });
   }
 
+  function hasModule(moduleKey) {
+    return businessModules !== null && businessModules.has(moduleKey);
+  }
+
   function businessUsesRawMaterials() {
-    return businessTypeKey === "restaurant" || businessTypeKey === "factory";
+    if (businessModules) return businessModules.has("inventory"); // inventory module = raw_materials + stock_movements
+    return businessTypeKey === "restaurant" || businessTypeKey === "factory"; // legacy fallback when module list unavailable
+  }
+
+  function isProductionBusiness() {
+    if (businessModules) return businessModules.has("production");
+    return businessTypeKey === "factory";
   }
 
   // ============================================================
@@ -4336,7 +4352,7 @@
     const tf = document.getElementById("inv-type-filter");
     if (tf) {
       const cur = tf.value;
-      const isFactory = businessTypeKey === "factory";
+      const isFactory = isProductionBusiness();
       tf.innerHTML = '<option value="">All</option><option value="resale">Resale</option><option value="recipe">Recipe</option>';
       if (isFactory) tf.innerHTML += '<option value="manufactured">Manufactured</option>';
       if ([...tf.options].some(o => o.value === cur)) tf.value = cur;
@@ -4423,7 +4439,7 @@
 
   function populateProductTypeOptions(selected) {
     const sel = document.getElementById("p-type");
-    const isFactory = businessTypeKey === "factory";
+    const isFactory = isProductionBusiness();
     sel.innerHTML =
       '<option value="resale" data-i18n="product_modal.resale">Buy & Sell</option>' +
       '<option value="recipe">Recipe</option>';

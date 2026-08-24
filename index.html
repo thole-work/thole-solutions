@@ -107,29 +107,32 @@
   button { font-family: 'Inter', 'Roboto', 'Open Sans', sans-serif; cursor: pointer; }
   .hidden { display: none !important; }
 
-  /* ---------- AUTH ---------- */
+  /* ---------- AUTH (full-banner style, restored from v1) ---------- */
   body { background:
     radial-gradient(1100px 700px at 85% -10%, var(--accent-soft), transparent 60%),
     radial-gradient(900px 650px at -15% 110%, var(--sky-soft), transparent 55%),
     var(--paper); }
-  #auth-screen { max-width: 440px; margin: min(9vh, 64px) auto 24px; padding: 40px 36px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-xl); box-shadow: var(--shadow-3); position: relative; z-index: 1; }
-  #loading {
-    position: fixed;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    padding: 0;
-    margin: 0;
-    background: #000;
-    z-index: 60;
+  #auth-screen {
+    position: relative; width: 100%; max-width: 100%; height: 100vh; height: 100dvh;
+    margin: 0; padding: 0; border: none; border-radius: 0; box-shadow: none;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    background: #12229D; overflow: hidden; z-index: 1;
   }
-  #loading img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    object-position: center;
-    display: block;
+  #auth-banner { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center; z-index: 1; background: #12229D; display: block; }
+  #auth-content { position: relative; z-index: 2; max-width: 420px; width: 100%; margin: 0 auto; padding: 32px 20px 40px; background: var(--card); border-radius: 16px 16px 0 0; }
+  #auth-spinner { position: absolute; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center; }
+  #auth-spinner.done { display: none; }
+  .spinner { width: 40px; height: 40px; border: 3px solid rgba(255, 255, 255, 0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (max-width: 768px) {
+    #auth-banner, #loading img { object-fit: cover; }
   }
+  @media (min-width: 769px) {
+    #auth-screen { justify-content: center; align-items: center; }
+    #auth-content { border-radius: var(--r-xl); padding: 40px 36px; max-width: 440px; }
+  }
+  #loading { position: fixed; inset: 0; z-index: 60; background: #12229D; }
+  #loading img { width: 100%; height: 100%; object-fit: contain; object-position: center; display: block; }
   .brand-mark { width: 44px; height: 44px; border-radius: var(--r-md); overflow: hidden; margin-bottom: 18px; }
   .brand-mark img { width: 100%; height: 100%; object-fit: cover; display: block; }
   #auth-screen h1 { font-size: var(--text-2xl); margin-bottom: var(--sp-1); }
@@ -539,6 +542,9 @@
 <div id="loading"><img src="banner.png" alt="Thole Solutions" /></div>
 
 <div id="auth-screen" class="hidden">
+  <img id="auth-banner" src="banner.png" alt="Thole Solutions" />
+  <div id="auth-spinner"><div class="spinner"></div></div>
+  <div id="auth-content">
   <div class="brand-mark"><img src="logo.png" alt="Thole Solutions" /></div>
   <h1 id="auth-title">Sign in</h1>
   <p class="sub" id="auth-sub">Manage your business in one place.</p>
@@ -576,6 +582,7 @@
   </div>
 
   <div id="auth-error" class="error hidden"></div>
+  </div>
 </div>
 
 <div id="invite-reveal-screen" class="hidden" style="max-width: 420px; margin: 0 auto; padding: 60px 20px; text-align:center;">
@@ -1422,9 +1429,11 @@
   // BOOT
   // ============================================================
   async function boot() {
-    const { data: { session } } = await sb.auth.getSession();
     hide("loading");
-    if (!session) { show("auth-screen"); showLogin(); return; }
+    show("auth-screen"); showLogin();
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { document.getElementById("auth-spinner").classList.add("done"); return; }
+    hide("auth-screen");
     currentUser = session.user;
     await checkMembership();
   }

@@ -3267,10 +3267,11 @@
   // Kick off app bootstrap
   boot();
 
-  return {
-    sb, currentUser, membership, cache, editingRecord, businessTypeKey,
-    loadEverything, renderDashboard, switchTab, toggleTheme,
-  };
+  // Return the SAME full API that was published on window.TholeApp above.
+  // The inline onclick="TholeApp.x()" handlers resolve TholeApp against this
+  // lexical binding first — returning the earlier small subset here is what
+  // made the topbar "New sale" button (TholeApp.openSaleModal) silently dead.
+  return window.TholeApp;
 })();
 
 </script>

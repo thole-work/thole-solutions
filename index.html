@@ -207,6 +207,24 @@
   #app-topbar .signout-btn:hover { background: var(--paper); color: var(--ink); }
   /* theme toggle button */
   #theme-toggle { border: 1px solid var(--line); background: var(--card); width: 36px; height: 36px; border-radius: var(--r-md); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink-soft); font-size: var(--text-base); }
+
+  /* ---- receipt (restored from v1) ---- */
+  #receipt-content { font-family: 'JetBrains Mono', monospace; font-size: var(--text-xs); background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-md); padding: 14px; max-height: 40vh; overflow-y: auto; }
+  .receipt-header { text-align: center; margin-bottom: 12px; }
+  .receipt-header h3 { margin: 0 0 4px; font-size: 15px; }
+  .receipt-header p { margin: 2px 0; font-size: 11px; color: var(--ink-faint); }
+  .receipt-items { border-top: 1px dashed var(--line); padding-top: 8px; margin-bottom: 8px; }
+  .receipt-line { display: flex; justify-content: space-between; padding: 3px 0; gap: 12px; }
+  .receipt-totals { border-top: 1px dashed var(--line); padding-top: 8px; }
+  .receipt-totals div { display: flex; justify-content: space-between; padding: 2px 0; }
+  .receipt-total { font-weight: 700; border-top: 1px solid var(--line); padding-top: 4px; margin-top: 4px; }
+  .receipt-footer { text-align: center; margin-top: 12px; color: var(--ink-faint); }
+
+  /* ---- held (parked) orders ---- */
+  #held-orders-bar { margin-bottom: 10px; }
+  .held-chip { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--paper); padding: 6px 8px; margin-bottom: 6px; font-size: var(--text-xs); }
+  .held-chip small { color: var(--ink-faint); }
+  .held-chip .btn-small { margin-left: auto; }
   #theme-toggle:hover { background: var(--accent-soft); color: var(--accent); transform: translateY(-1px); }
   .tab-panel { flex: 1; min-height: 0; overflow-y: auto; padding-right: var(--sp-1); overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
   .tab-panel .page-header { display: none; }
@@ -692,6 +710,7 @@
           <input type="text" id="product-search" placeholder="Search products…" oninput="renderProducts()" style="max-width:220px;" />
           <select id="cat-filter" onchange="renderProducts()"><option value="">All categories</option></select>
         </div>
+        <button class="btn-ghost" onclick="exportProductsCSV()">Export CSV</button>
         <button class="btn-small" onclick="openModal('product-modal')">+ Add product</button>
       </div>
       <div class="ledger" id="products-ledger"></div>
@@ -706,6 +725,7 @@
           </select>
           <input type="date" id="sales-date-filter" onchange="loadSales()" placeholder="YYYY" />
         </div>
+        <button class="btn-ghost" onclick="exportSalesCSV()">Export CSV</button>
         <button class="btn-small" onclick="openSaleModal()">New sale</button>
       </div>
       <div class="report-card compact-card hidden" id="pos-session-card">
@@ -726,7 +746,7 @@
 
     <section id="tab-customers" class="tab-panel hidden">
       <div class="page-header"><h2>Customers</h2><p>People who buy from you.</p></div>
-      <div class="toolbar"><div></div><button class="btn-small" onclick="openModal('customer-modal')">+ Add customer</button></div>
+      <div class="toolbar"><div></div><button class="btn-ghost" onclick="exportCustomersCSV()">Export CSV</button><button class="btn-small" onclick="openModal('customer-modal')">+ Add customer</button></div>
       <div class="ledger" id="customers-ledger"></div>
     </section>
 
@@ -753,6 +773,7 @@
           </select>
           <input type="date" id="expenses-date-filter" onchange="loadExpenses()" placeholder="YYYY" />
         </div>
+        <button class="btn-ghost" onclick="exportExpensesCSV()">Export CSV</button>
         <button class="btn-small" onclick="openModal('expense-modal')">+ Add expense</button>
       </div>
       <div class="ledger" id="expenses-ledger"></div>
@@ -773,6 +794,7 @@
           </select>
           <input type="date" id="purchases-date-filter" onchange="loadPurchases()" placeholder="YYYY" />
         </div>
+        <button class="btn-ghost" onclick="exportPurchasesCSV()">Export CSV</button>
         <button class="btn-small" onclick="openPurchaseModal()">+ New purchase</button>
       </div>
       <div class="report-card compact-card hidden" id="reorder-suggestions-card">
@@ -862,8 +884,11 @@
     <section id="tab-materials" class="tab-panel hidden">
       <div class="page-header"><h2>Raw Materials</h2><p>Ingredients or components used to make your products.</p></div>
       <div class="toolbar">
+        <button class="btn-ghost" onclick="exportMaterialsCSV()">Export CSV</button>
+        <div style="display:flex; gap:6px;">
         <button class="btn-small" onclick="openProduceModal()">Produce</button>
         <button class="btn-small" onclick="openModal('material-modal')">+ Add raw material</button>
+        </div>
       </div>
       <div class="ledger" id="materials-ledger"></div>
     </section>
@@ -909,6 +934,7 @@
   <div class="modal">
     <div class="close" onclick="closeModal('sale-modal')">Close</div>
     <h3>New sale</h3>
+    <div id="held-orders-bar" class="hidden"></div>
     <label>Product</label>
     <select id="s-product" onchange="onSaleProductChange()"></select>
     <div class="field-row">
@@ -956,8 +982,21 @@
         </select>
       </div>
     </div>
-    <button class="btn-primary" id="sale-submit-btn" onclick="submitSale()">Complete sale</button>
+    <div class="field-row" style="margin-top:10px;">
+      <button class="btn-primary" id="sale-submit-btn" onclick="submitSale()">Complete sale</button>
+      <button class="btn-ghost" onclick="holdSale()">Hold order</button>
+    </div>
     <div id="sale-error" class="error hidden"></div>
+  </div>
+</div>
+
+<div id="receipt-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="close" onclick="closeModal('receipt-modal')">Close</div>
+    <h3>Receipt</h3>
+    <div id="receipt-content"></div>
+    <button class="btn-primary" style="width:100%; margin-top:12px;" onclick="printReceipt()">Print receipt</button>
+    <button class="btn-ghost" style="width:100%; margin-top:10px;" onclick="downloadReceiptCSV()">Download receipt (CSV)</button>
   </div>
 </div>
 
@@ -1749,6 +1788,18 @@
     el.textContent = insights[doy % insights.length];
   }
 
+  function animateValue(el, end, duration = 500) {
+    const start = 0;
+    const startTime = performance.now();
+    const step = (now) => {
+      const progress = Math.min((now - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = money(start + (end - start) * eased);
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
   function renderDashboard() {
     const settledSales = cache.sales.filter((o) => o.status !== "refunded");
     const revenue = settledSales.reduce((s, o) => s + Number(o.total_amount), 0);
@@ -1760,8 +1811,8 @@
 
     document.getElementById("m-lowstock").textContent = lowStockCount;
     document.getElementById("m-sales").textContent = settledSales.length;
-    document.getElementById("m-revenue").textContent = money(revenue);
-    document.getElementById("m-profit").textContent = money(revenue - expenses);
+    animateValue(document.getElementById("m-revenue"), revenue);
+    animateValue(document.getElementById("m-profit"), revenue - expenses);
 
     document.getElementById("dashboard-top-priority").textContent =
       lowStockCount > 0
@@ -1900,6 +1951,7 @@
     cart = [];
     ["s-discount", "s-tax-rate", "s-tip"].forEach((id) => { const el = document.getElementById(id); if (el) el.value = 0; });
     renderCart();
+    renderHeldOrders();
     populateCheckoutTables();
     openModal("sale-modal");
   }
@@ -1972,6 +2024,12 @@
       const method = document.getElementById("s-payment-method").value || "cash";
       const orderType = document.getElementById("s-order-type").value || "takeaway";
       const totals = cartTotals();
+      // Snapshot for the receipt before the cart is cleared below.
+      const receiptData = {
+        lines: cart.map((l) => ({ ...l })), totals,
+        customer: cache.customers.find((c) => c.id === customerId)?.name || null,
+        method, ts: new Date().toISOString(),
+      };
 
       // Receipt number: max + 1 within this business (retry-on-conflict acceptable at this scale).
       const { data: lastOrder } = await sb.from("orders").select("receipt_number")
@@ -2021,6 +2079,7 @@
       await Promise.all([loadProducts(), loadSales()]);
       renderDashboard();
       toast(`Sale #${receiptNumber} recorded · ${money(totals.total)}`);
+      showReceipt({ ...receiptData, number: receiptNumber });
     }, "Saving…");
   }
 
@@ -2047,6 +2106,177 @@
         <div style="text-align:right;">${isRefunded ? "" : `<span style="color:var(--danger); font-size: var(--text-xs); text-decoration:underline; cursor:pointer;" onclick="voidSale('${o.id}')">Refund</span>`}</div>
       </div>`;
       }).join("");
+  }
+
+  // ============================================================
+  // CSV EXPORTS + RECEIPTS + HELD ORDERS  (restored from v1)
+  // ============================================================
+  function downloadCSV(filename, header, rows) {
+    const csv = header + rows.join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    a.click(); URL.revokeObjectURL(url);
+    toast("CSV downloaded");
+  }
+  const csvStamp = () => new Date().toISOString().slice(0, 10);
+  const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+
+  function exportSalesCSV() {
+    if (!cache.sales.length) return toast("No sales to export", "error");
+    const header = "Date,Customer,Receipt #,Total,Status,Payment method\n";
+    const rows = cache.sales.map((o) => [
+      q(new Date(o.created_at).toLocaleString()), q(o.customers ? o.customers.name : "Walk-in"),
+      o.receipt_number ?? "", Number(o.total_amount || 0).toFixed(2), q(o.status || "completed"), q(o.payment_method || ""),
+    ].join(","));
+    downloadCSV(`sales_${csvStamp()}.csv`, header, rows);
+  }
+
+  function exportCustomersCSV() {
+    if (!cache.customers.length) return toast("No customers to export", "error");
+    const header = "Name,Phone,Email\n";
+    const rows = cache.customers.map((c) => [q(c.name), q(c.phone ?? ""), q(c.email ?? "")].join(","));
+    downloadCSV(`customers_${csvStamp()}.csv`, header, rows);
+  }
+
+  function exportExpensesCSV() {
+    if (!cache.expenses.length) return toast("No expenses to export", "error");
+    const header = "Date,Category,Description,Amount\n";
+    const rows = cache.expenses.map((e) => [
+      q(new Date(e.created_at).toLocaleDateString()), q(e.category), q(e.description ?? ""), Number(e.amount || 0).toFixed(2),
+    ].join(","));
+    downloadCSV(`expenses_${csvStamp()}.csv`, header, rows);
+  }
+
+  function exportPurchasesCSV() {
+    if (!cache.purchases.length) return toast("No purchases to export", "error");
+    const header = "Date,Supplier,Total\n";
+    const rows = cache.purchases.map((po) => [
+      q(new Date(po.created_at).toLocaleDateString()), q(po.suppliers ? po.suppliers.name : ""), Number(po.total_amount || 0).toFixed(2),
+    ].join(","));
+    downloadCSV(`purchases_${csvStamp()}.csv`, header, rows);
+  }
+
+  function exportMaterialsCSV() {
+    if (!cache.materials.length) return toast("No raw materials to export", "error");
+    const header = "Name,Stock,Unit,Low stock threshold\n";
+    const rows = cache.materials.map((m) => [q(m.name), m.stock_qty ?? "", q(m.unit ?? ""), m.low_stock_threshold ?? ""].join(","));
+    downloadCSV(`raw_materials_${csvStamp()}.csv`, header, rows);
+  }
+
+  function exportProductsCSV() {
+    if (!cache.products.length) return toast("No products to export", "error");
+    const header = "Name,Category,Price,Stock,Unit\n";
+    const rows = cache.products.map((p) => [
+      q(p.name), q(p.category ?? ""), Number(p.price || 0).toFixed(2), p.stock_qty ?? "", q(p.unit ?? ""),
+    ].join(","));
+    downloadCSV(`products_${csvStamp()}.csv`, header, rows);
+  }
+
+  let lastReceipt = null;
+  function showReceipt(r) {
+    lastReceipt = r;
+    const el = document.getElementById("receipt-content");
+    if (!el) return;
+    el.innerHTML = `
+      <div class="receipt-header"><h3>Receipt #${r.number}</h3><p>${new Date(r.ts).toLocaleString()}</p>${r.customer ? `<p>Customer: ${escapeHtml(r.customer)}</p>` : ""}</div>
+      <div class="receipt-items">${r.lines.map((l) => `<div class="receipt-line"><span>${escapeHtml(l.name)} x${l.qty}</span><span>${money(l.qty * l.unit_price)}</span></div>`).join("")}</div>
+      <div class="receipt-totals">
+        <div><span>Subtotal</span><span>${money(r.totals.subtotal)}</span></div>
+        ${r.totals.discount ? `<div><span>Discount</span><span>-${money(r.totals.discount)}</span></div>` : ""}
+        ${r.totals.tax ? `<div><span>Tax</span><span>${money(r.totals.tax)}</span></div>` : ""}
+        ${r.totals.tip ? `<div><span>Tip</span><span>${money(r.totals.tip)}</span></div>` : ""}
+        <div class="receipt-total"><span>Total</span><span>${money(r.totals.total)}</span></div>
+        <div><span>Paid via</span><span>${escapeHtml((r.method || "").replace(/_/g, " "))}</span></div>
+      </div>
+      <div class="receipt-footer">Thank you for your business!</div>`;
+    openModal("receipt-modal");
+  }
+
+  function printReceipt() {
+    const content = document.getElementById("receipt-content");
+    if (!content) return;
+    const win = window.open("", "_blank", "width=320,height=600");
+    if (!win) { toast("Allow pop-ups to print receipts.", "error"); return; }
+    win.document.write(`<html><head><title>Receipt</title><style>
+      body{font-family:'Courier New',monospace;font-size:13px;padding:16px;max-width:300px;margin:0 auto;}
+      .receipt-header{text-align:center;margin-bottom:12px;}
+      .receipt-header h3{margin:0 0 4px;font-size:16px;}
+      .receipt-header p{margin:2px 0;font-size:12px;}
+      .receipt-items{border-top:1px dashed #333;padding-top:8px;margin-bottom:8px;}
+      .receipt-line{display:flex;justify-content:space-between;padding:3px 0;font-size:12px;gap:10px;}
+      .receipt-totals{border-top:1px dashed #333;padding-top:8px;}
+      .receipt-totals div{display:flex;justify-content:space-between;padding:2px 0;font-size:12px;}
+      .receipt-total{font-weight:bold;font-size:14px;border-top:1px solid #333;padding-top:4px;margin-top:4px;}
+      .receipt-footer{text-align:center;margin-top:12px;font-size:11px;color:#666;}
+    </style></head><body>${content.innerHTML}</body></html>`);
+    win.document.close();
+    win.print();
+    setTimeout(() => win.close(), 1000);
+  }
+
+  function downloadReceiptCSV() {
+    if (!lastReceipt) return toast("No recent receipt to download.", "error");
+    let csv = "Item,Qty,Unit price,Line total\n";
+    lastReceipt.lines.forEach((l) => { csv += `${q(l.name)},${l.qty},${l.unit_price.toFixed(2)},${(l.qty * l.unit_price).toFixed(2)}\n`; });
+    csv += `,,,${lastReceipt.totals.total.toFixed(2)}\n`;
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `receipt_${lastReceipt.number}_${csvStamp()}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  }
+
+  function getHeldOrdersKey() { return `thole:held:${membership.business_id}`; }
+  function getHeldOrders() {
+    try { return JSON.parse(localStorage.getItem(getHeldOrdersKey())) ?? []; } catch { return []; }
+  }
+  function saveHeldOrders(list) {
+    try { localStorage.setItem(getHeldOrdersKey(), JSON.stringify(list.slice(-20))); } catch {}
+    renderHeldOrders();
+  }
+  function holdSale() {
+    if (cart.length === 0) { toast("Add items before parking the order.", "error"); return; }
+    const list = getHeldOrders();
+    list.push({
+      id: Date.now(), ts: new Date().toISOString(),
+      customer_id: document.getElementById("s-customer")?.value || null,
+      lines: cart.map((l) => ({ ...l })),
+    });
+    cart = [];
+    ["s-discount", "s-tax-rate", "s-tip"].forEach((id) => { const el = document.getElementById(id); if (el) el.value = 0; });
+    renderCart();
+    saveHeldOrders(list);
+    toast("Order parked — resume it from this screen any time.");
+  }
+  function resumeHeldOrder(id) {
+    const list = getHeldOrders();
+    const i = list.findIndex((h) => h.id === id);
+    if (i === -1) return;
+    cart = list[i].lines.map((l) => ({ ...l }));
+    const sel = document.getElementById("s-customer");
+    if (sel) sel.value = list[i].customer_id || "";
+    renderCart();
+    list.splice(i, 1);
+    saveHeldOrders(list);
+    toast("Parked order restored.");
+  }
+  function deleteHeldOrder(id) {
+    saveHeldOrders(getHeldOrders().filter((h) => h.id !== id));
+  }
+  function renderHeldOrders() {
+    const bar = document.getElementById("held-orders-bar");
+    if (!bar) return;
+    const list = getHeldOrders();
+    bar.classList.toggle("hidden", list.length === 0);
+    bar.innerHTML = list.map((h) => {
+      const n = h.lines.reduce((s, l) => s + l.qty, 0);
+      const sum = h.lines.reduce((s, l) => s + l.qty * l.unit_price, 0);
+      return `<div class="held-chip"><span>Parked · ${n} item${n === 1 ? "" : "s"} · ${money(sum)}<br /><small>${new Date(h.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small></span>
+        <button class="btn-small" onclick="resumeHeldOrder(${h.id})">Resume</button>
+        <span style="color:var(--danger); cursor:pointer; font-weight:600;" title="Discard parked order" onclick="deleteHeldOrder(${h.id})">✕</span></div>`;
+    }).join("");
   }
 
   async function voidSale(orderId) {
@@ -3279,7 +3509,19 @@
     submitSupplier, submitPurchase, submitMaterial, submitProduce,
     handleLogin, handleSignup, handleCreateBusiness, finishInviteReveal,
     showSignup, showLogin, showNewBusiness, renderProducts, renderDashboard,
+    exportProductsCSV, exportSalesCSV, exportCustomersCSV, exportExpensesCSV,
+    exportPurchasesCSV, exportMaterialsCSV, showReceipt, printReceipt, downloadReceiptCSV,
+    holdSale, resumeHeldOrder, deleteHeldOrder,
   };  Object.assign(window, window.TholeApp);
+  // Live state accessors (v1 exposed these for console/debug use). Getters keep
+  // them fresh after login reassigns the underlying bindings.
+  Object.defineProperties(window.TholeApp, {
+    sb: { get: () => sb },
+    currentUser: { get: () => currentUser, set: (v) => { currentUser = v; } },
+    membership: { get: () => membership, set: (v) => { membership = v; } },
+    cache: { get: () => cache },
+    editingRecord: { get: () => editingRecord },
+  });
 
   // Kick off app bootstrap
   boot();

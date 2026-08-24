@@ -494,10 +494,12 @@
       padding: 8px 12px;
       gap: var(--sp-2);
     }
-    /* Essential-only topbar: brand context left, primary action right.
-       Secondary controls (alerts, orders, theme, sign out) live in the More sheet. */
+    /* Essential-only topbar: business name + current page side by side on the
+       left, primary action right. Secondary controls live in the More sheet. */
     #app-topbar .title-group { margin-bottom: 0; gap: var(--sp-2); flex: 1; }
-    #app-topbar .brand, #app-topbar .topbar-divider, #app-topbar .page-copy p { display: none; }
+    #app-topbar .page-copy p, #app-topbar .brand .type-tag { display: none; }
+    #app-topbar .topbar-divider { height: 22px; }
+    #app-topbar .brand .biz { max-width: 140px; font-size: var(--text-sm); }
     #app-topbar .header-actions { gap: var(--sp-2); flex-shrink: 0; }
     #app-topbar .header-action, #app-topbar .profile-panel { display: none; }
     .pos-cta { padding: 8px 14px; font-size: var(--text-xs); white-space: nowrap; flex-shrink: 0; box-shadow: none; }

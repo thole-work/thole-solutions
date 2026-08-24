@@ -3804,8 +3804,9 @@
         .eq("business_id", membership.business_id)
         .eq("status", "active")
         .order("created_at");
-      if (!error) return data || [];
-      console.warn("business_members team read failed, falling back to app_users:", error.message);
+      // Fall back on error OR empty result — the table may not be backfilled yet.
+      if (!error && data && data.length > 0) return data;
+      if (error) console.warn("business_members team read failed, falling back to app_users:", error.message);
     }
     const { data } = await sb
       .from("app_users")

@@ -160,6 +160,7 @@
   aside.collapsed .side-footer { display: none; }
   aside.collapsed .nav-item { justify-content: center; padding: 10px; gap: 0; }
   aside.collapsed .nav-icon { width: 24px; }
+  aside.collapsed .sidebar-toggle { width: 40px; height: 40px; margin: 0 auto 4px; }
   .side-header { padding: 16px 14px 14px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
   .side-header img { width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0; }
   .side-header .biz {
@@ -171,8 +172,8 @@
     white-space: nowrap;
   }
   .side-header .type-tag { font-size: 10px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 1px; }
-  .sidebar-toggle { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: none; background: var(--paper); color: var(--ink-faint); border-radius: 4px; cursor: pointer; margin-left: auto; flex-shrink: 0; transition: color 0.15s; }
-  .sidebar-toggle:hover { color: var(--ink); }
+  .sidebar-toggle { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: none; background: var(--paper); color: var(--ink-faint); border-radius: 6px; cursor: pointer; margin-left: auto; flex-shrink: 0; transition: color 0.15s; }
+  .sidebar-toggle:hover { color: var(--ink); background: var(--line); }
   nav { flex: 1; padding: 10px 8px; overflow-y: auto; min-height: 0; }
   .nav-divider { height: 1px; background: var(--line); margin: 8px 6px; }
   .nav-item {

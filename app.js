@@ -2218,6 +2218,18 @@
 
   async function boot() {
     try {
+      // Restore sidebar state
+      try {
+        if (localStorage.getItem("thole:sidebar-collapsed") === "true") {
+          const sidebar = document.getElementById("sidebar");
+          if (sidebar) {
+            sidebar.classList.add("collapsed");
+            const icon = document.querySelector("#sidebar-toggle svg");
+            if (icon) icon.innerHTML = '<polyline points="9 18 15 12 9 6"/>';
+          }
+        }
+      } catch (_) {}
+
       bindAuthStateWatcher();
       await setLanguage(currentLang);
       const { data: { session } } = await sb.auth.getSession();
@@ -2681,6 +2693,20 @@
       titleEl.classList.remove("fading");
       subEl.classList.remove("fading");
     }, 150);
+  }
+
+  function toggleSidebar() {
+    const sidebar = document.getElementById("sidebar");
+    if (!sidebar) return;
+    sidebar.classList.toggle("collapsed");
+    const icon = document.querySelector("#sidebar-toggle svg");
+    if (icon) {
+      const collapsed = sidebar.classList.contains("collapsed");
+      icon.innerHTML = collapsed
+        ? '<polyline points="9 18 15 12 9 6"/>'
+        : '<polyline points="15 18 9 12 15 6"/>';
+    }
+    try { localStorage.setItem("thole:sidebar-collapsed", sidebar.classList.contains("collapsed")); } catch (_) {}
   }
 
   function toggleMoreMenu() {

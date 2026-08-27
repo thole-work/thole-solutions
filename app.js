@@ -3270,7 +3270,9 @@
     headHtml: () => headHtml([['Table / Customer', ''], ['Date', ''], ['Total', 'right'], ['', 'right'], ['', 'right']]),
     rowRender: (o) => {
       const primaryLabel = o.restaurant_tables ? `T${o.restaurant_tables.table_number}${o.restaurant_tables.name ? ' — ' + escapeHtml(o.restaurant_tables.name) : ''}` : (o.customers ? escapeHtml(o.customers.name) : 'Walk-in');
-      const statusBadge = o.status !== 'completed' ? ` <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:${o.status === 'voided' ? 'var(--danger-soft)' : 'var(--amber-soft)'}; color:${o.status === 'voided' ? 'var(--danger)' : 'var(--amber)'}; font-weight:600;">${o.status.toUpperCase()}</span>` : '';
+      const badgeMap = { pending: { bg: 'var(--amber)', fg: '#fff' }, preparing: { bg: 'var(--amber)', fg: '#fff' }, ready: { bg: '#10B981', fg: '#fff' }, served: { bg: '#059669', fg: '#fff' }, voided: { bg: 'var(--danger)', fg: '#fff' } };
+      const _bc = badgeMap[o.status];
+      const statusBadge = _bc ? ` <span style="font-size:11px; font-weight:700; padding:${o.status === 'voided' ? '4px 10px' : '3px 8px'}; border-radius:999px; background:${_bc.bg}; color:${_bc.fg};">${o.status.toUpperCase()}</span>` : '';
       return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;">
         <div style="cursor:pointer; color:var(--accent);" onclick="showOrderPreview('${escapeAttr(o.id)}')">${primaryLabel}${statusBadge}</div>
         <div style="color:var(--ink-faint); font-size:12px;">${new Date(o.created_at).toLocaleDateString()}</div>

@@ -2733,7 +2733,6 @@
   async function loadEverything() {
     try {
       await Promise.all([loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses(), loadPurchases(), loadMaterials(), loadSuppliers()]);
-      { const { data: ri } = await sb.from('recipe_items').select('*').eq('business_id', membership.business_id); cache.recipeItems = ri || []; }
       if (membership.role === "owner") await loadTeam();
       if (membership.role === "owner" || membership.role === "manager") await loadReports();
       await Promise.all([loadWaste(), loadShifts(), loadProduceBatches()]);
@@ -2756,7 +2755,7 @@
   function setupRealtimeSubscriptions() {
     if (realtimeChannel) { sb.removeChannel(realtimeChannel); }
     realtimeChannel = sb.channel("business-realtime");
-    const tables = ["products", "orders", "order_items", "customers", "payments", "expenses", "purchase_orders", "raw_materials", "recipe_items", "waste_log", "labor_shifts", "produce_batches", "stock_movements"];
+    const tables = ["products", "orders", "order_items", "customers", "payments", "expenses", "purchase_orders", "raw_materials", "waste_log", "labor_shifts", "produce_batches", "stock_movements"];
     tables.forEach((table) => {
       realtimeChannel.on("postgres_changes", { event: "*", schema: "public", table }, (payload) => {
         handleRealtimeEvent(table);
@@ -2812,7 +2811,7 @@
     if (table === "payments") { loadPayments(); }
     if (table === "expenses") { loadExpenses(); }
     if (table === "purchase_orders") { loadPurchases(); }
-    if (table === "raw_materials" || table === "recipe_items") { loadMaterials(); sb.from('recipe_items').select('*').eq('business_id', membership.business_id).then(({ data: ri }) => { cache.recipeItems = ri || []; }); }
+    if (table === "raw_materials") { loadMaterials(); }
     if (table === "waste_log" && activeTab === "efficiency") { loadWaste(); renderEfficiency(); }
     if (table === "labor_shifts" && activeTab === "efficiency") { loadShifts(); renderEfficiency(); }
     if (table === "produce_batches" && activeTab === "efficiency") { loadProduceBatches(); renderEfficiency(); }
@@ -3350,6 +3349,104 @@
     downloadCSV(`customers_${new Date().toISOString().slice(0,10)}.csv`, header, rows);
   }
 
+  async function exportReportsCSV() {
+    const sales = (window._reportSales || []).filter(o => o.status !== 'voided');
+    if (sales.length === 0) return showToast('No report data to export', 'error');
+
+    const mode = document.getElementById("reports-filter-mode")?.value || "all";
+    const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const lines = [];
+    const section = (title) => lines.push(esc(title));
+    const blank = () => lines.push("");
+
+    // --- Fetch order items for top-product / top-category breakdowns ---
+    const validOrderIds = sales.map(o => o.id);
+    let orderItems = [];
+    if (validOrderIds.length > 0) {
+      const { data } = await sb.from("order_items").select("product_id, quantity, unit_price").in("order_id", validOrderIds);
+      orderItems = data ?? [];
+    }
+
+    const totalRevenue = sales.reduce((s, o) => s + Number(o.total_amount || 0), 0);
+    const orderCount = sales.length;
+    const avgOrder = orderCount ? totalRevenue / orderCount : 0;
+    const lowStockCount = cache.products.filter(p => p.product_type !== 'manufactured' && p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold)).length;
+
+    const productAgg = {};
+    const catRev = {};
+    for (const it of orderItems) {
+      const rev = Number(it.quantity) * Number(it.unit_price);
+      productAgg[it.product_id] = (productAgg[it.product_id] || 0) + rev;
+      const cat = cache.products.find(p => p.id === it.product_id)?.category || "Uncategorized";
+      catRev[cat] = (catRev[cat] || 0) + rev;
+    }
+    const topProducts = Object.entries(productAgg)
+      .map(([pid, rev]) => ({ name: cache.products.find(p => p.id === pid)?.name || "Deleted product", qty: orderItems.filter(i => i.product_id === pid).reduce((s, i) => s + Number(i.quantity), 0), rev }))
+      .sort((a, b) => b.rev - a.rev);
+
+    const payTotals = {};
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const dayTotals = [0, 0, 0, 0, 0, 0, 0];
+    const dayCounts = [0, 0, 0, 0, 0, 0, 0];
+    const dateTotals = {};
+
+    for (const o of sales) {
+      const amt = Number(o.total_amount || 0);
+      const method = o.payment_method || "Unknown";
+      payTotals[method] = (payTotals[method] || 0) + amt;
+      const d = new Date(o.created_at);
+      dayTotals[d.getDay()] += amt;
+      dayCounts[d.getDay()]++;
+      const dk = d.toLocaleDateString();
+      dateTotals[dk] = (dateTotals[dk] || 0) + amt;
+    }
+
+    const minDate = sales.reduce((m, o) => Math.min(m, new Date(o.created_at).getTime()), Infinity);
+    const maxDate = sales.reduce((m, o) => Math.max(m, new Date(o.created_at).getTime()), 0);
+    const rangeLabel = mode === 'all' ? 'All Time' : `${new Date(minDate).toLocaleDateString()} - ${new Date(maxDate).toLocaleDateString()}`;
+
+    section("Thole Solutions Report");
+    lines.push(esc("Period"), esc(rangeLabel));
+    blank();
+    section("Summary");
+    lines.push(esc("Metric"), esc("Value"));
+    lines.push(esc("Total Revenue"), esc(money(totalRevenue)));
+    lines.push(esc("Orders"), esc(orderCount));
+    lines.push(esc("Avg Order Value"), esc(money(avgOrder)));
+    lines.push(esc("Top Seller"), esc(topProducts[0]?.name || "—"));
+    lines.push(esc("Low Stock Items"), esc(lowStockCount));
+    blank();
+
+    section("Revenue Trend");
+    lines.push(esc("Date"), esc("Revenue"));
+    Object.entries(dateTotals).sort((a, b) => new Date(a[0]) - new Date(b[0])).forEach(([d, v]) => lines.push(esc(d), esc(v.toFixed(2))));
+    blank();
+
+    section("Top Selling Products");
+    lines.push(esc("Product"), esc("Qty Sold"), esc("Revenue"));
+    topProducts.forEach(p => lines.push(esc(p.name), esc(p.qty), esc(p.rev.toFixed(2))));
+    blank();
+
+    section("Top Categories");
+    lines.push(esc("Category"), esc("Revenue"));
+    Object.entries(catRev).sort((a, b) => b[1] - a[1]).forEach(([c, v]) => lines.push(esc(c), esc(v.toFixed(2))));
+    blank();
+
+    section("Sales by Payment Method");
+    lines.push(esc("Method"), esc("Revenue"));
+    Object.entries(payTotals).sort((a, b) => b[1] - a[1]).forEach(([m, v]) => lines.push(esc(m), esc(v.toFixed(2))));
+    blank();
+
+    section("Sales by Day of Week");
+    lines.push(esc("Day"), esc("Orders"), esc("Revenue"));
+    dayTotals.map((t, i) => ({ name: dayNames[i], count: dayCounts[i], total: t })).sort((a, b) => b.total - a.total).forEach(d => lines.push(esc(d.name), esc(d.count), esc(d.total.toFixed(2))));
+    blank();
+
+    lines.push(esc(`Total Revenue: ${money(totalRevenue)} · Orders: ${orderCount} · Avg: ${money(avgOrder)}`));
+
+    downloadCSV(`report_${new Date().toISOString().slice(0, 10)}.csv`, "", lines.map(l => l + "\n").join(""));
+  }
+
   function exportExpensesCSV() {
     if (cache.expenses.length === 0) return showToast('No expenses to export', 'error');
     const header = 'Date,Category,Description,Amount\n';
@@ -3845,33 +3942,68 @@
   // REPORTS
   // ============================================================
   let categoryChartInstance = null;
+  let revenueTrendInstance = null;
 
   async function loadReports() {
     const orderItems = await getOrderItems();
     renderReportSummary(orderItems);
-    await Promise.all([renderCategoryChart(orderItems), renderTopProducts(orderItems), renderLowStockReport()]);
+    await Promise.all([renderCategoryChart(orderItems), renderRevenueTrend(), renderTopProducts(orderItems), renderLowStockReport(), renderPaymentMethod(), renderTopCategories(orderItems), renderDayTrend()]);
+  }
+
+  function reportRange() {
+    const mode = document.getElementById("reports-filter-mode")?.value || "all";
+    const now = new Date();
+    const r = { start: null, end: null, prevStart: null, prevEnd: null };
+    if (mode === 'all') return r;
+    if (mode === 'today') {
+      r.start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      r.end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      r.prevStart = new Date(r.start); r.prevStart.setDate(r.prevStart.getDate() - 1);
+      r.prevEnd = new Date(r.start);
+    } else if (mode === 'week') {
+      r.start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
+      r.end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      r.prevStart = new Date(r.start); r.prevStart.setDate(r.prevStart.getDate() - 7);
+      r.prevEnd = new Date(r.start);
+    } else if (mode === 'month') {
+      r.start = new Date(now.getFullYear(), now.getMonth(), 1);
+      r.end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      r.prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      r.prevEnd = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (mode === 'year') {
+      r.start = new Date(now.getFullYear(), 0, 1);
+      r.end = new Date(now.getFullYear() + 1, 0, 1);
+      r.prevStart = new Date(now.getFullYear() - 1, 0, 1);
+      r.prevEnd = new Date(now.getFullYear(), 0, 1);
+    } else if (mode === 'custom') {
+      const sv = document.getElementById("reports-start-date")?.value;
+      const ev = document.getElementById("reports-end-date")?.value;
+      if (sv) r.start = new Date(sv);
+      if (ev) { r.end = new Date(ev); r.end.setDate(r.end.getDate() + 1); }
+      if (r.start && r.end) {
+        const span = r.end.getTime() - r.start.getTime();
+        r.prevEnd = new Date(r.start.getTime());
+        r.prevStart = new Date(r.start.getTime() - span);
+      }
+    }
+    return r;
   }
 
   async function getOrderItems() {
-    let query = sb.from('orders').select('id, total_amount, status, created_at').eq('business_id', membership.business_id);
-    const mode = document.getElementById("reports-filter-mode")?.value || "all";
-    if (mode !== 'all') {
-      const now = new Date();
-      let start, end;
-      if (mode === 'today') { start = new Date(now.getFullYear(), now.getMonth(), now.getDate()); end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1); }
-      else if (mode === 'week') { start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay()); end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1); }
-      else if (mode === 'month') { start = new Date(now.getFullYear(), now.getMonth(), 1); end = new Date(now.getFullYear(), now.getMonth() + 1, 1); }
-      else if (mode === 'year') { start = new Date(now.getFullYear(), 0, 1); end = new Date(now.getFullYear() + 1, 0, 1); }
-      else if (mode === 'custom') {
-        const sv = document.getElementById("reports-start-date")?.value;
-        const ev = document.getElementById("reports-end-date")?.value;
-        if (sv) start = new Date(sv);
-        if (ev) { end = new Date(ev); end.setDate(end.getDate() + 1); }
-      }
-      if (start) query = query.gte('created_at', start.toISOString());
-      if (end) query = query.lt('created_at', end.toISOString());
-    }
+    const range = reportRange();
+    let query = sb.from('orders').select('id, total_amount, status, created_at, payment_method').eq('business_id', membership.business_id);
+    if (range.start) query = query.gte('created_at', range.start.toISOString());
+    if (range.end) query = query.lt('created_at', range.end.toISOString());
     const { data: allOrders } = await query;
+
+    window._reportPrevSales = [];
+    if (range.prevStart && range.prevEnd) {
+      let prevQuery = sb.from('orders').select('id, total_amount, status, created_at').eq('business_id', membership.business_id);
+      prevQuery = prevQuery.gte('created_at', range.prevStart.toISOString()).lt('created_at', range.prevEnd.toISOString());
+      const { data: prevOrders } = await prevQuery;
+      window._reportPrevSales = (prevOrders || []).filter(o => o.status !== 'voided');
+    }
+
     const validOrderIds = (allOrders || []).filter(o => o.status !== 'voided').map(o => o.id);
     window._reportSales = allOrders || [];
     if (validOrderIds.length === 0) return [];
@@ -3879,9 +4011,13 @@
     return data ?? [];
   }
 
+  let reportSummaryPrev = null;
   function renderReportSummary(orderItems) {
-    const sales = window._reportSales || [];
-    const totalRevenue = sales.filter(o => o.status !== 'voided').reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
+    const sales = (window._reportSales || []).filter(o => o.status !== 'voided');
+    const prevSales = window._reportPrevSales || [];
+    const totalRevenue = sales.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
+    const orderCount = sales.length;
+    const avgOrder = orderCount ? totalRevenue / orderCount : 0;
     const lowStockCount = cache.products.filter((p) => p.product_type !== 'manufactured' && p.stock_qty !== null && p.low_stock_threshold !== null && Number(p.stock_qty) <= Number(p.low_stock_threshold)).length;
 
     const productRevenue = {};
@@ -3900,6 +4036,15 @@
     document.getElementById("report-low-stock-count").textContent = lowStockCount;
     document.getElementById("report-top-product-mini").textContent = escapeHtml(topProductName);
     document.getElementById("report-low-stock-count-mini").textContent = lowStockCount;
+    document.getElementById("report-order-count").textContent = orderCount;
+    document.getElementById("report-orders-mini").textContent = orderCount;
+    document.getElementById("report-avg-order").textContent = abbreviateCurrency(Math.round(avgOrder));
+
+    const prevTotalRevenue = prevSales.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
+    const prevAvgOrder = prevSales.length ? prevTotalRevenue / prevSales.length : 0;
+    setDelta("report-revenue-delta", prevTotalRevenue, totalRevenue, (v) => abbreviateCurrency(Math.round(v)));
+    setDelta("report-avg-delta", prevAvgOrder, avgOrder, (v) => abbreviateCurrency(Math.round(v)));
+
     const categoryTotals = {};
     for (const item of orderItems) {
       const product = cache.products.find((p) => p.id === item.product_id);
@@ -3908,11 +4053,23 @@
     }
     const topCategory = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "None yet";
     document.getElementById("report-top-category").textContent = escapeHtml(topCategory);
+    reportSummaryPrev = { totalRevenue, avgOrder };
+  }
+
+  function setDelta(elId, prev, cur, fmt) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    if (!prev || prev <= 0) { el.textContent = "—"; el.className = "delta flat"; return; }
+    const pct = ((cur - prev) / prev) * 100;
+    const up = pct >= 0;
+    const abs = Math.abs(pct);
+    el.textContent = `${up ? "▲" : "▼"} ${abs.toFixed(1)}% vs prev${fmt ? ` · ${fmt(Math.abs(cur - prev))}` : ""}`;
+    el.className = "delta " + (abs < 0.05 ? "flat" : up ? "up" : "down");
   }
 
   async function renderCategoryChart(orderItems) {
-    const canvas = document.getElementById("category-chart");
-    if (!canvas) return;
+    const wrap = document.querySelector('.category-chart-wrap');
+    if (!wrap) return;
 
     const categoryTotals = {};
     for (const item of orderItems) {
@@ -3923,24 +4080,113 @@
 
     const entries = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]).slice(0, 6);
     if (entries.length === 0) {
-      canvas.parentElement.innerHTML = `<div class="empty-state">No category data available.</div>`;
+      if (categoryChartInstance) { categoryChartInstance.destroy(); categoryChartInstance = null; }
+      wrap.innerHTML = `<div class="empty-state">No category data available.</div>`;
       return;
     }
+    if (wrap.querySelector('.empty-state') || !wrap.querySelector('canvas')) wrap.innerHTML = `<canvas id="category-chart" height="110"></canvas>`;
+    const canvas = document.getElementById("category-chart");
+    if (!canvas) return;
 
     const labels = entries.map(([category]) => category);
     const data = entries.map(([, total]) => total);
-    const colors = ["#1D1F91","#5CACF7","#9C6B1F","#F59E0B","#10B981","#8B5CF6"];
+    const colors = ["#C2410C","#5CACF7","#9C6B1F","#F59E0B","#10B981","#8B5CF6"];
 
     if (categoryChartInstance) categoryChartInstance.destroy();
     categoryChartInstance = new Chart(canvas, {
       type: "doughnut",
       data: {
         labels,
-        datasets: [{ data, backgroundColor: colors.slice(0, labels.length), borderWidth: 0 }],
+        datasets: [{ data, backgroundColor: colors.slice(0, labels.length), borderWidth: 2, borderColor: "#fff" }],
       },
       options: {
+        cutout: "62%",
         plugins: {
-          legend: { position: "bottom", labels: { color: "#374151", boxWidth: 12 } },
+          legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 12 } } },
+        },
+        responsive: true,
+        maintainAspectRatio: false,
+      },
+    });
+  }
+
+  async function renderRevenueTrend() {
+    const sales = (window._reportSales || []).filter(o => o.status !== 'voided');
+    const wrap = document.querySelector('.trend-chart-wrap');
+    if (!wrap) return;
+    if (sales.length === 0) {
+      if (revenueTrendInstance) { revenueTrendInstance.destroy(); revenueTrendInstance = null; }
+      wrap.innerHTML = `<div class="empty-state">No sales in this range yet.</div>`;
+      return;
+    }
+    if (wrap.querySelector('.empty-state') || !wrap.querySelector('canvas')) wrap.innerHTML = `<canvas id="revenue-trend-chart" height="120"></canvas>`;
+    const freshCanvas = document.getElementById("revenue-trend-chart");
+    if (!freshCanvas) return;
+
+    const dates = sales.map(o => new Date(o.created_at));
+    const min = new Date(Math.min(...dates.map(d => d.getTime())));
+    const max = new Date(Math.max(...dates.map(d => d.getTime())));
+    const spanDays = (max.getTime() - min.getTime()) / 86400000 + 1;
+
+    const bucketKey = (d) => {
+      if (spanDays <= 2) return { label: d.getHours() + ":00", key: d.toDateString() + "|" + d.getHours() };
+      if (spanDays <= 62) return { label: d.toLocaleDateString([], { month: "short", day: "numeric" }), key: d.toDateString() };
+      return { label: d.toLocaleDateString([], { month: "short", year: "2-digit" }), key: d.getFullYear() + "-" + d.getMonth() };
+    };
+
+    const buckets = {};
+    const orderLabels = [];
+    const now = Date.now();
+    for (const o of sales) {
+      const d = new Date(o.created_at);
+      if (d.getTime() > now) continue;
+      const { label, key } = bucketKey(d);
+      if (!buckets[key]) { buckets[key] = { label, total: 0 }; orderLabels.push(key); }
+      buckets[key].total += Number(o.total_amount || 0);
+    }
+    orderLabels.sort((a, b) => a.localeCompare(b));
+    const labels = orderLabels.map(k => buckets[k].label);
+    const data = orderLabels.map(k => buckets[k].total);
+
+    // Fill gaps in daily mode so the line reads as a continuous band
+    if (spanDays > 2 && spanDays <= 62 && data.length > 1) {
+      const full = [];
+      const start = new Date(min.getFullYear(), min.getMonth(), min.getDate());
+      const cur = new Date(start);
+      const keys = new Set(orderLabels);
+      while (cur <= max) {
+        const k = cur.toDateString();
+        full.push({ label: cur.toLocaleDateString([], { month: "short", day: "numeric" }), v: keys.has(k) ? buckets[k].total : 0 });
+        cur.setDate(cur.getDate() + 1);
+      }
+      const fullLabels = full.map(f => f.label);
+      const fullData = full.map(f => f.v);
+      if (revenueTrendInstance) revenueTrendInstance.destroy();
+      revenueTrendInstance = new Chart(freshCanvas, {
+        type: "bar",
+        data: { labels: fullLabels, datasets: [{ data: fullData, backgroundColor: "#C2410C", hoverBackgroundColor: "#9A3412", borderRadius: 4, barPercentage: 0.7 }] },
+        options: {
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => money(c.parsed.y) } } },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: "#A8A29E", maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } },
+            y: { grid: { color: "rgba(0,0,0,0.06)" }, ticks: { color: "#A8A29E", callback: (v) => abbreviateNumber(v) } },
+          },
+          responsive: true,
+          maintainAspectRatio: false,
+        },
+      });
+      return;
+    }
+
+    if (revenueTrendInstance) revenueTrendInstance.destroy();
+    revenueTrendInstance = new Chart(freshCanvas, {
+      type: "bar",
+      data: { labels, datasets: [{ data, backgroundColor: "#C2410C", hoverBackgroundColor: "#9A3412", borderRadius: 4, barPercentage: 0.7 }] },
+      options: {
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => money(c.parsed.y) } } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: "#A8A29E", maxRotation: spanDays <= 2 ? 0 : 45, autoSkip: true, maxTicksLimit: 10 } },
+          y: { grid: { color: "rgba(0,0,0,0.06)" }, ticks: { color: "#A8A29E", callback: (v) => abbreviateNumber(v) } },
         },
         responsive: true,
         maintainAspectRatio: false,
@@ -3976,6 +4222,77 @@
         <div class="num">${t.qty}</div>
         <div class="num" style="text-align:right">${money(t.revenue)}</div>
       </div>`).join("");
+  }
+
+  function renderPaymentMethod() {
+    const el = document.getElementById("payment-method-ledger");
+    if (!el) return;
+    const sales = (window._reportSales || []).filter(o => o.status !== 'voided');
+    const totals = {};
+    for (const o of sales) {
+      const method = o.payment_method || "Unknown";
+      totals[method] = (totals[method] || 0) + Number(o.total_amount || 0);
+    }
+    const entries = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+    const grand = entries.reduce((s, [, v]) => s + v, 0);
+    if (entries.length === 0) { el.innerHTML = `<div class="empty-state">No sales yet.</div>`; return; }
+    el.innerHTML = entries.map(([method, v]) => `
+      <div style="padding:8px 0; border-bottom:1px solid var(--line);">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+          <span style="font-size:13px; font-weight:500; text-transform:capitalize;">${escapeHtml(method)}</span>
+          <span class="num" style="font-size:13px;">${money(v)}</span>
+        </div>
+        <div style="height:6px; background:var(--line); border-radius:999px; margin-top:6px; overflow:hidden;">
+          <div style="height:100%; width:${grand ? (v / grand) * 100 : 0}%; background:var(--accent); border-radius:999px;"></div>
+        </div>
+      </div>`).join("");
+  }
+
+  function renderTopCategories(orderItems) {
+    const el = document.getElementById("top-categories-ledger");
+    if (!el) return;
+    if (!orderItems || orderItems.length === 0) { el.innerHTML = `<div class="empty-state">No sales yet.</div>`; return; }
+    const catRev = {};
+    for (const item of orderItems) {
+      const product = cache.products.find((p) => p.id === item.product_id);
+      const category = product?.category || "Uncategorized";
+      catRev[category] = (catRev[category] || 0) + Number(item.quantity) * Number(item.unit_price);
+    }
+    const entries = Object.entries(catRev).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const grand = entries.reduce((s, [, v]) => s + v, 0);
+    if (entries.length === 0) { el.innerHTML = `<div class="empty-state">No sales yet.</div>`; return; }
+    el.innerHTML = entries.map(([cat, v]) => `
+      <div style="padding:8px 0; border-bottom:1px solid var(--line);">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+          <span style="font-size:13px; font-weight:500;">${escapeHtml(cat)}</span>
+          <span class="num" style="font-size:13px;">${money(v)}</span>
+        </div>
+        <div style="height:6px; background:var(--line); border-radius:999px; margin-top:6px; overflow:hidden;">
+          <div style="height:100%; width:${grand ? (v / grand) * 100 : 0}%; background:var(--attention); border-radius:999px;"></div>
+        </div>
+      </div>`).join("");
+  }
+
+  function renderDayTrend() {
+    const el = document.getElementById("day-trend-ledger");
+    if (!el) return;
+    const sales = (window._reportSales || []).filter(o => o.status !== 'voided');
+    if (sales.length === 0) { el.innerHTML = `<div class="empty-state">No sales yet.</div>`; return; }
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const dayTotals = [0, 0, 0, 0, 0, 0, 0];
+    const dayCounts = [0, 0, 0, 0, 0, 0, 0];
+    for (const o of sales) {
+      const d = new Date(o.created_at);
+      const idx = d.getDay();
+      dayTotals[idx] += Number(o.total_amount || 0);
+      dayCounts[idx]++;
+    }
+    const rows = dayTotals.map((v, i) => ({ name: dayNames[i], total: v, count: dayCounts[i] })).sort((a, b) => b.total - a.total);
+    el.innerHTML = rows.map(r => `<div class="ledger-row" style="grid-template-columns: 1fr 1fr 1fr; min-width:0;">
+      <div>${r.name}</div>
+      <div class="num">${r.count} order${r.count === 1 ? "" : "s"}</div>
+      <div class="num" style="text-align:right">${money(r.total)}</div>
+    </div>`).join("");
   }
 
   function renderLowStockReport() {

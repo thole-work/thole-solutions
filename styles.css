@@ -251,12 +251,13 @@
   .dashboard-summary-grid div { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
   .card-label { color: var(--ink-faint); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
 
-  .reports-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 22px; }
+  .reports-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 22px; }
   .report-card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 18px; box-shadow: none; color: var(--ink); }
   .report-card h3 { margin: 0 0 12px; font-size: 15px; }
   .report-card header, .report-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
   .report-card-header p { margin: 0; color: var(--ink-soft); font-size: 12px; line-height: 1.4; }
-  .report-card canvas { width: 100%; max-height: 140px; }
+  .report-card canvas { width: 100%; }
+  .report-card canvas#category-chart { max-height: 140px; }
   .report-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; margin-bottom: 22px; }
   .report-insight-card { display: flex; flex-direction: column; justify-content: space-between; }
   .insight-list { display: grid; gap: 12px; }
@@ -265,9 +266,16 @@
   .insight-list strong { font-size: 15px; }
   .report-summary-card { display: flex; flex-direction: column; gap: 6px; }
   .report-summary-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); }
-  /* Removed unused report chart controls to simplify reports layout */
   .report-summary-card .value { font-size: 22px; font-weight: 700; color: var(--ink); }
   .report-summary-card .note { color: var(--ink-soft); font-size: 12px; }
+  .report-summary-card .delta { font-size: 12px; font-weight: 600; margin-top: 2px; }
+  .report-summary-card .delta.up { color: #16a34a; }
+  .report-summary-card .delta.down { color: var(--danger); }
+  .report-summary-card .delta.flat { color: var(--ink-faint); }
+  .trend-chart-wrap { position: relative; height: 200px; }
+  .report-breakdown-card { min-height: 180px; }
+  .report-breakdown-grid { grid-template-columns: repeat(2, 1fr); }
+  .report-breakdown-grid .report-insight-card { grid-column: span 1; }
   .onboarding-card h3 { margin: 0; font-size: 18px; }
   .onboarding-card p { margin: 8px 0 0; color: var(--ink-soft); font-size: 13px; }
   .onboarding-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 18px; }
@@ -513,6 +521,9 @@
     .metrics { grid-template-columns: 1fr; }
     .metric-card, .report-card, .report-card.compact-card { padding: 14px 14px; }
     .report-grid { grid-template-columns: 1fr; gap: 16px; }
+    .report-breakdown-grid { grid-template-columns: 1fr; }
+    .report-breakdown-grid .report-insight-card { grid-column: span 1; }
+    .trend-chart-wrap { height: 160px; }
     .dashboard-summary-grid { grid-template-columns: 1fr; }
     .report-summary-card { width: 100%; }
     .ledger { font-size: 13px; }

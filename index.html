@@ -398,13 +398,26 @@
           </select>
           <input type="date" id="reports-start-date" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);" onchange="loadReports()" />
           <input type="date" id="reports-end-date" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink); display:none;" onchange="loadReports()" />
+          <button class="btn-small" onclick="exportReportsCSV()" data-i18n="reports.export_csv">📥 Export CSV</button>
         </div>
       </div>
       <div class="reports-metrics">
         <div class="report-summary-card report-card">
           <div class="label" data-i18n="reports.total_revenue">Total revenue</div>
           <div class="value num" id="report-total-revenue">0</div>
+          <div class="delta" id="report-revenue-delta"></div>
           <div class="note" data-i18n="reports.total_revenue_note">Sum of all sales in your business.</div>
+        </div>
+        <div class="report-summary-card report-card">
+          <div class="label" data-i18n="reports.orders">Orders</div>
+          <div class="value num" id="report-order-count">0</div>
+          <div class="note" data-i18n="reports.orders_note">Completed orders in this range.</div>
+        </div>
+        <div class="report-summary-card report-card">
+          <div class="label" data-i18n="reports.avg_sale">Avg order value</div>
+          <div class="value num" id="report-avg-order">0</div>
+          <div class="delta" id="report-avg-delta"></div>
+          <div class="note" data-i18n="reports.avg_sale_note">Average spend per order.</div>
         </div>
         <div class="report-summary-card report-card">
           <div class="label" data-i18n="reports.top_seller">Top seller</div>
@@ -417,13 +430,32 @@
           <div class="note" data-i18n="reports.low_stock_note">Items at or below the reorder threshold.</div>
         </div>
       </div>
-      <div class="report-grid">
-        <div class="report-card">
-          <div class="report-card-header">
-            <h3 data-i18n="reports.category_share">Category share</h3>
-            <p class="note" data-i18n="reports.category_share_note">Compact breakdown of sales across product categories.</p>
-          </div>
-          <canvas id="category-chart" height="110"></canvas>
+      <div class="report-card report-trend-card" style="margin-bottom:22px;">
+        <div class="report-card-header">
+          <h3 data-i18n="reports.revenue_trend">Revenue trend</h3>
+          <p class="note" data-i18n="reports.revenue_trend_note">Revenue across the selected period.</p>
+        </div>
+        <div class="trend-chart-wrap"><canvas id="revenue-trend-chart" height="120"></canvas></div>
+      </div>
+      <div class="report-card" style="margin-bottom:22px;">
+        <div class="report-card-header">
+          <h3 data-i18n="reports.category_share">Category share</h3>
+          <p class="note" data-i18n="reports.category_share_note">Revenue breakdown across product categories.</p>
+        </div>
+        <div class="trend-chart-wrap category-chart-wrap"><canvas id="category-chart" height="110"></canvas></div>
+      </div>
+      <div class="report-grid report-breakdown-grid">
+        <div class="report-card report-breakdown-card">
+          <h3 data-i18n="reports.sales_by_payment">Sales by payment</h3>
+          <div class="ledger" id="payment-method-ledger"></div>
+        </div>
+        <div class="report-card report-breakdown-card">
+          <h3 data-i18n="reports.top_categories">Top categories</h3>
+          <div class="ledger" id="top-categories-ledger"></div>
+        </div>
+        <div class="report-card report-breakdown-card">
+          <h3 data-i18n="reports.by_day">Sales by day</h3>
+          <div class="ledger" id="day-trend-ledger"></div>
         </div>
         <div class="report-card report-insight-card">
           <h3 data-i18n="reports.quick_view">Quick view</h3>
@@ -431,6 +463,7 @@
             <div><span data-i18n="reports.top_category">Top category</span><strong id="report-top-category">—</strong></div>
             <div><span data-i18n="reports.top_product">Top product</span><strong id="report-top-product-mini">—</strong></div>
             <div><span data-i18n="reports.low_stock">Low stock items</span><strong id="report-low-stock-count-mini">0</strong></div>
+            <div><span data-i18n="reports.orders">Orders</span><strong id="report-orders-mini">0</strong></div>
           </div>
         </div>
       </div>

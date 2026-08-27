@@ -250,17 +250,24 @@
     <section id="tab-sales" class="tab-panel hidden">
       <div class="page-header"><h2 data-i18n="nav.sales">Sales</h2><p data-i18n="sales.subtitle">All orders and transactions.</p></div>
       <div class="toolbar">
-        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-          <label style="font-size:12px; color:var(--ink-faint);" data-i18n="ledger.from">From</label>
-          <input type="date" id="sales-start-date" onchange="pagination.sales=0; loadSales()" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);" />
-          <label style="font-size:12px; color:var(--ink-faint);" data-i18n="ledger.to">To</label>
-          <input type="date" id="sales-end-date" onchange="pagination.sales=0; loadSales()" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);" />
-          <select id="sales-group" onchange="setLedgerGroup('sales', this.value)" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="list" selected data-i18n="ledger.list">List</option>
-            <option value="day" data-i18n="ledger.day">By Day</option>
-            <option value="month" data-i18n="ledger.month">By Month</option>
-            <option value="year" data-i18n="ledger.year">By Year</option>
-          </select>
+        <div class="ledger-filter">
+          <div class="filter-field">
+            <label for="sales-start-date" data-i18n="ledger.from">From</label>
+            <input type="date" id="sales-start-date" onchange="pagination.sales=0; loadSales()" />
+          </div>
+          <div class="filter-field">
+            <label for="sales-end-date" data-i18n="ledger.to">To</label>
+            <input type="date" id="sales-end-date" onchange="pagination.sales=0; loadSales()" />
+          </div>
+          <div class="filter-field filter-field--group">
+            <label for="sales-group" data-i18n="ledger.group">Group</label>
+            <select id="sales-group" onchange="setLedgerGroup('sales', this.value)">
+              <option value="list" selected data-i18n="ledger.list">List</option>
+              <option value="day" data-i18n="ledger.day">By Day</option>
+              <option value="month" data-i18n="ledger.month">By Month</option>
+              <option value="year" data-i18n="ledger.year">By Year</option>
+            </select>
+          </div>
         </div>
         <button class="btn-small" onclick="exportSalesCSV()" data-i18n="sales.csv">📥 CSV</button>
         <button class="btn-small" onclick="posOpenTableMap()" data-i18n="sales.new_sale">🛒 New Sale</button>
@@ -277,17 +284,24 @@
     <section id="tab-payments" class="tab-panel hidden">
       <div class="page-header"><h2 data-i18n="nav.payments">Payments</h2><p data-i18n="payments.subtitle">Money received from customers.</p></div>
       <div class="toolbar">
-        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-          <label style="font-size:12px; color:var(--ink-faint);" data-i18n="ledger.from">From</label>
-          <input type="date" id="payments-start-date" onchange="pagination.payments=0; loadPayments()" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);" />
-          <label style="font-size:12px; color:var(--ink-faint);" data-i18n="ledger.to">To</label>
-          <input type="date" id="payments-end-date" onchange="pagination.payments=0; loadPayments()" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);" />
-          <select id="payments-group" onchange="setLedgerGroup('payments', this.value)" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="list" selected data-i18n="ledger.list">List</option>
-            <option value="day" data-i18n="ledger.day">By Day</option>
-            <option value="month" data-i18n="ledger.month">By Month</option>
-            <option value="year" data-i18n="ledger.year">By Year</option>
-          </select>
+        <div class="ledger-filter">
+          <div class="filter-field">
+            <label for="payments-start-date" data-i18n="ledger.from">From</label>
+            <input type="date" id="payments-start-date" onchange="pagination.payments=0; loadPayments()" />
+          </div>
+          <div class="filter-field">
+            <label for="payments-end-date" data-i18n="ledger.to">To</label>
+            <input type="date" id="payments-end-date" onchange="pagination.payments=0; loadPayments()" />
+          </div>
+          <div class="filter-field filter-field--group">
+            <label for="payments-group" data-i18n="ledger.group">Group</label>
+            <select id="payments-group" onchange="setLedgerGroup('payments', this.value)">
+              <option value="list" selected data-i18n="ledger.list">List</option>
+              <option value="day" data-i18n="ledger.day">By Day</option>
+              <option value="month" data-i18n="ledger.month">By Month</option>
+              <option value="year" data-i18n="ledger.year">By Year</option>
+            </select>
+          </div>
         </div>
         <button class="btn-small" onclick="openModal('payment-crud-modal')" data-i18n="payments.add">+ Record payment</button>
       </div>
@@ -297,17 +311,24 @@
     <section id="tab-expenses" class="tab-panel hidden">
       <div class="page-header"><h2 data-i18n="nav.expenses">Expenses</h2><p data-i18n="expenses.subtitle">Overhead costs — rent, wages, utilities, supplies.</p></div>
       <div class="toolbar">
-        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-          <label style="font-size:12px; color:var(--ink-faint);" data-i18n="ledger.from">From</label>
-          <input type="date" id="expenses-start-date" onchange="pagination.expenses=0; loadExpenses()" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);" />
-          <label style="font-size:12px; color:var(--ink-faint);" data-i18n="ledger.to">To</label>
-          <input type="date" id="expenses-end-date" onchange="pagination.expenses=0; loadExpenses()" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);" />
-          <select id="expenses-group" onchange="setLedgerGroup('expenses', this.value)" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="list" selected data-i18n="ledger.list">List</option>
-            <option value="day" data-i18n="ledger.day">By Day</option>
-            <option value="month" data-i18n="ledger.month">By Month</option>
-            <option value="year" data-i18n="ledger.year">By Year</option>
-          </select>
+        <div class="ledger-filter">
+          <div class="filter-field">
+            <label for="expenses-start-date" data-i18n="ledger.from">From</label>
+            <input type="date" id="expenses-start-date" onchange="pagination.expenses=0; loadExpenses()" />
+          </div>
+          <div class="filter-field">
+            <label for="expenses-end-date" data-i18n="ledger.to">To</label>
+            <input type="date" id="expenses-end-date" onchange="pagination.expenses=0; loadExpenses()" />
+          </div>
+          <div class="filter-field filter-field--group">
+            <label for="expenses-group" data-i18n="ledger.group">Group</label>
+            <select id="expenses-group" onchange="setLedgerGroup('expenses', this.value)">
+              <option value="list" selected data-i18n="ledger.list">List</option>
+              <option value="day" data-i18n="ledger.day">By Day</option>
+              <option value="month" data-i18n="ledger.month">By Month</option>
+              <option value="year" data-i18n="ledger.year">By Year</option>
+            </select>
+          </div>
         </div>
         <button class="btn-small" onclick="exportExpensesCSV()" data-i18n="expenses.csv">📥 CSV</button>
         <button class="btn-small" onclick="openModal('expense-modal')" data-i18n="expenses.add">+ Add expense</button>
@@ -324,17 +345,24 @@
     <section id="tab-purchases" class="tab-panel hidden">
       <div class="page-header"><h2 data-i18n="nav.purchase_orders">Purchase Orders</h2><p data-i18n="purchases.subtitle">Restocking — this updates product stock automatically.</p></div>
       <div class="toolbar">
-        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-          <label style="font-size:12px; color:var(--ink-faint);" data-i18n="ledger.from">From</label>
-          <input type="date" id="purchases-start-date" onchange="pagination.purchases=0; loadPurchases()" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);" />
-          <label style="font-size:12px; color:var(--ink-faint);" data-i18n="ledger.to">To</label>
-          <input type="date" id="purchases-end-date" onchange="pagination.purchases=0; loadPurchases()" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);" />
-          <select id="purchases-group" onchange="setLedgerGroup('purchases', this.value)" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="list" selected data-i18n="ledger.list">List</option>
-            <option value="day" data-i18n="ledger.day">By Day</option>
-            <option value="month" data-i18n="ledger.month">By Month</option>
-            <option value="year" data-i18n="ledger.year">By Year</option>
-          </select>
+        <div class="ledger-filter">
+          <div class="filter-field">
+            <label for="purchases-start-date" data-i18n="ledger.from">From</label>
+            <input type="date" id="purchases-start-date" onchange="pagination.purchases=0; loadPurchases()" />
+          </div>
+          <div class="filter-field">
+            <label for="purchases-end-date" data-i18n="ledger.to">To</label>
+            <input type="date" id="purchases-end-date" onchange="pagination.purchases=0; loadPurchases()" />
+          </div>
+          <div class="filter-field filter-field--group">
+            <label for="purchases-group" data-i18n="ledger.group">Group</label>
+            <select id="purchases-group" onchange="setLedgerGroup('purchases', this.value)">
+              <option value="list" selected data-i18n="ledger.list">List</option>
+              <option value="day" data-i18n="ledger.day">By Day</option>
+              <option value="month" data-i18n="ledger.month">By Month</option>
+              <option value="year" data-i18n="ledger.year">By Year</option>
+            </select>
+          </div>
         </div>
         <button class="btn-small" onclick="exportPurchasesCSV()" data-i18n="purchases.csv">📥 CSV</button>
         <button class="btn-small" onclick="openPurchaseModal()" data-i18n="purchases.add">+ New purchase</button>

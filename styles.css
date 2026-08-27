@@ -523,6 +523,15 @@
     .toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: stretch; }
     .toolbar > * { width: 100%; }
     .toolbar > div:first-child { grid-column: 1 / -1; }
+    .ledger-filter {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      width: 100%;
+    }
+    .ledger-filter .filter-field--group { grid-column: 1 / -1; }
+    .ledger-filter .filter-field input[type="date"],
+    .ledger-filter .filter-field select { width: 100%; min-width: 0; }
     .btn-small, .btn-ghost { width: 100%; }
     #mobile-more-panel.open { bottom: 68px; }
     input, select, textarea, button { min-height: 44px; }

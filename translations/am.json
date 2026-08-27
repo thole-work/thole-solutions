@@ -692,6 +692,7 @@
     "month": "By Month",
     "year": "By Year",
     "from": "From",
-    "to": "To"
+    "to": "To",
+    "group": "Group"
   }
 }

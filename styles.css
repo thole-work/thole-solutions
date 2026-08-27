@@ -408,6 +408,54 @@
     filter: invert(1) brightness(1.4);
   }
 
+  /* Ledger filter cluster (date range + group) — cohesive labeled control group */
+  .ledger-filter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+    padding: 12px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  .filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+  }
+  .filter-field label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ink-faint);
+  }
+  .filter-field input[type="date"],
+  .filter-field select {
+    height: 44px;
+    padding: 0 12px;
+    box-sizing: border-box;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--ink);
+    font-size: 14px;
+    font-family: inherit;
+    -webkit-text-fill-color: var(--ink);
+  }
+  .filter-field select {
+    cursor: pointer;
+    min-width: 138px;
+  }
+  .filter-field input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.9;
+  }
+  .theme-dark .filter-field input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(1.4);
+  }
+
   @media (max-width: 720px) {
     #app-screen { flex-direction: column; height: 100vh; }
     aside {

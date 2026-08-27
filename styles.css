@@ -779,6 +779,11 @@
   .kds-status.pending { background: var(--amber-soft); color: var(--amber); }
   .kds-status.preparing { background: var(--amber-soft); color: var(--amber); }
   .kds-status.ready { background: var(--attention-soft); color: var(--attention); }
+  .sales-status { display: inline-block; font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid transparent; margin-left: 6px; vertical-align: middle; line-height: 1.4; }
+  .sales-status.pending, .sales-status.preparing { background: var(--amber-soft); color: var(--amber); border-color: color-mix(in srgb, var(--amber) 25%, transparent); }
+  .sales-status.ready { background: #E7F7EF; color: #15803D; border-color: color-mix(in srgb, #16a34a 30%, transparent); }
+  .sales-status.served { background: #E7F7EF; color: #15803D; border-color: color-mix(in srgb, #16a34a 30%, transparent); }
+  .sales-status.voided { background: var(--danger-soft); color: var(--danger); border-color: color-mix(in srgb, var(--danger) 30%, transparent); font-weight: 800; padding: 4px 12px; }
   .kds-items { flex: 1 1 0; margin-bottom: 6px; overflow-y: auto; }
   .kds-item { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--line); }
   .kds-item:last-child { border-bottom: none; }

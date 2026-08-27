@@ -2747,9 +2747,11 @@
   }
 
   let realtimeChannel = null;
+  let kitchenBadgeChannel = null;
   function teardownRealtime() {
     if (realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
     if (kdsChannel) { sb.removeChannel(kdsChannel); kdsChannel = null; }
+    if (kitchenBadgeChannel) { sb.removeChannel(kitchenBadgeChannel); kitchenBadgeChannel = null; }
   }
   function setupRealtimeSubscriptions() {
     if (realtimeChannel) { sb.removeChannel(realtimeChannel); }
@@ -2761,6 +2763,42 @@
       });
     });
     realtimeChannel.subscribe();
+    setupKitchenBadgeRealtime();
+  }
+
+  // Live count of active kitchen orders (pending/preparing/ready) shown as a
+  // badge on the Kitchen nav item. A dedicated channel keeps it updated for
+  // every logged-in user the instant an order changes, regardless of the tab.
+  function setupKitchenBadgeRealtime() {
+    if (kitchenBadgeChannel) { sb.removeChannel(kitchenBadgeChannel); kitchenBadgeChannel = null; }
+    kitchenBadgeChannel = sb.channel("kitchen-nav-badge");
+    kitchenBadgeChannel.on("postgres_changes", { event: "*", schema: "public", table: "orders" }, (payload) => {
+      refreshKitchenBadge();
+    });
+    kitchenBadgeChannel.subscribe();
+    refreshKitchenBadge();
+  }
+
+  async function refreshKitchenBadge() {
+    const badgeEl = document.getElementById('kitchen-nav-badge');
+    if (!badgeEl) return;
+    try {
+      let q = sb.from('orders').select('id, status').eq('business_id', membership.business_id).in('status', ['pending', 'preparing', 'ready']);
+      q = applyBranchFilter(q, 'orders');
+      const { data, error } = await q;
+      if (error) return;
+      const active = data || [];
+      const pending = active.filter(o => o.status === 'pending').length;
+      const ready = active.filter(o => o.status === 'ready').length;
+      const total = active.length;
+      if (total > 0) {
+        badgeEl.style.display = 'inline-flex';
+        badgeEl.textContent = total;
+        badgeEl.classList.toggle('has-ready', ready > 0 && pending === 0);
+      } else {
+        badgeEl.style.display = 'none';
+      }
+    } catch (e) { /* non-fatal */ }
   }
 
   const debounceTimers = {};

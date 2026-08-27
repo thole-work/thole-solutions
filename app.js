@@ -193,6 +193,13 @@
     return query;
   }
 
+  // Custom date-range filter helper (open start/end; apply only what's set)
+  function applyTimeRange(query, start, end, col = "created_at") {
+    if (start) query = query.gte(col, `${start}T00:00:00`);
+    if (end) query = query.lte(col, `${end}T23:59:59`);
+    return query;
+  }
+
   function show(id) { document.getElementById(id).classList.remove("hidden"); }
   function hide(id) { document.getElementById(id).classList.add("hidden"); }
   function setError(id, msg) { const el = document.getElementById(id); el.textContent = msg; show(id); }
@@ -383,9 +390,15 @@
     if (orderBy) query = query.order(orderBy, { ascending });
     query = query.range(offset, offset + PAGE_SIZE - 1);
     if (timeFilterKey) {
-      const val = document.getElementById(`${timeFilterKey}-date-filter`)?.value;
-      const mode = document.getElementById(`${timeFilterKey}-filter-mode`)?.value || 'date';
-      query = applyTimeFilter(query, val, mode, timeCol);
+      const start = document.getElementById(`${timeFilterKey}-start-date`)?.value;
+      const end = document.getElementById(`${timeFilterKey}-end-date`)?.value;
+      if (start || end) {
+        query = applyTimeRange(query, start, end, timeCol);
+      } else {
+        const val = document.getElementById(`${timeFilterKey}-date-filter`)?.value;
+        const mode = document.getElementById(`${timeFilterKey}-filter-mode`)?.value || 'date';
+        query = applyTimeFilter(query, val, mode, timeCol);
+      }
     }
     const { data, error } = await query;
     loading[key] = false;
@@ -3111,87 +3124,151 @@
   }
 
   // ============================================================
-  // SALES
+  // LEDGER: generic List / Day / Month / Year grouping engine
   // ============================================================
-  let salesGroupByDay = true;
-  let salesExpandedDay = null;
-  function toggleSalesGroup() {
-    salesGroupByDay = !salesGroupByDay;
-    salesExpandedDay = null;
-    const btn = document.getElementById('sales-group-toggle');
-    if (btn) btn.textContent = salesGroupByDay ? '📋 List' : '📅 By Day';
-    loadSales();
+  const ledgerState = {
+    sales: { group: 'list', expanded: null },
+    payments: { group: 'list', expanded: null },
+    expenses: { group: 'list', expanded: null },
+    purchases: { group: 'list', expanded: null },
+  };
+  let ledgerTabConfig = {};
+  const ledgerLoaders = { sales: loadSales, payments: loadPayments, expenses: loadExpenses, purchases: loadPurchases };
+
+  function setLedgerGroup(key, group) {
+    const st = ledgerState[key];
+    if (st && st.group !== group) { st.group = group; st.expanded = null; }
+    ledgerLoaders[key]();
   }
-  function salesGoBack() {
-    salesExpandedDay = null;
-    loadSales();
+  function ledgerExpand(key, kind, periodKey) {
+    const st = ledgerState[key];
+    st.expanded = { kind, key: periodKey };
+    ledgerLoaders[key]();
   }
-  function updateSalesGroupBtn() {
-    const mode = document.getElementById('sales-filter-mode')?.value;
-    const btn = document.getElementById('sales-group-toggle');
-    if (btn) btn.style.display = mode === 'all' ? '' : 'none';
-    if (mode !== 'all') { salesGroupByDay = false; salesExpandedDay = null; }
+  function ledgerGoBack(key) {
+    ledgerState[key].expanded = null;
+    ledgerLoaders[key]();
   }
-  async function loadSales(append = false) {
-    updateSalesGroupBtn();
-    if (salesExpandedDay && !append) {
-      const { data } = await sb.from('orders').select('*, customers(name), restaurant_tables!table_id(table_number, name)').eq('business_id', membership.business_id).neq('status', 'voided').gte('created_at', salesExpandedDay + 'T00:00:00').lte('created_at', salesExpandedDay + 'T23:59:59').order('created_at', { ascending: false });
-      const el = document.getElementById("sales-ledger");
-      if (!el) return;
-      const label = new Date(salesExpandedDay + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-      const dayTotal = (data || []).reduce((s, o) => s + Number(o.total_amount || 0), 0);
-      const backBtn = `<div style="padding:8px 0 12px;"><button class="btn-ghost" onclick="salesGoBack()" style="font-size:13px;">← Back to summary</button> <span style="color:var(--ink-faint); font-size:13px; margin-left:8px;">${escapeHtml(label)} — ${money(dayTotal)}</span></div>`;
-      if (!data || data.length === 0) { el.innerHTML = backBtn + `<div class="empty-state">No orders for this day.</div>`; return; }
-      const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;"><div>Table / Customer</div><div>Time</div><div style="text-align:right">Total</div><div></div><div></div></div>`;
-      const rows = data.map(o => {
-        const primaryLabel = o.restaurant_tables ? `T${o.restaurant_tables.table_number}${o.restaurant_tables.name ? ' — ' + escapeHtml(o.restaurant_tables.name) : ''}` : (o.customers ? escapeHtml(o.customers.name) : 'Walk-in');
-        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;">
-        <div style="cursor:pointer; color:var(--accent);" onclick="showOrderPreview('${escapeAttr(o.id)}')">${primaryLabel}${o.status !== 'completed' ? ` <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:var(--amber-soft); color:var(--amber); font-weight:600;">${o.status.toUpperCase()}</span>` : ''}</div>
-        <div style="color:var(--ink-faint); font-size:12px;">${new Date(o.created_at).toLocaleTimeString()}</div>
-        <div class="num" style="text-align:right">${money(o.total_amount)}</div>
-        <div style="text-align:right;">${o.status === 'served' ? `<span style="color:#16a34a; font-size:12px; text-decoration:underline; cursor:pointer; font-weight:600;" onclick="payTableOrder('${escapeAttr(o.id)}')">Pay</span>` : `<span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="posShowReceipt('${escapeAttr(o.id)}')">Receipt</span>`}</div>
-        <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidSale('${escapeAttr(o.id)}')">Void</span></div>
-      </div>`;
-    }).join("");
-      el.innerHTML = backBtn + head + rows;
+  function periodKeyOf(kind, dateStr) {
+    if (!dateStr) dateStr = '';
+    if (kind === 'month') return dateStr.slice(0, 7);
+    if (kind === 'year') return dateStr.slice(0, 4);
+    return dateStr.slice(0, 10);
+  }
+  function periodLabel(kind, key) {
+    if (kind === 'month') return new Date(key + '-01T12:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    if (kind === 'year') return key;
+    return new Date(key + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  function isCurrentPeriod(kind, key) {
+    const now = new Date().toISOString();
+    if (kind === 'month') return key === now.slice(0, 7);
+    if (kind === 'year') return key === now.slice(0, 4);
+    return key === now.slice(0, 10);
+  }
+  function periodBounds(kind, key, timeless) {
+    let start, end;
+    if (kind === 'day') { start = key; end = key; }
+    else if (kind === 'month') {
+      const [y, m] = key.split('-');
+      const last = new Date(y, Number(m), 0).getDate();
+      start = `${key}-01`; end = `${key}-${String(last).padStart(2, '0')}`;
+    }
+    else { start = `${key}-01-01`; end = `${key}-12-31`; }
+    if (!timeless) { start += 'T00:00:00'; end += 'T23:59:59'; }
+    return { start, end };
+  }
+  function headHtml(labels) {
+    const cells = labels.map(([t, align]) => `<div${align === 'right' ? ' style="text-align:right"' : ''}>${t}</div>`).join("");
+    return `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;">${cells}</div>`;
+  }
+  async function fetchPeriodRows(cfg, kind, key) {
+    const { start, end } = periodBounds(kind, key, cfg.timeless);
+    let q = applyBranchFilter(sb.from(cfg.table).select(cfg.select || '*').eq('business_id', membership.business_id), cfg.table);
+    if (cfg.extraFilters) cfg.extraFilters.forEach(f => { q = q.eq(f[0], f[1]); });
+    if (cfg.excludeVoided) q = q.neq(cfg.voidStatusField || 'status', 'voided');
+    q = q.gte(cfg.timeCol, start).lte(cfg.timeCol, end).order(cfg.orderBy, { ascending: false });
+    const { data } = await q;
+    return data || [];
+  }
+  async function fetchAllGrouped(key, cfg) {
+    let q = applyBranchFilter(sb.from(cfg.table).select(cfg.select || '*').eq('business_id', membership.business_id), cfg.table);
+    if (cfg.extraFilters) cfg.extraFilters.forEach(f => { q = q.eq(f[0], f[1]); });
+    if (cfg.excludeVoided) q = q.neq(cfg.voidStatusField || 'status', 'voided');
+    const start = document.getElementById(`${key}-start-date`)?.value;
+    const end = document.getElementById(`${key}-end-date`)?.value;
+    q = applyTimeRange(q, start, end, cfg.timeCol);
+    q = q.order(cfg.orderBy, { ascending: false });
+    const { data } = await q;
+    return data || [];
+  }
+  async function renderLedger(key, append) {
+    const cfg = ledgerTabConfig[key];
+    const st = ledgerState[key];
+    const el = document.getElementById(cfg.ledgerId);
+    if (!el) return;
+    const isExpanded = st.expanded && !append;
+    if (isExpanded) {
+      const data = await fetchPeriodRows(cfg, st.expanded.kind, st.expanded.key);
+      const label = periodLabel(st.expanded.kind, st.expanded.key);
+      const total = (data || []).reduce((s, r) => s + Number(r[cfg.moneyField] || 0), 0);
+      const backBtn = `<div style="padding:8px 0 12px;"><button class="btn-ghost" onclick="ledgerGoBack('${key}')" style="font-size:13px;">← Back to summary</button> <span style="color:var(--ink-faint); font-size:13px; margin-left:8px;">${escapeHtml(label)} — ${money(total)}</span></div>`;
+      if (!data || data.length === 0) { el.innerHTML = backBtn + `<div class="empty-state">No ${cfg.entityPlural} for this period.</div>`; return; }
+      el.innerHTML = backBtn + cfg.headHtml() + data.map(cfg.rowRender).join("");
       return;
     }
-    if (salesGroupByDay && !append) {
-      await pagedLoad('sales', { table: 'orders', select: '*, customers(name), restaurant_tables!table_id(table_number, name)', orderBy: 'created_at', ascending: false, timeFilterKey: 'sales', append: false });
-      const el = document.getElementById("sales-ledger");
-      if (!el) return;
-      if (cache.sales.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💰</div>No sales recorded yet.<br><span style="font-size:12px;">Tap "New Sale" to open the POS.</span></div>`; return; }
+    if (st.group !== 'list' && !append) {
+      const cacheArr = await fetchAllGrouped(key, cfg);
+      if (cacheArr.length === 0) { el.innerHTML = cfg.emptyHtml; return; }
       const groups = {};
-      cache.sales.filter(o => o.status !== 'voided').forEach(o => {
-        const day = (o.created_at || '').slice(0, 10);
-        if (!groups[day]) groups[day] = { total: 0, count: 0 };
-        groups[day].total += Number(o.total_amount || 0);
-        groups[day].count++;
+      const filtered = cfg.excludeVoided ? cacheArr.filter(r => r[cfg.voidStatusField || 'status'] !== 'voided') : cacheArr;
+      filtered.forEach(r => {
+        const pk = periodKeyOf(st.group, r[cfg.dateField]);
+        if (!groups[pk]) groups[pk] = { total: 0, count: 0 };
+        groups[pk].total += Number(r[cfg.moneyField] || 0);
+        groups[pk].count++;
       });
-      const sorted = Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
+      const sorted = Object.entries(groups).sort((a, b) => String(b[0]).localeCompare(String(a[0])));
       const grandTotal = sorted.reduce((s, [, g]) => s + g.total, 0);
-      const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;"><div>Date</div><div>Orders</div><div style="text-align:right">Day Total</div><div></div><div></div></div>`;
-      const rows = sorted.map(([day, g]) => {
-        const label = new Date(day + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-        const isToday = day === new Date().toISOString().slice(0, 10);
-        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr; cursor:pointer; ${isToday ? 'background:var(--accent-soft);' : ''}" onclick="salesExpandDay('${day}')">
-          <div style="font-weight:600;">${label}${isToday ? ' <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:var(--accent); color:#fff;">TODAY</span>' : ''}</div>
-          <div>${g.count} order${g.count === 1 ? '' : 's'}</div>
+      const head = headHtml([['Date', ''], [cfg.entityPlural, ''], ['Total', 'right'], ['', 'right'], ['', 'right']]);
+      const rows = sorted.map(([pk, g]) => {
+        const isNow = isCurrentPeriod(st.group, pk);
+        const tag = st.group === 'day' ? 'CURRENT' : 'THIS ' + st.group.toUpperCase();
+        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr; cursor:pointer; ${isNow ? 'background:var(--accent-soft);' : ''}" onclick="ledgerExpand('${key}','${st.group}','${pk}')">
+          <div style="font-weight:600;">${periodLabel(st.group, pk)}${isNow ? ` <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:var(--accent); color:#fff;">${tag}</span>` : ''}</div>
+          <div>${g.count} ${g.count === 1 ? cfg.entity : cfg.entityPlural}</div>
           <div class="num" style="text-align:right; font-weight:600;">${money(g.total)}</div>
           <div style="text-align:right; color:var(--accent); font-size:12px;">Expand ▸</div>
           <div></div>
         </div>`;
       }).join("");
-      const totalBar = `<div style="padding:10px 0; text-align:right; font-size:13px; color:var(--ink-faint); border-top:1px solid var(--line); margin-top:4px;"><strong style="color:var(--ink);">${sorted.length} day${sorted.length === 1 ? '' : 's'}</strong> — Total: <strong style="color:var(--accent);">${money(grandTotal)}</strong></div>`;
+      const unit = st.group === 'year' ? 'year' : st.group + 's';
+      const totalBar = `<div style="padding:10px 0; text-align:right; font-size:13px; color:var(--ink-faint); border-top:1px solid var(--line); margin-top:4px;"><strong style="color:var(--ink);">${sorted.length} ${unit}</strong> — Total: <strong style="color:var(--accent);">${money(grandTotal)}</strong></div>`;
       el.innerHTML = head + rows + totalBar;
       return;
     }
-    await pagedLoad('sales', { table: 'orders', select: '*, customers(name), restaurant_tables!table_id(table_number, name)', orderBy: 'created_at', ascending: false, timeFilterKey: 'sales', append });
-    const el = document.getElementById("sales-ledger");
-    if (!el) return;
-    if (cache.sales.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💰</div>No sales recorded yet.<br><span style="font-size:12px;">Tap "New Sale" to open the POS.</span></div>`; return; }
-    const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;"><div>Table / Customer</div><div>Date</div><div style="text-align:right">Total</div><div></div><div></div></div>`;
-    const rows = cache.sales.map((o) => {
+    const flatHead = cfg.listLabels;
+    await pagedLoad(key, { table: cfg.table, select: cfg.select || '*', orderBy: cfg.orderBy, ascending: false, timeFilterKey: key, timeCol: cfg.timeCol, extraFilters: cfg.extraFilters, append });
+    if (cache[key].length === 0) { el.innerHTML = cfg.emptyHtml; return; }
+    appendPaginated(el, headHtml(flatHead) + cache[key].map(cfg.rowRender).join(""), key, append);
+  }
+
+  // ---- SALES ----
+  const salesCfg = {
+    ledgerId: 'sales-ledger',
+    table: 'orders',
+    select: '*, customers(name), restaurant_tables!table_id(table_number, name)',
+    timeCol: 'created_at',
+    dateField: 'created_at',
+    orderBy: 'created_at',
+    moneyField: 'total_amount',
+    entity: 'order',
+    entityPlural: 'orders',
+    excludeVoided: true,
+    emptyHtml: `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💰</div>No sales recorded yet.<br><span style="font-size:13px;">Tap "New Sale" to open the POS.</span></div>`,
+    listLabels: [['Table / Customer', ''], ['Date', ''], ['Total', 'right'], ['', 'right'], ['', 'right']],
+    headHtml: () => headHtml([['Table / Customer', ''], ['Date', ''], ['Total', 'right'], ['', 'right'], ['', 'right']]),
+    rowRender: (o) => {
       const primaryLabel = o.restaurant_tables ? `T${o.restaurant_tables.table_number}${o.restaurant_tables.name ? ' — ' + escapeHtml(o.restaurant_tables.name) : ''}` : (o.customers ? escapeHtml(o.customers.name) : 'Walk-in');
       const statusBadge = o.status !== 'completed' ? ` <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:${o.status === 'voided' ? 'var(--danger-soft)' : 'var(--amber-soft)'}; color:${o.status === 'voided' ? 'var(--danger)' : 'var(--amber)'}; font-weight:600;">${o.status.toUpperCase()}</span>` : '';
       return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;">
@@ -3201,13 +3278,10 @@
         <div style="text-align:right;">${o.status === 'served' ? `<span style="color:#16a34a; font-size:12px; text-decoration:underline; cursor:pointer; font-weight:600;" onclick="payTableOrder('${escapeAttr(o.id)}')">Pay</span>` : `<span style="color:var(--accent); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="posShowReceipt('${escapeAttr(o.id)}')">Receipt</span>`}</div>
         <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidSale('${escapeAttr(o.id)}')">Void</span></div>
       </div>`;
-    }).join("");
-    appendPaginated(el, head + rows, "sales", append);
-  }
-  function salesExpandDay(day) {
-    salesExpandedDay = day;
-    loadSales();
-  }
+    },
+  };
+  ledgerTabConfig = Object.assign(ledgerTabConfig || {}, { sales: salesCfg });
+  async function loadSales(append = false) { await renderLedger('sales', append); }
 
   function downloadCSV(filename, header, rows) {
     const csv = header + rows.join('\n');
@@ -3335,87 +3409,30 @@
     await loadCustomers();
   }
 
-  // ============================================================
-  // PAYMENTS
-  // ============================================================
-  let paymentsGroupByDay = true;
-  let paymentsExpandedDay = null;
-  function togglePaymentsGroup() {
-    paymentsGroupByDay = !paymentsGroupByDay;
-    paymentsExpandedDay = null;
-    const btn = document.getElementById('payments-group-toggle');
-    if (btn) btn.textContent = paymentsGroupByDay ? '📋 List' : '📅 By Day';
-    loadPayments();
-  }
-  function paymentsGoBack() { paymentsExpandedDay = null; loadPayments(); }
-  function updatePaymentsGroupBtn() {
-    const mode = document.getElementById('payments-filter-mode')?.value;
-    const btn = document.getElementById('payments-group-toggle');
-    if (btn) btn.style.display = mode === 'all' ? '' : 'none';
-    if (mode !== 'all') { paymentsGroupByDay = false; paymentsExpandedDay = null; }
-  }
-  async function loadPayments(append = false) {
-    updatePaymentsGroupBtn();
-    if (paymentsExpandedDay && !append) {
-      const { data } = await sb.from('payments').select('*, customers(name)').eq('business_id', membership.business_id).eq('direction', 'in').gte('created_at', paymentsExpandedDay + 'T00:00:00').lte('created_at', paymentsExpandedDay + 'T23:59:59').order('created_at', { ascending: false });
-      const el = document.getElementById("payments-ledger");
-      if (!el) return;
-      const label = new Date(paymentsExpandedDay + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-      const dayTotal = (data || []).reduce((s, p) => s + Number(p.amount || 0), 0);
-      const backBtn = `<div style="padding:8px 0 12px;"><button class="btn-ghost" onclick="paymentsGoBack()" style="font-size:13px;">← Back to summary</button> <span style="color:var(--ink-faint); font-size:13px; margin-left:8px;">${escapeHtml(label)} — ${money(dayTotal)}</span></div>`;
-      if (!data || data.length === 0) { el.innerHTML = backBtn + `<div class="empty-state">No payments for this day.</div>`; return; }
-      const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Customer</div><div>Method</div><div style="text-align:right">Amount</div></div>`;
-      const rows = data.map(p => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr; cursor:pointer;" onclick="openEditPayment('${escapeAttr(p.id)}')">
+  // ---- PAYMENTS ----
+  const paymentsCfg = {
+    ledgerId: 'payments-ledger',
+    table: 'payments',
+    select: '*, customers(name)',
+    timeCol: 'created_at',
+    dateField: 'created_at',
+    orderBy: 'created_at',
+    moneyField: 'amount',
+    entity: 'payment',
+    entityPlural: 'payments',
+    extraFilters: [['direction', 'in']],
+    emptyHtml: `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💳</div>No payments recorded yet.<br><span style="font-size:13px;">Payments from customers will appear here.</span></div>`,
+    listLabels: [['Customer', ''], ['Method', ''], ['Amount', 'right'], ['', ''], ['', '']],
+    headHtml: () => headHtml([['Customer', ''], ['Method', ''], ['Amount', 'right'], ['', ''], ['', '']]),
+    rowRender: (p) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr; cursor:pointer;" onclick="openEditPayment('${escapeAttr(p.id)}')">
         <div>${p.customers ? escapeHtml(p.customers.name) : "—"}</div>
-        <div style="color:var(--ink-faint); font-size:12px; text-transform:capitalize;">${escapeHtml(p.method.replace("_"," "))}</div>
+        <div style="color:var(--ink-faint); font-size:12px; text-transform:capitalize;">${escapeHtml(p.method.replace("_", " "))}</div>
         <div class="num" style="text-align:right">${money(p.amount)}</div>
-      </div>`).join("");
-      el.innerHTML = backBtn + head + rows;
-      return;
-    }
-    if (paymentsGroupByDay && !append) {
-      await pagedLoad('payments', { table: 'payments', select: '*, customers(name)', orderBy: 'created_at', ascending: false, extraFilters: [['direction', 'in']], timeFilterKey: 'payments', append: false });
-      const el = document.getElementById("payments-ledger");
-      if (!el) return;
-      if (cache.payments.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💳</div>No payments recorded yet.<br><span style="font-size:12px;">Payments from customers will appear here.</span></div>`; return; }
-      const groups = {};
-      cache.payments.forEach(p => {
-        const day = (p.created_at || '').slice(0, 10);
-        if (!groups[day]) groups[day] = { total: 0, count: 0 };
-        groups[day].total += Number(p.amount || 0);
-        groups[day].count++;
-      });
-      const sorted = Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
-      const grandTotal = sorted.reduce((s, [, g]) => s + g.total, 0);
-      const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;"><div>Date</div><div>Payments</div><div style="text-align:right">Day Total</div><div></div><div></div></div>`;
-      const rows = sorted.map(([day, g]) => {
-        const label = new Date(day + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-        const isToday = day === new Date().toISOString().slice(0, 10);
-        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr; cursor:pointer; ${isToday ? 'background:var(--accent-soft);' : ''}" onclick="paymentsExpandDay('${day}')">
-          <div style="font-weight:600;">${label}${isToday ? ' <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:var(--accent); color:#fff;">TODAY</span>' : ''}</div>
-          <div>${g.count} payment${g.count === 1 ? '' : 's'}</div>
-          <div class="num" style="text-align:right; font-weight:600;">${money(g.total)}</div>
-          <div style="text-align:right; color:var(--accent); font-size:12px;">Expand ▸</div>
-          <div></div>
-        </div>`;
-      }).join("");
-      const totalBar = `<div style="padding:10px 0; text-align:right; font-size:13px; color:var(--ink-faint); border-top:1px solid var(--line); margin-top:4px;"><strong style="color:var(--ink);">${sorted.length} day${sorted.length === 1 ? '' : 's'}</strong> — Total: <strong style="color:var(--accent);">${money(grandTotal)}</strong></div>`;
-      el.innerHTML = head + rows + totalBar;
-      return;
-    }
-    await pagedLoad('payments', { table: 'payments', select: '*, customers(name)', orderBy: 'created_at', ascending: false, extraFilters: [['direction', 'in']], timeFilterKey: 'payments', append });
-    const el = document.getElementById("payments-ledger");
-    if (!el) return;
-    if (cache.payments.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💳</div>No payments recorded yet.<br><span style="font-size:12px;">Payments from customers will appear here.</span></div>`; return; }
-    const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr;"><div>Customer</div><div>Method</div><div style="text-align:right">Amount</div></div>`;
-    const rows = cache.payments.map((p) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr; cursor:pointer;" onclick="openEditPayment('${escapeAttr(p.id)}')">
-        <div>${p.customers ? escapeHtml(p.customers.name) : "—"}</div>
-        <div style="color:var(--ink-faint); font-size:12px; text-transform:capitalize;">${escapeHtml(p.method.replace("_"," "))}</div>
-        <div class="num" style="text-align:right">${money(p.amount)}</div>
-      </div>`).join("");
-    appendPaginated(el, head + rows, "payments", append);
-  }
-  function paymentsExpandDay(day) { paymentsExpandedDay = day; loadPayments(); }
+        <div></div><div></div>
+      </div>`,
+  };
+  ledgerTabConfig = Object.assign(ledgerTabConfig || {}, { payments: paymentsCfg });
+  async function loadPayments(append = false) { await renderLedger('payments', append); }
 
   function openEditPayment(paymentId) {
     const p = cache.payments.find((x) => x.id === paymentId);
@@ -3462,87 +3479,30 @@
     origOpenModal(id);
   };
 
-  // ============================================================
-  // EXPENSES
-  // ============================================================
-  let expensesGroupByDay = true;
-  let expensesExpandedDay = null;
-  function toggleExpensesGroup() {
-    expensesGroupByDay = !expensesGroupByDay;
-    expensesExpandedDay = null;
-    const btn = document.getElementById('expenses-group-toggle');
-    if (btn) btn.textContent = expensesGroupByDay ? '📋 List' : '📅 By Day';
-    loadExpenses();
-  }
-  function expensesGoBack() { expensesExpandedDay = null; loadExpenses(); }
-  function updateExpensesGroupBtn() {
-    const mode = document.getElementById('expenses-filter-mode')?.value;
-    const btn = document.getElementById('expenses-group-toggle');
-    if (btn) btn.style.display = mode === 'all' ? '' : 'none';
-    if (mode !== 'all') { expensesGroupByDay = false; expensesExpandedDay = null; }
-  }
-  async function loadExpenses(append = false) {
-    updateExpensesGroupBtn();
-    if (expensesExpandedDay && !append) {
-      const { data } = await sb.from('expenses').select('*').eq('business_id', membership.business_id).eq('expense_date', expensesExpandedDay).order('created_at', { ascending: false });
-      const el = document.getElementById("expenses-ledger");
-      if (!el) return;
-      const label = new Date(expensesExpandedDay + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-      const dayTotal = (data || []).reduce((s, e) => s + Number(e.amount || 0), 0);
-      const backBtn = `<div style="padding:8px 0 12px;"><button class="btn-ghost" onclick="expensesGoBack()" style="font-size:13px;">← Back to summary</button> <span style="color:var(--ink-faint); font-size:13px; margin-left:8px;">${escapeHtml(label)} — ${money(dayTotal)}</span></div>`;
-      if (!data || data.length === 0) { el.innerHTML = backBtn + `<div class="empty-state">No expenses for this day.</div>`; return; }
-      const head = `<div class="ledger-head" style="grid-template-columns: 1fr 2fr 1fr;"><div>Category</div><div>Description</div><div style="text-align:right">Amount</div></div>`;
-      const rows = data.map(e => `<div class="ledger-row" style="grid-template-columns: 1fr 2fr 1fr; cursor:pointer;" onclick="openEditExpense('${escapeAttr(e.id)}')">
+  // ---- EXPENSES ----
+  const expensesCfg = {
+    ledgerId: 'expenses-ledger',
+    table: 'expenses',
+    select: '*',
+    timeCol: 'expense_date',
+    dateField: 'expense_date',
+    orderBy: 'expense_date',
+    moneyField: 'amount',
+    entity: 'expense',
+    entityPlural: 'expenses',
+    timeless: true,
+    emptyHtml: `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💸</div>No expenses recorded yet.<br><span style="font-size:13px;">Track rent, wages, utilities, and more.</span></div>`,
+    listLabels: [['Category', ''], ['Description', ''], ['Amount', 'right'], ['', ''], ['', '']],
+    headHtml: () => headHtml([['Category', ''], ['Description', ''], ['Amount', 'right'], ['', ''], ['', '']]),
+    rowRender: (e) => `<div class="ledger-row" style="grid-template-columns: 1fr 2fr 1fr 1fr 0.6fr; cursor:pointer;" onclick="openEditExpense('${escapeAttr(e.id)}')">
         <div><span class="cat-badge" style="background:var(--amber-soft); color:var(--amber);">${escapeHtml(e.category)}</span></div>
         <div style="color:var(--ink-soft); font-size:13px;">${escapeHtml(e.description ?? "—")}</div>
         <div class="num" style="text-align:right">${money(e.amount)}</div>
-      </div>`).join("");
-      el.innerHTML = backBtn + head + rows;
-      return;
-    }
-    if (expensesGroupByDay && !append) {
-      await pagedLoad('expenses', { table: 'expenses', orderBy: 'expense_date', ascending: false, timeFilterKey: 'expenses', timeCol: 'expense_date', append: false });
-      const el = document.getElementById("expenses-ledger");
-      if (!el) return;
-      if (cache.expenses.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💸</div>No expenses recorded yet.<br><span style="font-size:12px;">Track rent, wages, utilities, and more.</span></div>`; return; }
-      const groups = {};
-      cache.expenses.forEach(e => {
-        const day = (e.expense_date || e.created_at || '').slice(0, 10);
-        if (!groups[day]) groups[day] = { total: 0, count: 0 };
-        groups[day].total += Number(e.amount || 0);
-        groups[day].count++;
-      });
-      const sorted = Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
-      const grandTotal = sorted.reduce((s, [, g]) => s + g.total, 0);
-      const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;"><div>Date</div><div>Expenses</div><div style="text-align:right">Day Total</div><div></div><div></div></div>`;
-      const rows = sorted.map(([day, g]) => {
-        const label = new Date(day + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-        const isToday = day === new Date().toISOString().slice(0, 10);
-        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr; cursor:pointer; ${isToday ? 'background:var(--accent-soft);' : ''}" onclick="expensesExpandDay('${day}')">
-          <div style="font-weight:600;">${label}${isToday ? ' <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:var(--accent); color:#fff;">TODAY</span>' : ''}</div>
-          <div>${g.count} expense${g.count === 1 ? '' : 's'}</div>
-          <div class="num" style="text-align:right; font-weight:600;">${money(g.total)}</div>
-          <div style="text-align:right; color:var(--accent); font-size:12px;">Expand ▸</div>
-          <div></div>
-        </div>`;
-      }).join("");
-      const totalBar = `<div style="padding:10px 0; text-align:right; font-size:13px; color:var(--ink-faint); border-top:1px solid var(--line); margin-top:4px;"><strong style="color:var(--ink);">${sorted.length} day${sorted.length === 1 ? '' : 's'}</strong> — Total: <strong style="color:var(--accent);">${money(grandTotal)}</strong></div>`;
-      el.innerHTML = head + rows + totalBar;
-      return;
-    }
-    await pagedLoad('expenses', { table: 'expenses', orderBy: 'expense_date', ascending: false, timeFilterKey: 'expenses', timeCol: 'expense_date', append });
-    const el = document.getElementById("expenses-ledger");
-    if (!el) return;
-    if (cache.expenses.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">💸</div>No expenses recorded yet.<br><span style="font-size:12px;">Track rent, wages, utilities, and more.</span></div>`; return; }
-    const head = `<div class="ledger-head" style="grid-template-columns: 1fr 2fr 1fr;"><div>Category</div><div>Description</div><div style="text-align:right">Amount</div></div>`;
-    const rows = cache.expenses.map((e) => `<div class="ledger-row" style="grid-template-columns: 1fr 2fr 1fr; cursor:pointer;" onclick="openEditExpense('${escapeAttr(e.id)}')">
-        <div><span class="cat-badge" style="background:var(--amber-soft); color:var(--amber);">${escapeHtml(e.category)}</span></div>
-        <div style="color:var(--ink-soft); font-size:13px;">${escapeHtml(e.description ?? "—")}</div>
-        <div class="num" style="text-align:right">${money(e.amount)}</div>
-      </div>`).join("");
-    appendPaginated(el, head + rows, "expenses", append);
-  }
-  function expensesExpandDay(day) { expensesExpandedDay = day; loadExpenses(); }
+        <div></div><div></div>
+      </div>`,
+  };
+  ledgerTabConfig = Object.assign(ledgerTabConfig || {}, { expenses: expensesCfg });
+  async function loadExpenses(append = false) { await renderLedger('expenses', append); }
 
   function openEditExpense(expenseId) {
     const e = cache.expenses.find((x) => x.id === expenseId);
@@ -3654,86 +3614,30 @@
     renderDashboard();
   }
 
-  let purchasesGroupByDay = true;
-  let purchasesExpandedDay = null;
-  function togglePurchasesGroup() {
-    purchasesGroupByDay = !purchasesGroupByDay;
-    purchasesExpandedDay = null;
-    const btn = document.getElementById('purchases-group-toggle');
-    if (btn) btn.textContent = purchasesGroupByDay ? '📋 List' : '📅 By Day';
-    loadPurchases();
-  }
-  function purchasesGoBack() { purchasesExpandedDay = null; loadPurchases(); }
-  function updatePurchasesGroupBtn() {
-    const mode = document.getElementById('purchases-filter-mode')?.value;
-    const btn = document.getElementById('purchases-group-toggle');
-    if (btn) btn.style.display = mode === 'all' ? '' : 'none';
-    if (mode !== 'all') { purchasesGroupByDay = false; purchasesExpandedDay = null; }
-  }
-  async function loadPurchases(append = false) {
-    updatePurchasesGroupBtn();
-    if (purchasesExpandedDay && !append) {
-      const { data } = await sb.from('purchase_orders').select('*').eq('business_id', membership.business_id).gte('created_at', purchasesExpandedDay + 'T00:00:00').lte('created_at', purchasesExpandedDay + 'T23:59:59').order('created_at', { ascending: false });
-      const el = document.getElementById("purchases-ledger");
-      if (!el) return;
-      const label = new Date(purchasesExpandedDay + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-      const dayTotal = (data || []).reduce((s, p) => s + Number(p.total_amount || 0), 0);
-      const backBtn = `<div style="padding:8px 0 12px;"><button class="btn-ghost" onclick="purchasesGoBack()" style="font-size:13px;">← Back to summary</button> <span style="color:var(--ink-faint); font-size:13px; margin-left:8px;">${escapeHtml(label)} — ${money(dayTotal)}</span></div>`;
-      if (!data || data.length === 0) { el.innerHTML = backBtn + `<div class="empty-state">No purchases for this day.</div>`; return; }
-      const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;"><div>Date</div><div>Status</div><div style="text-align:right">Total</div><div></div></div>`;
-      const rows = data.map(po => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;">
-        <div style="color:var(--ink-faint); font-size:12px;">${new Date(po.created_at).toLocaleTimeString()}</div>
-        <div><span class="cat-badge">${escapeHtml(po.status)}</span></div>
-        <div class="num" style="text-align:right">${money(po.total_amount)}</div>
-        <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidPurchase('${escapeAttr(po.id)}')">Void</span></div>
-      </div>`).join("");
-      el.innerHTML = backBtn + head + rows;
-      return;
-    }
-    if (purchasesGroupByDay && !append) {
-      await pagedLoad('purchases', { table: 'purchase_orders', orderBy: 'created_at', ascending: false, timeFilterKey: 'purchases', append: false });
-      const el = document.getElementById("purchases-ledger");
-      if (!el) return;
-      if (cache.purchases.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">🛒</div>No purchases recorded yet.<br><span style="font-size:12px;">Restock your products by logging purchases.</span></div>`; return; }
-      const groups = {};
-      cache.purchases.forEach(p => {
-        const day = (p.created_at || '').slice(0, 10);
-        if (!groups[day]) groups[day] = { total: 0, count: 0 };
-        groups[day].total += Number(p.total_amount || 0);
-        groups[day].count++;
-      });
-      const sorted = Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
-      const grandTotal = sorted.reduce((s, [, g]) => s + g.total, 0);
-      const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;"><div>Date</div><div>Purchases</div><div style="text-align:right">Day Total</div><div></div><div></div></div>`;
-      const rows = sorted.map(([day, g]) => {
-        const label = new Date(day + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-        const isToday = day === new Date().toISOString().slice(0, 10);
-        return `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr; cursor:pointer; ${isToday ? 'background:var(--accent-soft);' : ''}" onclick="purchasesExpandDay('${day}')">
-          <div style="font-weight:600;">${label}${isToday ? ' <span style="font-size:10px; padding:2px 6px; border-radius:999px; background:var(--accent); color:#fff;">TODAY</span>' : ''}</div>
-          <div>${g.count} purchase${g.count === 1 ? '' : 's'}</div>
-          <div class="num" style="text-align:right; font-weight:600;">${money(g.total)}</div>
-          <div style="text-align:right; color:var(--accent); font-size:12px;">Expand ▸</div>
-          <div></div>
-        </div>`;
-      }).join("");
-      const totalBar = `<div style="padding:10px 0; text-align:right; font-size:13px; color:var(--ink-faint); border-top:1px solid var(--line); margin-top:4px;"><strong style="color:var(--ink);">${sorted.length} day${sorted.length === 1 ? '' : 's'}</strong> — Total: <strong style="color:var(--accent);">${money(grandTotal)}</strong></div>`;
-      el.innerHTML = head + rows + totalBar;
-      return;
-    }
-    await pagedLoad('purchases', { table: 'purchase_orders', orderBy: 'created_at', ascending: false, timeFilterKey: 'purchases', append });
-    const el = document.getElementById("purchases-ledger");
-    if (!el) return;
-    if (cache.purchases.length === 0) { el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">🛒</div>No purchases recorded yet.<br><span style="font-size:12px;">Restock your products by logging purchases.</span></div>`; return; }
-    const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;"><div>Date</div><div>Status</div><div style="text-align:right">Total</div><div></div></div>`;
-    const rows = cache.purchases.map((po) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 0.6fr;">
+  // ---- PURCHASES ----
+  const purchasesCfg = {
+    ledgerId: 'purchases-ledger',
+    table: 'purchase_orders',
+    select: '*',
+    timeCol: 'created_at',
+    dateField: 'created_at',
+    orderBy: 'created_at',
+    moneyField: 'total_amount',
+    entity: 'purchase',
+    entityPlural: 'purchases',
+    emptyHtml: `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">🛒</div>No purchases recorded yet.<br><span style="font-size:13px;">Restock your products by logging purchases.</span></div>`,
+    listLabels: [['Date', ''], ['Status', ''], ['Total', 'right'], ['', ''], ['', '']],
+    headHtml: () => headHtml([['Date', ''], ['Status', ''], ['Total', 'right'], ['', ''], ['', '']]),
+    rowRender: (po) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr 1fr 1fr 0.6fr;">
         <div style="color:var(--ink-faint); font-size:12px;">${new Date(po.created_at).toLocaleDateString()}</div>
         <div><span class="cat-badge">${escapeHtml(po.status)}</span></div>
         <div class="num" style="text-align:right">${money(po.total_amount)}</div>
         <div style="text-align:right;"><span style="color:var(--danger); font-size:12px; text-decoration:underline; cursor:pointer;" onclick="voidPurchase('${escapeAttr(po.id)}')">Void</span></div>
-      </div>`).join("");
-    appendPaginated(el, head + rows, "purchases", append);
-  }
-  function purchasesExpandDay(day) { purchasesExpandedDay = day; loadPurchases(); }
+        <div></div>
+      </div>`,
+  };
+  ledgerTabConfig = Object.assign(ledgerTabConfig || {}, { purchases: purchasesCfg });
+  async function loadPurchases(append = false) { await renderLedger('purchases', append); }
 
   async function voidPurchase(poId) {
     if (!confirm("Void this purchase? Stock added will be removed. This can't be undone.")) return;

@@ -685,5 +685,13 @@
   "profile": {
     "darkMode": "Haalqa Gamoo",
     "signOut": "Ba'i"
+  },
+  "ledger": {
+    "list": "List",
+    "day": "By Day",
+    "month": "By Month",
+    "year": "By Year",
+    "from": "From",
+    "to": "To"
   }
 }

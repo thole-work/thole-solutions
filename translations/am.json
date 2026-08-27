@@ -685,5 +685,13 @@
   "profile": {
     "darkMode": "ጥላ ገጽታ",
     "signOut": "ውጣ"
+  },
+  "ledger": {
+    "list": "List",
+    "day": "By Day",
+    "month": "By Month",
+    "year": "By Year",
+    "from": "From",
+    "to": "To"
   }
 }

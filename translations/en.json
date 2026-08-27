@@ -688,5 +688,13 @@
   "profile": {
     "darkMode": "Dark Mode",
     "signOut": "Sign out"
+  },
+  "ledger": {
+    "list": "List",
+    "day": "By Day",
+    "month": "By Month",
+    "year": "By Year",
+    "from": "From",
+    "to": "To"
   }
 }

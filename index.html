@@ -250,17 +250,20 @@
     <section id="tab-sales" class="tab-panel hidden">
       <div class="page-header"><h2 data-i18n="nav.sales">Sales</h2><p data-i18n="sales.subtitle">All orders and transactions.</p></div>
       <div class="toolbar">
-        <div style="display:flex; gap:6px;">
-          <select id="sales-filter-mode" onchange="const f=document.getElementById('sales-date-filter'); f.style.display=this.value==='all'?'none':''; f.type='date'; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.sales=0; salesExpandedDay=null; loadSales();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="all" selected data-i18n="sales.all_time">All Time</option><option value="date" data-i18n="sales.today">Today</option><option value="week" data-i18n="sales.week">Week</option><option value="month" data-i18n="sales.month">Month</option><option value="number" data-i18n="sales.year">Year</option>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+          <label style="font-size:12px; color:var(--ink-faint);" data-i18n="ledger.from">From</label>
+          <input type="date" id="sales-start-date" onchange="pagination.sales=0; loadSales()" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);" />
+          <label style="font-size:12px; color:var(--ink-faint);" data-i18n="ledger.to">To</label>
+          <input type="date" id="sales-end-date" onchange="pagination.sales=0; loadSales()" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);" />
+          <select id="sales-group" onchange="setLedgerGroup('sales', this.value)" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+            <option value="list" selected data-i18n="ledger.list">List</option>
+            <option value="day" data-i18n="ledger.day">By Day</option>
+            <option value="month" data-i18n="ledger.month">By Month</option>
+            <option value="year" data-i18n="ledger.year">By Year</option>
           </select>
-          <input type="date" id="sales-date-filter" onchange="pagination.sales=0; loadSales()" />
         </div>
         <button class="btn-small" onclick="exportSalesCSV()" data-i18n="sales.csv">📥 CSV</button>
         <button class="btn-small" onclick="posOpenTableMap()" data-i18n="sales.new_sale">🛒 New Sale</button>
-      </div>
-      <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
-        <button class="btn-small" id="sales-group-toggle" onclick="toggleSalesGroup()" style="background:var(--accent-soft); color:var(--accent); padding:6px 12px; font-size:12px;">📋 <span data-i18n="sales.list">List</span></button>
       </div>
       <div class="ledger" id="sales-ledger"></div>
     </section>
@@ -274,16 +277,19 @@
     <section id="tab-payments" class="tab-panel hidden">
       <div class="page-header"><h2 data-i18n="nav.payments">Payments</h2><p data-i18n="payments.subtitle">Money received from customers.</p></div>
       <div class="toolbar">
-        <div style="display:flex; gap:6px;">
-          <select id="payments-filter-mode" onchange="const f=document.getElementById('payments-date-filter'); f.style.display=this.value==='all'?'none':''; f.type='date'; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.payments=0; paymentsExpandedDay=null; loadPayments();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="all" selected data-i18n="payments.all_time">All Time</option><option value="date" data-i18n="payments.today">Today</option><option value="week" data-i18n="payments.week">Week</option><option value="month" data-i18n="payments.month">Month</option><option value="number" data-i18n="payments.year">Year</option>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+          <label style="font-size:12px; color:var(--ink-faint);" data-i18n="ledger.from">From</label>
+          <input type="date" id="payments-start-date" onchange="pagination.payments=0; loadPayments()" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);" />
+          <label style="font-size:12px; color:var(--ink-faint);" data-i18n="ledger.to">To</label>
+          <input type="date" id="payments-end-date" onchange="pagination.payments=0; loadPayments()" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);" />
+          <select id="payments-group" onchange="setLedgerGroup('payments', this.value)" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+            <option value="list" selected data-i18n="ledger.list">List</option>
+            <option value="day" data-i18n="ledger.day">By Day</option>
+            <option value="month" data-i18n="ledger.month">By Month</option>
+            <option value="year" data-i18n="ledger.year">By Year</option>
           </select>
-          <input type="date" id="payments-date-filter" onchange="pagination.payments=0; loadPayments()" />
         </div>
         <button class="btn-small" onclick="openModal('payment-crud-modal')" data-i18n="payments.add">+ Record payment</button>
-      </div>
-      <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
-        <button class="btn-small" id="payments-group-toggle" onclick="togglePaymentsGroup()" style="background:var(--accent-soft); color:var(--accent); padding:6px 12px; font-size:12px;">📋 <span data-i18n="payments.list">List</span></button>
       </div>
       <div class="ledger" id="payments-ledger"></div>
     </section>
@@ -291,17 +297,20 @@
     <section id="tab-expenses" class="tab-panel hidden">
       <div class="page-header"><h2 data-i18n="nav.expenses">Expenses</h2><p data-i18n="expenses.subtitle">Overhead costs — rent, wages, utilities, supplies.</p></div>
       <div class="toolbar">
-        <div style="display:flex; gap:6px;">
-          <select id="expenses-filter-mode" onchange="const f=document.getElementById('expenses-date-filter'); f.style.display=this.value==='all'?'none':''; f.type='date'; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.expenses=0; expensesExpandedDay=null; loadExpenses();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="all" selected data-i18n="expenses.all_time">All Time</option><option value="date" data-i18n="expenses.today">Today</option><option value="week" data-i18n="expenses.week">Week</option><option value="month" data-i18n="expenses.month">Month</option><option value="number" data-i18n="expenses.year">Year</option>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+          <label style="font-size:12px; color:var(--ink-faint);" data-i18n="ledger.from">From</label>
+          <input type="date" id="expenses-start-date" onchange="pagination.expenses=0; loadExpenses()" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);" />
+          <label style="font-size:12px; color:var(--ink-faint);" data-i18n="ledger.to">To</label>
+          <input type="date" id="expenses-end-date" onchange="pagination.expenses=0; loadExpenses()" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);" />
+          <select id="expenses-group" onchange="setLedgerGroup('expenses', this.value)" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+            <option value="list" selected data-i18n="ledger.list">List</option>
+            <option value="day" data-i18n="ledger.day">By Day</option>
+            <option value="month" data-i18n="ledger.month">By Month</option>
+            <option value="year" data-i18n="ledger.year">By Year</option>
           </select>
-          <input type="date" id="expenses-date-filter" onchange="pagination.expenses=0; loadExpenses()" />
         </div>
         <button class="btn-small" onclick="exportExpensesCSV()" data-i18n="expenses.csv">📥 CSV</button>
         <button class="btn-small" onclick="openModal('expense-modal')" data-i18n="expenses.add">+ Add expense</button>
-      </div>
-      <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
-        <button class="btn-small" id="expenses-group-toggle" onclick="toggleExpensesGroup()" style="background:var(--accent-soft); color:var(--accent); padding:6px 12px; font-size:12px;">📋 <span data-i18n="expenses.list">List</span></button>
       </div>
       <div class="ledger" id="expenses-ledger"></div>
     </section>
@@ -315,17 +324,20 @@
     <section id="tab-purchases" class="tab-panel hidden">
       <div class="page-header"><h2 data-i18n="nav.purchase_orders">Purchase Orders</h2><p data-i18n="purchases.subtitle">Restocking — this updates product stock automatically.</p></div>
       <div class="toolbar">
-        <div style="display:flex; gap:6px;">
-          <select id="purchases-filter-mode" onchange="const f=document.getElementById('purchases-date-filter'); f.style.display=this.value==='all'?'none':''; f.type='date'; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.purchases=0; purchasesExpandedDay=null; loadPurchases();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
-            <option value="all" selected data-i18n="purchases.all_time">All Time</option><option value="date" data-i18n="purchases.today">Today</option><option value="week" data-i18n="purchases.week">Week</option><option value="month" data-i18n="purchases.month">Month</option><option value="number" data-i18n="purchases.year">Year</option>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+          <label style="font-size:12px; color:var(--ink-faint);" data-i18n="ledger.from">From</label>
+          <input type="date" id="purchases-start-date" onchange="pagination.purchases=0; loadPurchases()" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);" />
+          <label style="font-size:12px; color:var(--ink-faint);" data-i18n="ledger.to">To</label>
+          <input type="date" id="purchases-end-date" onchange="pagination.purchases=0; loadPurchases()" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);" />
+          <select id="purchases-group" onchange="setLedgerGroup('purchases', this.value)" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+            <option value="list" selected data-i18n="ledger.list">List</option>
+            <option value="day" data-i18n="ledger.day">By Day</option>
+            <option value="month" data-i18n="ledger.month">By Month</option>
+            <option value="year" data-i18n="ledger.year">By Year</option>
           </select>
-          <input type="date" id="purchases-date-filter" onchange="pagination.purchases=0; loadPurchases()" />
         </div>
         <button class="btn-small" onclick="exportPurchasesCSV()" data-i18n="purchases.csv">📥 CSV</button>
         <button class="btn-small" onclick="openPurchaseModal()" data-i18n="purchases.add">+ New purchase</button>
-      </div>
-      <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
-        <button class="btn-small" id="purchases-group-toggle" onclick="togglePurchasesGroup()" style="background:var(--accent-soft); color:var(--accent); padding:6px 12px; font-size:12px;">📋 <span data-i18n="purchases.list">List</span></button>
       </div>
       <div class="ledger" id="purchases-ledger"></div>
     </section>
@@ -348,7 +360,7 @@
       <div class="toolbar" style="margin-bottom:18px;">
         <div></div>
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-          <select id="reports-filter-mode" onchange="const f=document.getElementById('reports-start-date'); const f2=document.getElementById('reports-end-date'); if(this.value==='custom'){f.type='date';f2.type='date';f.style.display='';f2.style.display='';} else if(this.value==='all'){f.style.display='none';f2.style.display='none';} else {f.type='date';f2.style.display='none';f.style.display='';} loadReports();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+          <select id="reports-filter-mode" onchange="const rf=document.getElementById('reports-start-date'); const rf2=document.getElementById('reports-end-date'); if(this.value==='custom'){rf.type='date';rf2.type='date';rf.style.display='';rf2.style.display='';} else if(this.value==='all'){rf.style.display='none';rf2.style.display='none';} else {rf.type='date';rf2.style.display='none';rf.style.display='';} loadReports();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
             <option value="all" selected data-i18n="reports.all_time">All Time</option>
             <option value="today" data-i18n="reports.today">Today</option>
             <option value="week" data-i18n="reports.this_week">This Week</option>
@@ -433,7 +445,7 @@
       <div class="page-header"><h2 data-i18n="nav.stock_movements">Stock Movements</h2><p data-i18n="movements.subtitle">Full audit trail of all stock changes.</p></div>
       <div class="toolbar">
         <div style="display:flex; gap:6px;">
-          <select id="movements-filter-mode" onchange="const f=document.getElementById('movements-date-filter'); f.style.display=this.value==='all'?'none':''; f.type='date'; f.value=''; if(this.value==='date'){f.value=new Date().toISOString().slice(0,10);} pagination.movements=0; loadMovements();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
+          <select id="movements-filter-mode" onchange="const mf=document.getElementById('movements-date-filter'); mf.style.display=this.value==='all'?'none':''; mf.type='date'; mf.value=''; if(this.value==='date'){mf.value=new Date().toISOString().slice(0,10);} pagination.movements=0; loadMovements();" style="padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink);">
             <option value="all" selected data-i18n="movements.all_time">All Time</option><option value="date" data-i18n="movements.today">Today</option><option value="week" data-i18n="movements.week">Week</option><option value="month" data-i18n="movements.month">Month</option><option value="number" data-i18n="movements.year">Year</option>
           </select>
           <input type="date" id="movements-date-filter" onchange="pagination.movements=0; loadMovements()" />

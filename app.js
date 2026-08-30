@@ -2335,11 +2335,16 @@
   }
 
   function applyBusinessTypeVisibility(typeKey) {
-    businessTypeKey = typeKey;
-    const needsRawMaterials = businessUsesRawMaterials();
-    document.querySelectorAll('.nav-item[data-tab="stock-movements"], .nav-item[data-tab="efficiency"]').forEach((el) => {
-      el.classList.toggle("hidden", !needsRawMaterials);
-    });
+    businessTypeKey = typeKey || null;
+    for (const tab of Object.keys(TAB_MODULES)) {
+      const hidden = !tabEnabled(tab);
+      document.querySelectorAll(`.nav-item[data-tab="${tab}"]`).forEach((el) => el.classList.toggle("hidden", hidden));
+      const panel = document.getElementById(`tab-${tab}`);
+      if (panel) panel.classList.toggle("hidden", hidden);
+    }
+    // If the current tab just got hidden, land somewhere always available.
+    const active = document.querySelector(".nav-item.active")?.dataset.tab;
+    if (active && !tabEnabled(active)) switchTab("dashboard");
   }
 
   // ============================================================
@@ -2400,6 +2405,49 @@
   function isProductionBusiness() {
     if (businessModules) return businessModules.has("production");
     return businessTypeKey === "factory";
+  }
+
+  // ============================================================
+  // MODULE-BASED WORKSPACE GATING (Step 3 extension)
+  // ============================================================
+  // Tabs absent from TAB_MODULES are universal — every business type sees
+  // them. Binding a tab to a module_key hides its nav item + panel unless the
+  // business's business_type_modules includes that module. When the module
+  // list is unavailable (businessModules === null) LEGACY_TAB_TYPE_KEYS
+  // reproduces the old type_key-based gating; a tab missing from both maps
+  // stays visible (unknown business types regress to "show everything").
+  // Add a line here to customize another tab for any business type, then seed
+  // the module in database/business_type_modules_seed.sql.
+  const TAB_MODULES = {
+    kitchen: "kitchen",              // restaurant_tables, dine_in, KDS
+    materials: "inventory",          // raw_materials, recipe_items
+    "stock-movements": "inventory",  // stock_movements
+    efficiency: "production",        // produce_batches, waste_log, labor_shifts
+    // Business-growth gates — uncomment once business_type_modules is seeded
+    // for every type (the seed file already assigns them):
+    //   sales: "pos",                      // orders, order_items
+    //   customers: "crm", suppliers: "crm",// customers, suppliers
+    //   payments: "finance", expenses: "finance", reports: "finance",
+    //   purchases: "procurement",          // purchase_orders
+  };
+
+  const LEGACY_TAB_TYPE_KEYS = {
+    kitchen: ["restaurant"],
+    materials: ["restaurant", "factory"],
+    "stock-movements": ["restaurant", "factory"],
+    efficiency: ["restaurant", "factory"],
+  };
+
+  function tabModule(tab) {
+    return TAB_MODULES[tab] || null;
+  }
+
+  function tabEnabled(tab) {
+    const mod = tabModule(tab);
+    if (!mod) return true; // universal tab
+    if (businessModules !== null) return businessModules.has(mod);
+    const legacy = LEGACY_TAB_TYPE_KEYS[tab];
+    return legacy ? legacy.includes(businessTypeKey) : true;
   }
 
   // ============================================================
@@ -2600,6 +2648,7 @@
   // TABS
   // ============================================================
   function switchTab(tab) {
+    if (!tabEnabled(tab)) tab = "dashboard"; // module-less tabs can't be navigated into
     document.querySelectorAll(".tab-panel").forEach((el) => el.classList.add("hidden"));
     const section = document.getElementById(`tab-${tab}`);
     section.classList.remove("hidden");
@@ -2732,10 +2781,12 @@
   // ============================================================
   async function loadEverything() {
     try {
-      await Promise.all([loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses(), loadPurchases(), loadMaterials(), loadSuppliers()]);
+      const jobs = [loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses(), loadPurchases(), loadSuppliers()];
+      if (tabEnabled("materials")) jobs.push(loadMaterials()); // skip raw_materials for types without the inventory module
+      await Promise.all(jobs);
       if (membership.role === "owner") await loadTeam();
       if (membership.role === "owner" || membership.role === "manager") await loadReports();
-      await Promise.all([loadWaste(), loadShifts(), loadProduceBatches()]);
+      if (tabEnabled("efficiency")) await Promise.all([loadWaste(), loadShifts(), loadProduceBatches()]); // waste_log/labor_shifts/produce_batches
       renderDashboard();
       setupRealtimeSubscriptions();
       loadSettings();
@@ -2755,7 +2806,9 @@
   function setupRealtimeSubscriptions() {
     if (realtimeChannel) { sb.removeChannel(realtimeChannel); }
     realtimeChannel = sb.channel("business-realtime");
-    const tables = ["products", "orders", "order_items", "customers", "payments", "expenses", "purchase_orders", "raw_materials", "waste_log", "labor_shifts", "produce_batches", "stock_movements"];
+    const tables = ["products", "orders", "order_items", "customers", "payments", "expenses", "purchase_orders"];
+    if (tabEnabled("materials")) tables.push("raw_materials", "stock_movements");
+    if (tabEnabled("efficiency")) tables.push("waste_log", "labor_shifts", "produce_batches");
     tables.forEach((table) => {
       realtimeChannel.on("postgres_changes", { event: "*", schema: "public", table }, (payload) => {
         handleRealtimeEvent(table);

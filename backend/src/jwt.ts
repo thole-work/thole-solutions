@@ -20,7 +20,7 @@ function b64urlDecode(s: string): Uint8Array {
 // Password hashing — PBKDF2-SHA256 (Web Crypto, no deps)
 // Stored format: pbkdf2$<iterations>$<saltB64>$<hashB64>
 // ---------------------------------------------------------------------------
-export async function hashPassword(password: string, iterations = 120_000): Promise<string> {
+export async function hashPassword(password: string, iterations = 100_000): Promise<string> {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const bits = await deriveBits(password, salt, iterations);
   return `pbkdf2$${iterations}$${b64url(salt)}$${b64url(bits)}`;

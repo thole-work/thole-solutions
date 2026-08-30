@@ -1,0 +1,38 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "thole-d1-backend",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-06-01",
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "APP_ORIGINS": "*",
+    "JWT_SECRET": "change-me-in-dev-vars"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "thole-d1",
+      "database_id": "REPLACE_WITH_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "REALTIME",
+        "class_name": "RealtimeHub"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["RealtimeHub"]
+    }
+  ],
+  "triggers": {
+    "crons": []
+  }
+}

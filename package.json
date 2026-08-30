@@ -17,5 +17,8 @@
   "bugs": {
     "url": "https://github.com/thole-work/thole-solutions/issues"
   },
-  "homepage": "https://github.com/thole-work/thole-solutions#readme"
+  "homepage": "https://github.com/thole-work/thole-solutions#readme",
+  "devDependencies": {
+    "patchright": "^1.62.2"
+  }
 }

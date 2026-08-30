@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Cloudflare Workers local / Wrangler state
+.wrangler/
+.dev.vars
+dist/
+
+# Local test artifacts
+__cdn_test*.html
+*.log

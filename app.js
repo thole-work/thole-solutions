@@ -653,7 +653,7 @@
     if (!el) return;
     try {
       const { data } = await sb.from('restaurant_tables')
-        .select('id, table_number, name, capacity, status, current_order_id, orders!current_order_id(status, created_at, order_items(id))')
+        .select('id, table_number, name, capacity, status, current_order_id, orders!current_order_id(id, status, created_at, order_items(id))')
         .eq('business_id', membership.business_id)
         .order('table_number');
       if (!data || data.length === 0) {
@@ -677,7 +677,9 @@
           const elapsed = tb.orders?.created_at ? formatElapsed(tb.orders.created_at) : '';
           metaText = `${itemCount} item${itemCount !== 1 ? 's' : ''} · ${elapsed}`;
         }
-        return `<div class="kitchen-table-card ${statusClass}">
+        const clickable = isServed && tb.orders?.id;
+        const clickAttr = clickable ? `onclick="showOrderPreview('${escapeAttr(tb.orders.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); showOrderPreview('${escapeAttr(tb.orders.id)}')}" role="button" tabindex="0"` : '';
+        return `<div class="kitchen-table-card ${statusClass} ${clickable ? 'table-clickable' : ''}" ${clickAttr}>
           <span class="kitchen-table-num">${escapeHtml(tb.table_number)}</span>
           ${tb.name ? `<span class="kitchen-table-name">${escapeHtml(tb.name)}</span>` : ''}
           <span class="kitchen-table-status">${statusText}</span>
@@ -1038,7 +1040,7 @@
       const isActive = orderStatus && ['pending','preparing','ready'].includes(orderStatus);
       return `
         <button class="table-btn ${isServed ? 'served' : isActive ? 'occupied' : ''}" 
-          onclick="${isServed ? `payTableOrder('${escapeAttr(orderId)}')` : isActive ? `addTableOrder('${escapeAttr(orderId)}', '${escapeAttr(tb.id)}', '${escapeAttr(tb.table_number)}')` : `posSelectTable('${escapeAttr(tb.id)}', '${escapeAttr(tb.table_number)}')`}">
+          onclick="${isServed ? `showOrderPreview('${escapeAttr(orderId)}')` : isActive ? `addTableOrder('${escapeAttr(orderId)}', '${escapeAttr(tb.id)}', '${escapeAttr(tb.table_number)}')` : `posSelectTable('${escapeAttr(tb.id)}', '${escapeAttr(tb.table_number)}')`}">
           <span class="table-num">${escapeHtml(tb.table_number)}</span>
           ${tb.name ? `<span class="table-name">${escapeHtml(tb.name)}</span>` : ''}
           ${isServed ? `<span class="table-status served-status">${t('pos.ready_to_pay')}</span>` : isActive ? `<span class="table-status">${t('pos.occupied')} — Tap to add</span>` : ''}
@@ -1700,9 +1702,11 @@
         ${order.tip > 0 ? `<div style="display:flex; justify-content:space-between; padding:3px 0; font-size:13px;"><span>${t('payment_screen.tip')}</span><span>${money(order.tip)}</span></div>` : ''}
         <div style="display:flex; justify-content:space-between; padding:6px 0; font-size:16px; font-weight:700; border-top:2px solid var(--line); margin-top:4px;"><span>${t('pos.total')}</span><span>${money(order.total_amount)}</span></div>
       </div>
-      <div style="display:flex; gap:8px; margin-top:16px;">
-        ${order.status === 'served' ? `<button class="btn-primary" style="flex:1;" onclick="closeModal('order-preview-modal'); payTableOrder('${escapeAttr(order.id)}')">${t('pos.pay')}</button>` : ''}
-        <button class="btn-ghost" style="flex:1;" onclick="closeModal('order-preview-modal')">${t('modal.close')}</button>
+      <div style="display:flex; gap:8px; margin-top:16px; flex-wrap:wrap;">
+        <button class="btn-ghost" style="flex:1;" onclick="closeModal('order-preview-modal'); posShowReceipt('${escapeAttr(order.id)}')">🖨️ ${t('receipt.print')}</button>
+        ${order.status === 'served'
+          ? `<button class="btn-primary" style="flex:1;" onclick="closeModal('order-preview-modal'); payTableOrder('${escapeAttr(order.id)}')">${t('pos.pay')}</button>`
+          : `<button class="btn-ghost" style="flex:1;" onclick="closeModal('order-preview-modal')">${t('modal.close')}</button>`}
       </div>
     `;
     openModal('order-preview-modal');

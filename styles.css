@@ -799,6 +799,9 @@
   .kitchen-table-card.table-available { border-color: var(--line); }
   .kitchen-table-card.table-occupied { border-color: var(--amber); background: var(--amber-soft); }
   .kitchen-table-card.table-served { border-color: #16a34a; background: #f0fdf4; animation: pulse-green 2s infinite; }
+  .kitchen-table-card.table-clickable { cursor: pointer; }
+  .kitchen-table-card.table-clickable:hover, .kitchen-table-card.table-clickable:focus-visible { border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,0.25); transform: translateY(-1px); outline: none; }
+  .kitchen-table-card.table-clickable .kitchen-table-status { text-decoration: underline; }
   .kitchen-table-num { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 700; color: var(--ink); line-height: 1; }
   .kitchen-table-status { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
   .kitchen-table-card.table-available .kitchen-table-status { color: var(--ink-faint); }

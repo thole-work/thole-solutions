@@ -2327,7 +2327,7 @@
       setDefaultDateFilters();
       logUsage("session_start", "dashboard");
       await loadEverything();
-      updateTopbar(document.querySelector('.nav-item.active')?.dataset.tab || 'dashboard');
+      switchTab(document.querySelector('.nav-item.active')?.dataset.tab || 'dashboard');
     } catch(err) {
       console.error("checkMembership error:", err);
       hide("auth-screen"); hide("app-screen"); show("onboarding-screen");

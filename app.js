@@ -536,152 +536,287 @@
   // Auto-sync when online
   window.addEventListener('online', posSyncOfflineQueue);
   
-  // ========== KDS (KITCHEN DISPLAY) ==========
+  // ========== KITCHEN COMMAND CENTER ==========
+  let kitchenChannel = null;
+  let kitchenOrders = new Map();
+  let kitchenOrderItemCounts = new Map();
+  let kitchenReloadTimer = null;
+  let kitchenAudioCtx = null;
+  let kitchenSoundEnabled = true;
+  let kitchenTimerInterval = null;
+
+  // --- Sound ---
   function playKDSSound(type) {
+    if (!kitchenSoundEnabled) return;
     try {
-      if (!kdsAudioCtx) kdsAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (kdsAudioCtx.state === 'suspended') kdsAudioCtx.resume();
-      const osc = kdsAudioCtx.createOscillator();
-      const gain = kdsAudioCtx.createGain();
-      osc.connect(gain);
-      gain.connect(kdsAudioCtx.destination);
-      if (type === 'ready') { osc.frequency.value = 880; gain.gain.value = 0.3; }
-      else if (type === 'new') { osc.frequency.value = 440; gain.gain.value = 0.2; }
-      else { osc.frequency.value = 660; gain.gain.value = 0.2; }
-      osc.type = 'sine';
-      osc.start();
-      gain.gain.exponentialRampToValueAtTime(0.001, kdsAudioCtx.currentTime + 0.3);
-      osc.stop(kdsAudioCtx.currentTime + 0.3);
+      if (!kitchenAudioCtx) kitchenAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (kitchenAudioCtx.state === 'suspended') kitchenAudioCtx.resume();
+      const now = kitchenAudioCtx.currentTime;
+      if (type === 'new') {
+        // Two-tone ascending: C5 → E5
+        const o1 = kitchenAudioCtx.createOscillator(); const g1 = kitchenAudioCtx.createGain();
+        o1.connect(g1); g1.connect(kitchenAudioCtx.destination);
+        o1.type = 'sine'; o1.frequency.value = 523; g1.gain.value = 0.2;
+        o1.start(now); g1.gain.exponentialRampToValueAtTime(0.001, now + 0.12); o1.stop(now + 0.12);
+        const o2 = kitchenAudioCtx.createOscillator(); const g2 = kitchenAudioCtx.createGain();
+        o2.connect(g2); g2.connect(kitchenAudioCtx.destination);
+        o2.type = 'sine'; o2.frequency.value = 659; g2.gain.value = 0.25;
+        o2.start(now + 0.12); g2.gain.exponentialRampToValueAtTime(0.001, now + 0.28); o2.stop(now + 0.28);
+      } else if (type === 'ready') {
+        // Three-tone ascending: C5 → E5 → G5
+        const freqs = [523, 659, 784];
+        freqs.forEach((f, i) => {
+          const o = kitchenAudioCtx.createOscillator(); const g = kitchenAudioCtx.createGain();
+          o.connect(g); g.connect(kitchenAudioCtx.destination);
+          o.type = 'sine'; o.frequency.value = f; g.gain.value = 0.25;
+          o.start(now + i * 0.11); g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.11 + 0.12); o.stop(now + i * 0.11 + 0.12);
+        });
+      } else {
+        // Two-tone descending warning: E5 → C5
+        const o1 = kitchenAudioCtx.createOscillator(); const g1 = kitchenAudioCtx.createGain();
+        o1.connect(g1); g1.connect(kitchenAudioCtx.destination);
+        o1.type = 'sine'; o1.frequency.value = 659; g1.gain.value = 0.18;
+        o1.start(now); g1.gain.exponentialRampToValueAtTime(0.001, now + 0.18); o1.stop(now + 0.18);
+        const o2 = kitchenAudioCtx.createOscillator(); const g2 = kitchenAudioCtx.createGain();
+        o2.connect(g2); g2.connect(kitchenAudioCtx.destination);
+        o2.type = 'sine'; o2.frequency.value = 523; g2.gain.value = 0.15;
+        o2.start(now + 0.18); g2.gain.exponentialRampToValueAtTime(0.001, now + 0.35); o2.stop(now + 0.35);
+      }
     } catch(e) {}
   }
 
-  let kdsChannel = null;
-  let kdsOrders = new Map(); // orderId -> order data
-  let kdsOrderItemCounts = new Map(); // orderId -> item count (for detecting new items)
-  let kdsReloadTimer = null;
-  let kdsAudioCtx = null;
-  
-  async function openKDS() {
-    openModal('kds-modal');
-    await loadKDSOrders();
-    setupKDSRealtime();
+  function toggleKitchenSound() {
+    kitchenSoundEnabled = !kitchenSoundEnabled;
+    try { localStorage.setItem('thole:kitchen-sound', kitchenSoundEnabled ? '1' : '0'); } catch(_) {}
+    const icon = document.getElementById('kitchen-sound-icon');
+    if (icon) icon.textContent = kitchenSoundEnabled ? '🔊' : '🔇';
   }
-  
-  async function loadKDSOrders() {
+
+  // --- Data loading ---
+  async function loadKitchenOrders() {
     const { data } = await applyBranchFilter(sb.from('orders')
-      .select('id, status, created_at, business_id, order_items(id, quantity, product_id, products(name)), restaurant_tables!table_id(table_number, name)')
+      .select('id, status, created_at, business_id, payment_method, order_items(id, quantity, product_id, products(name)), restaurant_tables!table_id(table_number, name)')
       .eq('business_id', membership.business_id)
       .in('status', ['pending', 'preparing', 'ready'])
       .order('created_at', { ascending: true })
-      .limit(100), 'orders'); // oldest first; sane ceiling so a stuck queue can't grow the payload unbounded
-    const prev = new Map(kdsOrders);
-    kdsOrders.clear();
-    (data || []).forEach(o => kdsOrders.set(o.id, o));
-    renderKDS(prev);
+      .limit(100), 'orders');
+    const prev = new Map(kitchenOrders);
+    kitchenOrders.clear();
+    (data || []).forEach(o => kitchenOrders.set(o.id, o));
+    renderKitchenAll(prev);
   }
 
-  function scheduleKDSReload() {
-    if (kdsReloadTimer) clearTimeout(kdsReloadTimer);
-    kdsReloadTimer = setTimeout(() => { kdsReloadTimer = null; loadKDSOrders(); }, 300);
+  function scheduleKitchenReload() {
+    if (kitchenReloadTimer) clearTimeout(kitchenReloadTimer);
+    kitchenReloadTimer = setTimeout(() => { kitchenReloadTimer = null; loadKitchenOrders(); }, 300);
   }
-  
-  function setupKDSRealtime() {
-    if (kdsChannel) sb.removeChannel(kdsChannel);
-    kdsChannel = sb.channel('kds-realtime');
-    kdsChannel.on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
-      handleKDSOrderChange(payload);
+
+  // --- Realtime ---
+  function setupKitchenRealtime() {
+    if (kitchenChannel) sb.removeChannel(kitchenChannel);
+    kitchenChannel = sb.channel('kitchen-realtime');
+    kitchenChannel.on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
+      handleKitchenChange(payload);
     });
-    kdsChannel.on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, (payload) => {
-      handleKDSOrderChange(payload);
+    kitchenChannel.on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, (payload) => {
+      handleKitchenChange(payload);
     });
-    kdsChannel.subscribe();
+    kitchenChannel.subscribe();
   }
-  
-  function handleKDSOrderChange(payload) {
+
+  function teardownKitchenRealtime() {
+    if (kitchenChannel) { sb.removeChannel(kitchenChannel); kitchenChannel = null; }
+  }
+
+  function handleKitchenChange(payload) {
     if (payload.eventType === 'DELETE') return;
-    if (payload.table === 'order_items') { playKDSSound('new'); scheduleKDSReload(); return; }
+    if (payload.table === 'order_items') { playKDSSound('new'); scheduleKitchenReload(); return; }
     const order = payload.new;
     if (!order || order.business_id !== membership.business_id) return;
     if (['pending', 'preparing', 'ready'].includes(order.status)) {
       if (order.status === 'ready') playKDSSound('ready');
       else if (order.status === 'pending') playKDSSound('new');
     }
-    scheduleKDSReload();
+    scheduleKitchenReload();
   }
-  
-  function renderKDS(prevOrders) {
-    const el = document.getElementById('kds-grid');
-    if (!el) return;
-    const orders = Array.from(kdsOrders.values()).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    if (orders.length === 0) {
-      el.innerHTML = '<div class="kds-empty">No active orders</div>';
-      kdsOrderItemCounts.clear();
-      return;
-    }
 
-    const newIds = new Set(orders.map(o => o.id));
+  // --- Render all kitchen sections ---
+  function renderKitchenAll(prevOrders) {
+    renderKitchenTables();
+    renderKitchenPipeline(prevOrders);
+    renderKitchenStock();
+  }
+
+  // --- Table Map ---
+  async function renderKitchenTables() {
+    const el = document.getElementById('kitchen-table-map');
+    if (!el) return;
+    try {
+      const { data } = await sb.from('restaurant_tables')
+        .select('id, table_number, name, capacity, status, current_order_id, orders!current_order_id(status, created_at, order_items(id))')
+        .eq('business_id', membership.business_id)
+        .order('table_number');
+      if (!data || data.length === 0) {
+        el.innerHTML = `<div class="kitchen-empty">${t('kds.no_tables')}</div>`;
+        updateCount('kitchen-table-count', '');
+        return;
+      }
+      updateCount('kitchen-table-count', data.length);
+      el.innerHTML = data.map(tb => {
+        const orderStatus = tb.orders?.status;
+        const isActive = orderStatus && ['pending','preparing','ready'].includes(orderStatus);
+        const isServed = orderStatus === 'served';
+        const itemCount = tb.orders?.order_items?.length || 0;
+        let statusClass = 'table-available';
+        let statusText = t('kds.free');
+        let metaText = '';
+        if (isServed) { statusClass = 'table-served'; statusText = t('kds.awaiting_payment'); }
+        else if (isActive) {
+          statusClass = 'table-occupied';
+          statusText = t('kds.occupied');
+          const elapsed = tb.orders?.created_at ? formatElapsed(tb.orders.created_at) : '';
+          metaText = `${itemCount} item${itemCount !== 1 ? 's' : ''} · ${elapsed}`;
+        }
+        return `<div class="kitchen-table-card ${statusClass}">
+          <span class="kitchen-table-num">${escapeHtml(tb.table_number)}</span>
+          ${tb.name ? `<span class="kitchen-table-name">${escapeHtml(tb.name)}</span>` : ''}
+          <span class="kitchen-table-status">${statusText}</span>
+          ${metaText ? `<span class="kitchen-table-meta">${metaText}</span>` : ''}
+        </div>`;
+      }).join('');
+    } catch(e) {
+      el.innerHTML = `<div class="kitchen-empty">${t('kds.no_tables')}</div>`;
+    }
+  }
+
+  // --- Order Pipeline ---
+  function renderKitchenPipeline(prevOrders) {
+    const pendingEl = document.getElementById('pipeline-pending');
+    const cookingEl = document.getElementById('pipeline-cooking');
+    const readyEl = document.getElementById('pipeline-ready');
+    const emptyEl = document.getElementById('kitchen-empty-pipeline');
+    if (!pendingEl || !cookingEl || !readyEl) return;
+
+    const orders = Array.from(kitchenOrders.values()).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     const prevMap = prevOrders || new Map();
 
-    // Remove tickets for orders no longer active
-    el.querySelectorAll('.kds-ticket[data-order-id]').forEach(ticket => {
-      if (!newIds.has(ticket.dataset.orderId)) ticket.remove();
-    });
+    if (orders.length === 0) {
+      pendingEl.innerHTML = '';
+      cookingEl.innerHTML = '';
+      readyEl.innerHTML = '';
+      if (emptyEl) emptyEl.style.display = '';
+      updateCount('kitchen-order-count', '');
+      updateCount('pipeline-pending-count', '0');
+      updateCount('pipeline-cooking-count', '0');
+      updateCount('pipeline-ready-count', '0');
+      kitchenOrderItemCounts.clear();
+      stopKitchenTimers();
+      return;
+    }
+    if (emptyEl) emptyEl.style.display = 'none';
+    updateCount('kitchen-order-count', orders.length);
 
-    // Build or update each ticket
-    const frag = document.createDocumentFragment();
-    orders.forEach(o => {
-      const existing = el.querySelector(`.kds-ticket[data-order-id="${o.id}"]`);
-      const html = buildKDSTicket(o);
-      if (existing) {
-        existing.outerHTML = html;
-      } else {
-        const tmp = document.createElement('div');
-        tmp.innerHTML = html;
-        frag.appendChild(tmp.firstElementChild);
-      }
-    });
-    el.appendChild(frag);
+    const pending = orders.filter(o => o.status === 'pending');
+    const cooking = orders.filter(o => o.status === 'preparing');
+    const ready = orders.filter(o => o.status === 'ready');
+
+    updateCount('pipeline-pending-count', pending.length);
+    updateCount('pipeline-cooking-count', cooking.length);
+    updateCount('pipeline-ready-count', ready.length);
+
+    // Oldest pending order gets highlighted
+    const oldestId = pending.length > 0 ? pending[0].id : null;
+
+    pendingEl.innerHTML = pending.map(o => buildPipelineCard(o, 'pending', oldestId, prevMap)).join('');
+    cookingEl.innerHTML = cooking.map(o => buildPipelineCard(o, 'preparing', null, prevMap)).join('');
+    readyEl.innerHTML = ready.map(o => buildPipelineCard(o, 'ready', null, prevMap)).join('');
 
     // Update tracked counts
-    orders.forEach(o => kdsOrderItemCounts.set(o.id, (o.order_items || []).length));
+    orders.forEach(o => kitchenOrderItemCounts.set(o.id, (o.order_items || []).length));
+    startKitchenTimers();
   }
 
-  function buildKDSTicket(o) {
-    const tableInfo = o.restaurant_tables ? `T${o.restaurant_tables.table_number}${o.restaurant_tables.name ? ' ' + o.restaurant_tables.name : ''}` : '';
-    const prevCount = kdsOrderItemCounts.get(o.id) || 0;
+  function buildPipelineCard(o, status, oldestId, prevMap) {
+    const tableInfo = o.restaurant_tables
+      ? `T${o.restaurant_tables.table_number}${o.restaurant_tables.name ? ' ' + o.restaurant_tables.name : ''}`
+      : t('kds.walk_in');
+    const prevCount = kitchenOrderItemCounts.get(o.id) || 0;
     const currentCount = (o.order_items || []).length;
     const hasNewItems = prevCount > 0 && currentCount > prevCount;
-    return `
-    <div class="kds-ticket ${o.status}" data-order-id="${o.id}">
-      <div class="kds-ticket-header">
-        <span>
-          <span class="kds-order-id">#${o.id.slice(0,6).toUpperCase()}</span>
-          ${tableInfo ? `<span class="kds-table">${escapeHtml(tableInfo)}</span>` : ''}
-        </span>
-        <span>
-          ${hasNewItems ? `<span class="kds-new-badge">NEW ITEMS</span>` : ''}
-          <span class="kds-time">${new Date(o.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span>
-          <span class="kds-status ${o.status}">${o.status.toUpperCase()}</span>
-        </span>
+    const isOldest = o.id === oldestId;
+    const isPaid = o.payment_method && o.payment_method !== '';
+    const elapsed = formatElapsed(o.created_at);
+    const orderIdShort = o.id.slice(0, 6).toUpperCase();
+
+    // Progress dots: pending=1, preparing=2, ready=3
+    const progressStep = status === 'pending' ? 1 : status === 'preparing' ? 2 : 3;
+    const dots = [1, 2, 3].map(s => `<span class="pipeline-progress-dot ${s <= progressStep ? 'filled' : ''}"></span>`).join('');
+
+    let actionBtn = '';
+    if (status === 'pending') actionBtn = `<button class="pipeline-card-action pipeline-btn-cook" onclick="kitchenAdvanceStatus('${o.id}', 'preparing')">${t('kds.cook')}</button>`;
+    else if (status === 'preparing') actionBtn = `<button class="pipeline-card-action pipeline-btn-ready" onclick="kitchenAdvanceStatus('${o.id}', 'ready')">${t('kds.mark_ready')}</button>`;
+    else if (status === 'ready') actionBtn = `<button class="pipeline-card-action pipeline-btn-serve" onclick="kitchenAdvanceStatus('${o.id}', 'served')">${t('kds.serve')}</button>`;
+
+    const items = (o.order_items || []).map((item, idx) => {
+      const isNew = idx >= prevCount && hasNewItems;
+      return `<div class="pipeline-item ${isNew ? 'kds-item-new' : ''}">
+        <span class="pipeline-item-qty">${item.quantity}x</span>
+        <span class="pipeline-item-name">${escapeHtml(item.products?.name || 'Unknown')}</span>
+        ${isNew ? '<span class="kds-item-added">NEW</span>' : ''}
+      </div>`;
+    }).join('');
+
+    return `<div class="pipeline-card ${isOldest ? 'pipeline-card-oldest' : ''}" data-order-id="${o.id}">
+      <div class="pipeline-card-header">
+        <span class="pipeline-order-id">#${orderIdShort}</span>
+        <span class="pipeline-table-badge">${escapeHtml(tableInfo)}</span>
+        ${hasNewItems ? '<span class="kds-new-badge">NEW</span>' : ''}
       </div>
-      <div class="kds-items">
-        ${(o.order_items || []).map((item, idx) => `
-          <div class="kds-item ${idx >= prevCount && hasNewItems ? 'kds-item-new' : ''}">
-            <span class="kds-qty">${item.quantity}x</span>
-            <span class="kds-name">${escapeHtml(item.products?.name || 'Unknown')}</span>
-            ${idx >= prevCount && hasNewItems ? '<span class="kds-item-added">NEW</span>' : ''}
-          </div>
-        `).join('')}
+      <div class="pipeline-items">${items}</div>
+      <div class="pipeline-card-footer">
+        <span class="pipeline-timer" data-created="${o.created_at}">${elapsed}</span>
+        <span class="pipeline-progress">${dots}</span>
+        <span class="pipeline-payment ${isPaid ? 'paid' : 'unpaid'}">${isPaid ? t('kds.paid') : t('kds.unpaid')}</span>
       </div>
-      <div class="kds-actions">
-        ${o.status === 'pending' ? `<button class="kds-btn-start" onclick="kdsUpdateStatus('${o.id}', 'preparing')">Start</button>` : ''}
-        ${o.status === 'preparing' ? `<button class="kds-btn-ready" onclick="kdsUpdateStatus('${o.id}', 'ready')">Ready</button>` : ''}
-        ${o.status === 'ready' ? `<button class="kds-btn-served" onclick="kdsUpdateStatus('${o.id}', 'served')">Served</button>` : ''}
-      </div>
+      ${actionBtn}
     </div>`;
   }
-  
-  async function kdsUpdateStatus(orderId, newStatus) {
+
+  // --- Live Timers ---
+  function startKitchenTimers() {
+    if (kitchenTimerInterval) return;
+    kitchenTimerInterval = setInterval(() => {
+      document.querySelectorAll('.pipeline-timer[data-created]').forEach(el => {
+        el.textContent = formatElapsed(el.dataset.created);
+      });
+      // Update table map elapsed times too
+      document.querySelectorAll('.kitchen-table-meta').forEach(el => {
+        // Tables don't have live timers, but pipeline cards do
+      });
+    }, 1000);
+  }
+
+  function stopKitchenTimers() {
+    if (kitchenTimerInterval) { clearInterval(kitchenTimerInterval); kitchenTimerInterval = null; }
+  }
+
+  function formatElapsed(isoStr) {
+    if (!isoStr) return '';
+    const ms = Date.now() - new Date(isoStr).getTime();
+    if (ms < 0) return '0:00';
+    const totalSec = Math.floor(ms / 1000);
+    const min = Math.floor(totalSec / 60);
+    const sec = totalSec % 60;
+    return `${min}:${sec.toString().padStart(2, '0')}`;
+  }
+
+  function updateCount(elId, count) {
+    const el = document.getElementById(elId);
+    if (el) el.textContent = count !== '' && count !== undefined && count !== null ? `(${count})` : '';
+  }
+
+  // --- Status update ---
+  async function kitchenAdvanceStatus(orderId, newStatus) {
     if (newStatus === 'served') {
       const { data: order } = await sb.from('orders')
         .select('id, business_id, order_items(id, quantity, product_id, products(product_type))')
@@ -702,7 +837,74 @@
       await sb.from('orders').update({ status: newStatus }).eq('id', orderId).eq('business_id', membership.business_id);
       logAudit("update", "order", orderId, null, { status: newStatus });
     }
-    await loadKDSOrders();
+    await loadKitchenOrders();
+  }
+
+  function openStoreTab() {
+    switchTab('materials');
+  }
+
+  // --- Kitchen Stock (visual cards) ---
+  function renderKitchenStock() {
+    const el = document.getElementById('kitchen-stock-grid');
+    if (!el) return;
+    const items = (cache.materials || []).filter(m => Number(m.kitchen_stock_qty || 0) > 0 || Number(m.stock_qty || 0) > 0);
+
+    // Low stock alerts
+    const lowStockEl = document.getElementById('kitchen-low-stock');
+    if (lowStockEl) {
+      const lowStockItems = (cache.materials || []).filter(m => {
+        const threshold = Number(m.low_stock_threshold) || 10;
+        return Number(m.kitchen_stock_qty || 0) > 0 && Number(m.kitchen_stock_qty || 0) <= threshold;
+      });
+      if (lowStockItems.length > 0) {
+        lowStockEl.innerHTML = `<div style="background: rgba(217,119,6,0.08); border:1px solid rgba(217,119,6,0.25); border-radius:8px; padding:10px 12px; margin-bottom:12px;">
+          <strong style="color:var(--amber); font-size:13px;">⚠ ${t('kds.low_stock')}</strong>
+          ${lowStockItems.map(m => `<div style="display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid rgba(217,119,6,0.1); font-size:12px;">
+            <span>${escapeHtml(m.name)} — ${m.kitchen_stock_qty || 0} ${escapeHtml(m.unit)}</span>
+            <button class="kitchen-stock-send-btn" onclick="openSendToKitchenModal('${m.id}')">${t('kds.send_to_kitchen')}</button>
+          </div>`).join('')}
+        </div>`;
+      } else {
+        lowStockEl.innerHTML = '';
+      }
+    }
+
+    if (items.length === 0) {
+      el.innerHTML = `<div class="kitchen-empty" style="grid-column:1/-1;">No stock in the kitchen yet.</div>`;
+      updateCount('kitchen-stock-count', '');
+      return;
+    }
+
+    updateCount('kitchen-stock-count', items.length);
+    el.innerHTML = items
+      .slice()
+      .sort((a, b) => Number(b.kitchen_stock_qty || 0) - Number(a.kitchen_stock_qty || 0))
+      .map(m => {
+        const kitchenQty = Number(m.kitchen_stock_qty || 0);
+        const storeQty = Number(m.stock_qty || 0);
+        const threshold = Number(m.low_stock_threshold) || 10;
+        const isLow = kitchenQty > 0 && kitchenQty <= threshold;
+        const maxQty = Math.max(kitchenQty + storeQty, 1);
+        const kitchenPct = (kitchenQty / maxQty) * 100;
+        const storePct = (storeQty / maxQty) * 100;
+        return `<div class="kitchen-stock-card ${isLow ? 'low-stock' : ''}">
+          <span class="kitchen-stock-name">${escapeHtml(m.name)}</span>
+          <div class="kitchen-stock-bar-container">
+            <div class="kitchen-stock-bar-row">
+              <span class="kitchen-stock-bar-label">${t('kds.kitchen_stock')}</span>
+              <div class="kitchen-stock-bar-track"><div class="kitchen-stock-bar-fill fill-kitchen" style="width:${kitchenPct}%"></div></div>
+              <span class="kitchen-stock-bar-value">${kitchenQty} ${escapeHtml(m.unit)}</span>
+            </div>
+            <div class="kitchen-stock-bar-row">
+              <span class="kitchen-stock-bar-label">${t('kds.store_stock')}</span>
+              <div class="kitchen-stock-bar-track"><div class="kitchen-stock-bar-fill fill-store" style="width:${storePct}%"></div></div>
+              <span class="kitchen-stock-bar-value">${storeQty} ${escapeHtml(m.unit)}</span>
+            </div>
+          </div>
+          ${storeQty > 0 ? `<div class="kitchen-stock-actions"><button class="kitchen-stock-send-btn" onclick="openSendToKitchenModal('${m.id}')">${t('kds.send_to_kitchen')} →</button></div>` : ''}
+        </div>`;
+      }).join('');
   }
 
   function posCalcTotals() {
@@ -2231,6 +2433,9 @@
 
   async function boot() {
     try {
+      // Restore kitchen sound preference
+      try { kitchenSoundEnabled = localStorage.getItem('thole:kitchen-sound') !== '0'; } catch(_) {}
+
       // Restore sidebar state
       try {
         if (localStorage.getItem("thole:sidebar-collapsed") === "true") {
@@ -2660,7 +2865,7 @@
     if (tab === "efficiency") { renderEfficiency(); loadWaste(); loadShifts(); loadProduceBatches(); }
     if (tab === "suppliers") loadSuppliers();
     if (tab === "stock-movements") loadMovements();
-    if (tab === "kitchen") loadKitchenStock();
+    if (tab === "kitchen") { loadKitchenOrders(); setupKitchenRealtime(); }
     if (tab === "settings") loadSettings();
   }
 
@@ -2800,7 +3005,7 @@
   let kitchenBadgeChannel = null;
   function teardownRealtime() {
     if (realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
-    if (kdsChannel) { sb.removeChannel(kdsChannel); kdsChannel = null; }
+    if (kitchenChannel) { sb.removeChannel(kitchenChannel); kitchenChannel = null; }
     if (kitchenBadgeChannel) { sb.removeChannel(kitchenBadgeChannel); kitchenBadgeChannel = null; }
   }
   function setupRealtimeSubscriptions() {
@@ -2864,7 +3069,9 @@
     if (table === "payments") { loadPayments(); }
     if (table === "expenses") { loadExpenses(); }
     if (table === "purchase_orders") { loadPurchases(); }
-    if (table === "raw_materials") { loadMaterials(); }
+    if (table === "raw_materials") { loadMaterials(); if (activeTab === "kitchen") renderKitchenStock(); }
+    if (table === "orders" && activeTab === "kitchen") { loadKitchenOrders(); }
+    if (table === "order_items" && activeTab === "kitchen") { loadKitchenOrders(); }
     if (table === "waste_log" && activeTab === "efficiency") { loadWaste(); renderEfficiency(); }
     if (table === "labor_shifts" && activeTab === "efficiency") { loadShifts(); renderEfficiency(); }
     if (table === "produce_batches" && activeTab === "efficiency") { loadProduceBatches(); renderEfficiency(); }
@@ -4438,45 +4645,7 @@
   }
 
   // ========== KITCHEN ==========
-  async function loadKitchenStock() {
-    const el = document.getElementById("kitchen-stock-ledger");
-    if (!el) return;
-    const items = (cache.materials || []).filter(m => Number(m.kitchen_stock_qty || 0) > 0 || Number(m.stock_qty || 0) > 0);
-
-    const lowStockEl = document.getElementById("kitchen-low-stock");
-    if (lowStockEl) {
-      const lowStockItems = (cache.materials || []).filter(m => {
-        const threshold = Number(m.low_stock_threshold) || 10;
-        return Number(m.kitchen_stock_qty || 0) > 0 && Number(m.kitchen_stock_qty || 0) <= threshold;
-      });
-      if (lowStockItems.length > 0) {
-        lowStockEl.innerHTML = `<div style="background: rgba(212,175,55,0.08); border:1px solid rgba(212,175,55,0.3); border-radius:8px; padding:12px;">
-          <strong style="color:var(--amber);">⚠ Kitchen Low Stock</strong>
-          ${lowStockItems.map(m => `<div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid rgba(212,175,55,0.1);">
-            <span>${escapeHtml(m.name)} — ${m.kitchen_stock_qty || 0} ${escapeHtml(m.unit)} remaining</span>
-            <button class="btn-small" onclick="openStoreTab(); openSendToKitchenModal('${m.id}')">Send more</button>
-          </div>`).join('')}
-        </div>`;
-      } else {
-        lowStockEl.innerHTML = '';
-      }
-    }
-
-    if (items.length === 0) {
-      el.innerHTML = `<div class="empty-state"><div style="font-size:32px; margin-bottom:8px;">🍳</div>No stock in the kitchen yet.<br><span style="font-size:12px;">Send items from the Store to get started.</span></div>`;
-      return;
-    }
-    const head = `<div class="ledger-head" style="grid-template-columns: 2fr 1fr;"><div>Name</div><div>In Kitchen</div></div>`;
-    const rows = items
-      .slice()
-      .sort((a, b) => Number(b.kitchen_stock_qty || 0) - Number(a.kitchen_stock_qty || 0))
-      .map((m) => `<div class="ledger-row" style="grid-template-columns: 2fr 1fr;">
-          <div>${escapeHtml(m.name)}</div>
-          <div class="num">${m.kitchen_stock_qty || 0} ${escapeHtml(m.unit)}</div>
-        </div>`)
-      .join("");
-    el.innerHTML = head + rows;
-  }
+  // loadKitchenStock replaced by renderKitchenStock in the Kitchen Command Center section above
 
   let sendToKitchenMaterialId = null;
 
@@ -4523,7 +4692,7 @@
     closeModal('send-kitchen-modal');
     showToast(`Sent ${qty} ${m.unit} of ${m.name} to Kitchen`, 'success');
     await loadMaterials();
-    await loadKitchenStock();
+    renderKitchenStock();
   }
 
   function openAddMaterial() {

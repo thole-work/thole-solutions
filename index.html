@@ -493,12 +493,72 @@
 
     <!-- ========== KITCHEN TAB ========== -->
     <section id="tab-kitchen" class="tab-panel hidden">
-      <div class="page-header"><h2 data-i18n="nav.kitchen">Kitchen</h2><p data-i18n="kitchen.subtitle">Stock sent from the Store, and live order tickets.</p></div>
-      <div class="toolbar">
-        <button class="btn-small" onclick="openKDS()" data-i18n="sales.kds">🍳 Kitchen Display</button>
+      <div class="kitchen-toolbar">
+        <h2 class="kitchen-title" data-i18n="nav.kitchen">Kitchen</h2>
+        <div class="kitchen-toolbar-actions">
+          <button class="btn-ghost kitchen-sound-btn" id="kitchen-sound-btn" onclick="toggleKitchenSound()" title="Toggle sound">
+            <span id="kitchen-sound-icon">🔊</span>
+          </button>
+        </div>
       </div>
-      <div id="kitchen-low-stock" style="margin-bottom:16px;"></div>
-      <div class="ledger" id="kitchen-stock-ledger"></div>
+
+      <!-- Table Map -->
+      <div class="kitchen-section">
+        <div class="kitchen-section-header">
+          <span class="kitchen-section-label" data-i18n="kds.tables_section">Tables</span>
+          <span class="kitchen-section-count" id="kitchen-table-count"></span>
+        </div>
+        <div class="kitchen-table-map" id="kitchen-table-map">
+          <div class="kitchen-empty" data-i18n="kds.no_tables">No tables configured.</div>
+        </div>
+      </div>
+
+      <!-- Order Pipeline -->
+      <div class="kitchen-section kitchen-section-pipeline">
+        <div class="kitchen-section-header">
+          <span class="kitchen-section-label" data-i18n="kds.orders_section">Orders</span>
+          <span class="kitchen-section-count" id="kitchen-order-count"></span>
+        </div>
+        <div class="kitchen-pipeline" id="kitchen-pipeline">
+          <div class="pipeline-column" data-status="pending">
+            <div class="pipeline-header pipeline-header-pending">
+              <span class="pipeline-dot"></span>
+              <span data-i18n="kds.pending">Pending</span>
+              <span class="pipeline-badge" id="pipeline-pending-count">0</span>
+            </div>
+            <div class="pipeline-cards" id="pipeline-pending"></div>
+          </div>
+          <div class="pipeline-column" data-status="preparing">
+            <div class="pipeline-header pipeline-header-cooking">
+              <span class="pipeline-dot"></span>
+              <span data-i18n="kds.cooking">Cooking</span>
+              <span class="pipeline-badge" id="pipeline-cooking-count">0</span>
+            </div>
+            <div class="pipeline-cards" id="pipeline-cooking"></div>
+          </div>
+          <div class="pipeline-column" data-status="ready">
+            <div class="pipeline-header pipeline-header-ready">
+              <span class="pipeline-dot"></span>
+              <span data-i18n="kds.ready">Ready</span>
+              <span class="pipeline-badge" id="pipeline-ready-count">0</span>
+            </div>
+            <div class="pipeline-cards" id="pipeline-ready"></div>
+          </div>
+        </div>
+        <div class="kitchen-empty-pipeline" id="kitchen-empty-pipeline" style="display:none;" data-i18n="kds.no_active_orders">No active orders right now.</div>
+      </div>
+
+      <!-- Kitchen Stock -->
+      <div class="kitchen-section">
+        <div class="kitchen-section-header">
+          <span class="kitchen-section-label" data-i18n="kds.stock_section">Stock</span>
+          <span class="kitchen-section-count" id="kitchen-stock-count"></span>
+        </div>
+        <div id="kitchen-low-stock"></div>
+        <div class="kitchen-stock-grid" id="kitchen-stock-grid">
+          <div class="kitchen-empty" data-i18n="kds.no_tables">No stock in the kitchen yet.</div>
+        </div>
+      </div>
     </section>
 
     <!-- ========== STOCK MOVEMENTS TAB ========== -->
@@ -1048,20 +1108,6 @@
     <button class="btn-primary" id="shift-submit-btn" onclick="submitShift()">Save Shift</button>
     <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="closeModal('shift-modal')" data-i18n="modal.cancel">Cancel</button>
     <div id="shift-error" class="error hidden"></div>
-  </div>
-</div>
-
-<!-- ========== KDS MODAL ========== -->
-<div id="kds-modal" class="modal-backdrop hidden">
-  <div class="modal kds-modal">
-    <div class="kds-modal-header">
-      <div>
-        <h3 data-i18n="kds.title">Kitchen Display</h3>
-        <p style="margin:2px 0 0; font-size:12px; opacity:0.85;" data-i18n="kds.subtitle">Real-time order queue for the kitchen team.</p>
-      </div>
-      <button class="btn-ghost btn-sm" onclick="closeModal('kds-modal')" data-i18n="modal.close">Close</button>
-    </div>
-    <div class="kds-grid" id="kds-grid"></div>
   </div>
 </div>
 

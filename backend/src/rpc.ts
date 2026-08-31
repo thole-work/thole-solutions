@@ -23,6 +23,8 @@ export async function handleRpc(env: Env, ctx: Ctx, url: URL, req: Request): Pro
       return handleOnboardingRpc(env, ctx, name, body);
     case 'place_order':
       return handlePlaceOrder(env, ctx, body);
+    case 'adjust_stock':
+      return handleAdjustStock(env, ctx, body);
     case 'record_payments':
       return handleRecordPayments(env, ctx, body);
     case 'dashboard_summary':
@@ -206,6 +208,76 @@ async function handlePlaceOrder(env: Env, ctx: Ctx, body: Record<string, unknown
     JSON.stringify({ order_id: vOrderId, items_count: items.length, created }),
     { status: 200, headers: { 'content-type': 'application/json' } }
   );
+}
+
+// ---------------------------------------------------------------------------
+// adjust_stock (atomic multi-row stock deltas)
+//
+// Runs every delta in ONE D1 batch (single transaction) so that:
+//   - stock_qty / kitchen_stock_qty on a raw_materials row can be moved
+//     atomically (store <-> kitchen transfers), and
+//   - concurrent writers can never read-then-write a stale value (each delta
+//     is `SET col = col + delta` at the SQL level — no lost updates).
+//
+// Body: { p_business_id, p_ops: [{ table, id, delta, column? }] }
+//   table  : 'products' | 'raw_materials'
+//   column : 'stock_qty' (default) | 'kitchen_stock_qty'
+//   delta  : signed number added to the column
+//
+// Refuses to let any scoped stock column go below 0.
+// ---------------------------------------------------------------------------
+async function handleAdjustStock(env: Env, ctx: Ctx, body: Record<string, unknown>): Promise<Response> {
+  const bid = String(body['p_business_id'] ?? '');
+  if (bid !== ctx.membership!.business_id) throw new HttpError(403, 'Not an active member of this business');
+  const ops = body['p_ops'];
+  if (!Array.isArray(ops) || ops.length === 0) throw new HttpError(400, 'p_ops must be a non-empty array');
+  if (ops.length > 200) throw new HttpError(400, 'Too many stock operations in one call');
+
+  const ALLOWED_TABLES = new Set(['products', 'raw_materials']);
+  const ALLOWED_COLUMNS = new Set(['stock_qty', 'kitchen_stock_qty']);
+
+  const stmts: D1PreparedStatement[] = [];
+  const results: Array<{ table: string; id: string; column: string; new_value: number }> = [];
+
+  for (const rawOp of ops as Record<string, unknown>[]) {
+    const table = String(rawOp['table'] ?? '');
+    const id = String(rawOp['id'] ?? '').trim();
+    const column = String(rawOp['column'] ?? 'stock_qty');
+    const delta = Number(rawOp['delta']);
+    if (!ALLOWED_TABLES.has(table)) throw new HttpError(400, `Unsupported stock table: ${table}`);
+    if (!ALLOWED_COLUMNS.has(column)) throw new HttpError(400, `Unsupported stock column: ${column}`);
+    if (!id) throw new HttpError(400, 'Stock operation missing id');
+    if (!Number.isFinite(delta) || delta === 0) throw new HttpError(400, 'Stock delta must be a non-zero number');
+
+    stmts.push(
+      env.DB
+        .prepare(
+          `UPDATE ${table} SET ${column} = ${column} + ?
+           WHERE id = ? AND business_id = ? AND ${column} + ? >= 0
+           RETURNING ${column} AS new_value`
+        )
+        .bind(delta, id, bid, delta)
+    );
+    results.push({ table, id, column, new_value: Number.NaN });
+  }
+
+  const batch = await env.DB.batch(stmts);
+  const out: Array<{ table: string; id: string; column: string; new_value: number | null }> = results.map((r, i) => {
+    const row = (batch[i] as unknown as { results?: Array<{ new_value: number }> }).results?.[0];
+    return { ...r, new_value: row ? Number(row.new_value) : null };
+  });
+
+  // If the batch failed to apply every row (e.g. insufficient stock), the
+  // whole transaction is rolled back — surface which op(s) couldn't be applied.
+  const failed = out.find((r) => r.new_value === null);
+  if (failed) {
+    throw new HttpError(409, `Insufficient stock for ${failed.table} ${failed.id} (${failed.column})`);
+  }
+
+  return new Response(JSON.stringify({ applied: out.length, results: out }), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  });
 }
 
 // ---------------------------------------------------------------------------

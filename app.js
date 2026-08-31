@@ -16,6 +16,7 @@
     eventLogging: true, // fire-and-forget writes to audit_log / usage_events (Step 4)
     atomicRpc: true, // place_order/record_payments SQL RPCs; falls back to legacy await-chains on error (Step 5)
     serverAggregation: true, // dashboard_summary RPC instead of full-history fetches; falls back on error (Step 6)
+    atomicStock: true, // adjust_stock SQL RPC for conflict-free stock deltas; falls back to client CAS on error
   };
 
   let currentUser = null;
@@ -295,13 +296,53 @@
   // ============================================================
   // STOCK HELPERS
   // ============================================================
+  // Atomic server-side stock adjustment. All ops in one call run inside a
+  // single D1 transaction (UPDATE ... SET col = col + delta at the SQL level),
+  // so concurrent writers can never lose an update and multi-column transfers
+  // (store <-> kitchen) are applied atomically.
+  //
+  // ops: [{ table:'products'|'raw_materials', id, delta, column? }]
+  // Returns { ok:true, results:[...] } or { ok:false, error }.
+  async function adjustStockBatch(businessId, ops) {
+    if (FEATURES.atomicStock && Array.isArray(ops) && ops.length) {
+      try {
+        const { ok, data, error } = await sb.rpc('adjust_stock', {
+          p_business_id: businessId,
+          p_ops: ops,
+        });
+        if (ok && data) return { ok: true, results: data.results || [] };
+        return { ok: false, error: error || new Error('Stock adjustment failed') };
+      } catch (e) {
+        return { ok: false, error: e };
+      }
+    }
+    // Fallback: sequential CAS per op (keeps legacy path alive if the RPC is
+    // not yet deployed).
+    const results = [];
+    for (const op of ops) {
+      const r = await adjustStockColumnLegacy(op.table, op.id, op.column || 'stock_qty', op.delta, businessId);
+      if (r.error) return { ok: false, error: r.error, results };
+      results.push({ table: op.table, id: op.id, column: op.column || 'stock_qty', new_value: r.newQty });
+    }
+    return { ok: true, results };
+  }
+
   async function adjustStock(table, id, qtyChange, businessId) {
-    return adjustStockColumn(table, id, 'stock_qty', qtyChange, businessId);
+    const r = await adjustStockBatch(businessId, [{ table, id, delta: qtyChange, column: 'stock_qty' }]);
+    if (r.ok) return { oldQty: r.results[0]?.new_value - qtyChange, newQty: r.results[0]?.new_value, attempts: 1 };
+    return { error: r.error };
   }
 
   async function adjustStockColumn(table, id, column, qtyChange, businessId) {
-    // Step 5: compare-and-set with retries — a concurrent writer between our read and
-    // update makes the conditional update match 0 rows; re-read and try again.
+    const r = await adjustStockBatch(businessId, [{ table, id, delta: qtyChange, column }]);
+    if (r.ok) return { oldQty: r.results[0]?.new_value - qtyChange, newQty: r.results[0]?.new_value, attempts: 1 };
+    return { error: r.error };
+  }
+
+  // Legacy compare-and-set with retries — kept as the fallback path when the
+  // atomic RPC is unavailable. A concurrent writer between read and update
+  // makes the conditional update match 0 rows; re-read and try again.
+  async function adjustStockColumnLegacy(table, id, column, qtyChange, businessId) {
     const CAS_ATTEMPTS = 3;
     for (let attempt = 1; attempt <= CAS_ATTEMPTS; attempt++) {
       const { data: fresh, error: freshErr } = await sb.from(table).select(column).eq("id", id).eq("business_id", businessId).single();
@@ -824,13 +865,19 @@
         .select('id, business_id, order_items(id, quantity, product_id, products(product_type))')
         .eq('id', orderId).eq('business_id', membership.business_id).single();
       if (order) {
-        const stockOps = (order.order_items || [])
-          .filter(item => item.products && item.products.product_type !== 'recipe')
-          .map(item => Promise.all([
-            adjustStock('products', item.product_id, -item.quantity, membership.business_id),
-            logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: -item.quantity, reason: 'sale', refType: 'order', refId: order.id })
-          ]));
-        await Promise.all(stockOps);
+        const soldItems = (order.order_items || [])
+          .filter(item => item.products && item.products.product_type !== 'recipe');
+        // Atomic: deduct all sold products' stock in one transaction (no lost updates).
+        const ops = soldItems.map(item => ({ table: 'products', id: item.product_id, delta: -item.quantity, column: 'stock_qty' }));
+        if (ops.length) {
+          const batchResult = await adjustStockBatch(membership.business_id, ops);
+          if (batchResult.error) {
+            return showToast('Could not deduct stock on serve — please retry.', 'error');
+          }
+          for (const item of soldItems) {
+            await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: -item.quantity, reason: 'sale', refType: 'order', refId: order.id });
+          }
+        }
       }
       await sb.from('orders').update({ status: 'served' }).eq('id', orderId).eq('business_id', membership.business_id);
       logAudit("update", "order", orderId, null, { status: 'served' });
@@ -3742,12 +3789,13 @@
     const { data: order } = await sb.from("orders").select("status, table_id").eq("id", orderId).eq("business_id", membership.business_id).single();
     if (order && ['completed', 'served'].includes(order.status)) {
       const { data: items } = await sb.from("order_items").select("*, products(product_type)").eq("order_id", orderId);
-      for (const item of items ?? []) {
-        const prod = item.products;
-        if (!prod) continue;
-        if (prod.product_type === 'recipe') continue; // sale-count only, no stock to restore
-        await adjustStock('products', item.product_id, Number(item.quantity), membership.business_id);
-        await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: Number(item.quantity), reason: 'sale void', refType: 'order', refId: orderId });
+      const restorable = (items ?? []).filter(i => i.products && i.products.product_type !== 'recipe');
+      if (restorable.length) {
+        const ops = restorable.map(i => ({ table: 'products', id: i.product_id, delta: Number(i.quantity), column: 'stock_qty' }));
+        await adjustStockBatch(membership.business_id, ops);
+        for (const item of restorable) {
+          await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: Number(item.quantity), reason: 'sale void', refType: 'order', refId: orderId });
+        }
       }
       // Free table if it was still occupied
       if (order.table_id) {
@@ -4044,13 +4092,18 @@
     if (membership.role === "staff") { showToast("Staff cannot void purchases.", "error"); return; }
 
     const { data: items } = await sb.from("purchase_order_items").select("*").eq("purchase_order_id", poId);
-    for (const item of items ?? []) {
-      if (item.raw_material_id) {
-        await adjustStock('raw_materials', item.raw_material_id, -Number(item.quantity), membership.business_id);
-        await logStockMovement({ itemType: 'raw_material', materialId: item.raw_material_id, qtyChange: -Number(item.quantity), reason: 'purchase void', refType: 'purchase_order', refId: poId });
-      } else {
-        await adjustStock('products', item.product_id, -Number(item.quantity), membership.business_id);
-        await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: -Number(item.quantity), reason: 'purchase void', refType: 'purchase_order', refId: poId });
+    const ops = (items ?? []).map(item => item.raw_material_id
+      ? { table: 'raw_materials', id: item.raw_material_id, delta: -Number(item.quantity), column: 'stock_qty' }
+      : { table: 'products', id: item.product_id, delta: -Number(item.quantity), column: 'stock_qty' });
+    if (ops.length) {
+      const batchResult = await adjustStockBatch(membership.business_id, ops);
+      if (batchResult.error) return showToast('Could not void purchase — stock changed, please retry.', 'error');
+      for (const item of items ?? []) {
+        if (item.raw_material_id) {
+          await logStockMovement({ itemType: 'raw_material', materialId: item.raw_material_id, qtyChange: -Number(item.quantity), reason: 'purchase void', refType: 'purchase_order', refId: poId });
+        } else {
+          await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: -Number(item.quantity), reason: 'purchase void', refType: 'purchase_order', refId: poId });
+        }
       }
     }
     await sb.from("purchase_orders").update({ status: "voided" }).eq("id", poId).eq("business_id", membership.business_id);
@@ -4678,15 +4731,15 @@
     const btn = document.getElementById('send-kitchen-submit-btn');
     setBtnLoading(btn, true);
 
-    const { error: storeErr } = await adjustStockColumn('raw_materials', materialId, 'stock_qty', -qty, membership.business_id);
-    if (storeErr) { setBtnLoading(btn, false); return setError('send-kitchen-error', storeErr.message); }
-
-    const { error: kitchenErr } = await adjustStockColumn('raw_materials', materialId, 'kitchen_stock_qty', qty, membership.business_id);
-    if (kitchenErr) {
-      // Roll back the store deduction so stock isn't lost if the kitchen-side update fails.
-      await adjustStockColumn('raw_materials', materialId, 'stock_qty', qty, membership.business_id);
+    // Atomic store -> kitchen transfer: subtract store, add kitchen in one
+    // transaction (no window for a concurrent writer or a partial rollback).
+    const batchResult = await adjustStockBatch(membership.business_id, [
+      { table: 'raw_materials', id: materialId, delta: -qty, column: 'stock_qty' },
+      { table: 'raw_materials', id: materialId, delta: qty, column: 'kitchen_stock_qty' },
+    ]);
+    if (batchResult.error) {
       setBtnLoading(btn, false);
-      return setError('send-kitchen-error', kitchenErr.message);
+      return setError('send-kitchen-error', batchResult.error.message || 'Stock changed while sending to kitchen — please try again.');
     }
 
     await logStockMovement({ itemType: 'raw_material', materialId, qtyChange: -qty, reason: 'sent_to_kitchen', refType: 'kitchen_transfer', location: 'store' });
@@ -4880,6 +4933,8 @@
     const batchQty = parseFloat(document.getElementById("prod-planned-qty").value);
     const actualYield = parseFloat(document.getElementById("prod-actual-yield").value) || batchQty;
     if (isNaN(batchQty) || batchQty <= 0) return setError("produce-error", "Enter a valid batch quantity.");
+    const prodDef = cache.products.find(p => p.id === productId);
+    const productType = prodDef ? prodDef.product_type : 'resale';
 
     const { data: recipe } = await sb.from("recipe_items").select("id, product_id, raw_material_id, quantity_required").eq("product_id", productId);
     if (!recipe || recipe.length === 0) return setError("produce-error", "This product has no recipe set yet.");
@@ -4910,21 +4965,23 @@
     }).select().single();
     if (batchErr) { setBtnLoading(btn, false); return setError("produce-error", batchErr.message); }
 
-    // Deduct raw materials
-    for (const ri of recipe) {
-      const needed = Number(ri.quantity_required) * batchQty;
-      const mat = cache.materials.find(m => m.id === ri.raw_material_id);
-      const matName = mat ? mat.name : 'material';
-      const result = await adjustStock('raw_materials', ri.raw_material_id, -needed, membership.business_id);
-      if (result.error) { setBtnLoading(btn, false); return setError("produce-error", `Stock changed for ${matName} — please try again.`); }
-      await logStockMovement({ itemType: 'raw_material', materialId: ri.raw_material_id, qtyChange: -needed, reason: 'production', refType: 'production', refId: batch.id });
+    // Deduct raw materials + increment the manufactured product's stock in ONE
+    // atomic transaction (conflict-free; no read-modify-write between calls).
+    const ops = recipe.map(ri => ({ table: 'raw_materials', id: ri.raw_material_id, delta: -(Number(ri.quantity_required) * batchQty), column: 'stock_qty' }));
+    if (productType === 'manufactured') {
+      ops.push({ table: 'products', id: productId, delta: actualYield, column: 'stock_qty' });
+    }
+    const batchResult = await adjustStockBatch(membership.business_id, ops);
+    if (batchResult.error) {
+      setBtnLoading(btn, false);
+      return setError("produce-error", `Stock changed while producing — please try again.`);
     }
 
-    // Increment stock_qty for the manufactured product
-    const { data: currentProd } = await sb.from('products').select('stock_qty, product_type').eq('id', productId).eq('business_id', membership.business_id).single();
-    if (currentProd && currentProd.product_type === 'manufactured') {
-      const newStock = Number(currentProd.stock_qty || 0) + actualYield;
-      await sb.from('products').update({ stock_qty: newStock }).eq('id', productId).eq('business_id', membership.business_id);
+    for (const ri of recipe) {
+      const needed = Number(ri.quantity_required) * batchQty;
+      await logStockMovement({ itemType: 'raw_material', materialId: ri.raw_material_id, qtyChange: -needed, reason: 'production', refType: 'production', refId: batch.id });
+    }
+    if (productType === 'manufactured') {
       await logStockMovement({ itemType: 'product', productId: productId, qtyChange: actualYield, reason: 'production', refType: 'produce_batch', refId: batch.id });
     }
 

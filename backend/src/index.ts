@@ -87,6 +87,7 @@ async function afterRealtime(request: Request, env: Env, ctx: Ctx, res: Response
     const rpcName = (pathname.match(/\/rpc\/([a-z_]+)$/) ?? [])[1] ?? '';
     const map: Record<string, string[]> = {
       place_order: ['orders', 'order_items'],
+      adjust_stock: ['products', 'raw_materials'],
       record_payments: ['payments'],
       create_business: ['businesses', 'business_members'],
     };

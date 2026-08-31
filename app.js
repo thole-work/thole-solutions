@@ -2326,8 +2326,8 @@
       hide("auth-screen"); hide("onboarding-screen"); show("app-screen");
       setDefaultDateFilters();
       logUsage("session_start", "dashboard");
-      await loadEverything();
       switchTab(document.querySelector('.nav-item.active')?.dataset.tab || 'dashboard');
+      await loadEverything();
     } catch(err) {
       console.error("checkMembership error:", err);
       hide("auth-screen"); hide("app-screen"); show("onboarding-screen");

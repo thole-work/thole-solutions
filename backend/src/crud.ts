@@ -161,6 +161,10 @@ export async function handleCrud(env: Env, ctx: Ctx, url: URL, req: Request): Pr
     const vals: unknown[] = [];
     for (const [k, v] of Object.entries(prepared)) {
       if (k === 'id') continue;
+      // Never let scoped stock columns go below zero via the CRUD path.
+      if ((k === 'stock_qty' || k === 'kitchen_stock_qty') && Number(v) < 0) {
+        throw new HttpError(400, `${k} cannot be negative`);
+      }
       parts.push(`${k} = ?`);
       vals.push(v);
     }

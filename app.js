@@ -350,6 +350,7 @@
       if (freshErr || !fresh || fresh[column] === null) return { error: freshErr || new Error("No stock data") };
       const current = Number(fresh[column]);
       const newQty = current + qtyChange;
+      if (newQty < 0) return { error: new Error(`Insufficient stock: would leave ${column} at ${newQty}`) };
       const { data, error } = await sb.from(table)
         .update({ [column]: newQty })
         .eq("id", id).eq(column, current).eq("business_id", businessId)
@@ -2013,27 +2014,38 @@
       reason,
       notes
     };
+    let stockAdjustResult = null;
     if (type === 'product') {
       const prodId = document.getElementById('waste-product').value;
       payload.product_id = prodId;
-      const prod = productMap.get( prodId);
-      if (prod && prod.product_type === 'recipe') {
-        // Recipe waste: sale-count only, no kitchen stock deduction
-      } else {
-        await adjustStock('products', prodId, -qty, membership.business_id);
-        await logStockMovement({ itemType: 'product', productId: prodId, qtyChange: -qty, reason: 'waste', refType: 'waste', refId: null });
+      const prod = productMap.get(prodId);
+      if (prod && prod.product_type !== 'recipe') {
+        stockAdjustResult = { table: 'products', id: prodId, qtyChange: -qty, productId: prodId };
       }
     } else {
       const matId = document.getElementById('waste-material').value;
       payload.raw_material_id = matId;
-      await adjustStock('raw_materials', matId, -qty, membership.business_id);
-      await logStockMovement({ itemType: 'raw_material', materialId: matId, qtyChange: -qty, reason: 'waste', refType: 'waste', refId: null });
+      stockAdjustResult = { table: 'raw_materials', id: matId, qtyChange: -qty, materialId: matId };
     }
 
     setBtnLoading(btn, true);
-    const { error } = await sb.from('waste_log').insert(payload);
+    const { data: inserted, error } = await sb.from('waste_log').insert(payload).select('id').single();
     setBtnLoading(btn, false);
     if (error) return setError('waste-error', error.message);
+
+    // Deduct stock AFTER waste_log insert — if deduction fails, the waste record
+    // still exists so the user can see what happened and retry.
+    const wasteId = inserted?.id;
+    if (stockAdjustResult) {
+      const stockResult = await adjustStock(stockAdjustResult.table, stockAdjustResult.id, stockAdjustResult.qtyChange, membership.business_id);
+      if (stockResult.error) {
+        console.error('waste stock deduction failed:', stockResult.error);
+        showToast('Waste logged but stock not adjusted — please adjust manually.', 'error');
+      } else {
+        await logStockMovement({ itemType: stockAdjustResult.table === 'products' ? 'product' : 'raw_material', productId: stockAdjustResult.productId, materialId: stockAdjustResult.materialId, qtyChange: stockAdjustResult.qtyChange, reason: 'waste', refType: 'waste', refId: wasteId });
+      }
+    }
+
     closeModal('waste-modal');
     showToast('Waste logged');
     await loadWaste();
@@ -3546,6 +3558,12 @@
       const { error } = await sb.from("products").update(payload).eq("id", editingRecord.id).eq("business_id", membership.business_id);
       setBtnLoading(btn, false);
       if (error) return setError("product-error", error.message);
+      // Audit trail for manual stock corrections
+      if (!isRecipe && original && Number(payload.stock_qty) !== Number(original.stock_qty ?? 0)) {
+        const diff = Number(payload.stock_qty) - Number(original.stock_qty ?? 0);
+        logStockMovement({ itemType: 'product', productId: editingRecord.id, qtyChange: diff, reason: 'manual adjustment', refType: 'product', refId: editingRecord.id })
+          .then(() => {}) .catch(() => {});
+      }
       logAudit("update", "product", editingRecord.id,
         original ? { name: original.name, category: original.category, price: original.price, unit: original.unit, stock_qty: original.stock_qty, low_stock_threshold: original.low_stock_threshold, product_type: original.product_type } : null,
         payload);
@@ -3883,10 +3901,12 @@
       const restorable = (items ?? []).filter(i => i.products && i.products.product_type !== 'recipe');
       if (restorable.length) {
         const ops = restorable.map(i => ({ table: 'products', id: i.product_id, delta: Number(i.quantity), column: 'stock_qty' }));
-        await adjustStockBatch(membership.business_id, ops);
-        for (const item of restorable) {
-          await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: Number(item.quantity), reason: 'sale void', refType: 'order', refId: orderId });
+        const batchResult = await adjustStockBatch(membership.business_id, ops);
+        if (batchResult.error) {
+          console.error('voidSale stock restore failed:', batchResult.error);
+          return showToast('Could not restore stock — void cancelled.', 'error');
         }
+        await logStockMovementsBulk(restorable.map(item => ({ itemType: 'product', productId: item.product_id, qtyChange: Number(item.quantity), reason: 'sale void', refType: 'order', refId: orderId })));
       }
       // Free table if it was still occupied
       if (order.table_id) {
@@ -4895,6 +4915,15 @@
     setBtnLoading(btn, false);
 
     if (error) return setError("material-error", error.message);
+    // Audit trail for manual stock corrections
+    if (editingRecord) {
+      const original = materialMap.get(editingRecord.id);
+      if (original && Number(payload.stock_qty) !== Number(original.stock_qty ?? 0)) {
+        const diff = Number(payload.stock_qty) - Number(original.stock_qty ?? 0);
+        logStockMovement({ itemType: 'raw_material', materialId: editingRecord.id, qtyChange: diff, reason: 'manual adjustment', refType: 'raw_material', refId: editingRecord.id })
+          .then(() => {}) .catch(() => {});
+      }
+    }
     closeModal("material-modal");
     showToast(editingRecord ? "Material updated" : "Material added");
     await loadMaterials();

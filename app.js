@@ -347,8 +347,8 @@
     const CAS_ATTEMPTS = 3;
     for (let attempt = 1; attempt <= CAS_ATTEMPTS; attempt++) {
       const { data: fresh, error: freshErr } = await sb.from(table).select(column).eq("id", id).eq("business_id", businessId).single();
-      if (freshErr || !fresh || fresh[column] === null) return { error: freshErr || new Error("No stock data") };
-      const current = Number(fresh[column]);
+      if (freshErr || !fresh) { console.error(`CAS read failed (${table} ${id}):`, freshErr); return { error: freshErr || new Error("No stock data") }; }
+      const current = Number(fresh[column]) || 0;
       const newQty = current + qtyChange;
       if (newQty < 0) return { error: new Error(`Insufficient stock: would leave ${column} at ${newQty}`) };
       const { data, error } = await sb.from(table)

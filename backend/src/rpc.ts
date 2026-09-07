@@ -256,8 +256,8 @@ async function handleAdjustStock(env: Env, ctx: Ctx, body: Record<string, unknow
     stmts.push(
       env.DB
         .prepare(
-          `UPDATE ${table} SET ${column} = ${column} + ?
-           WHERE id = ? AND business_id = ? AND ${column} + ? >= 0
+          `UPDATE ${table} SET ${column} = COALESCE(${column}, 0) + ?
+           WHERE id = ? AND business_id = ? AND COALESCE(${column}, 0) + ? >= 0
            RETURNING ${column} AS new_value`
         )
         .bind(delta, id, bid, delta)

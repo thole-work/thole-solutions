@@ -2,7 +2,7 @@
   "app_name": "ቶሌ ሶሉሽንስ",
   "nav": {
     "dashboard": "ዳሽቦርድ",
-    "stock": "ስቶክ",
+    "products": "ምርቶች",
     "sales": "ሽያጭ",
     "customers": "ደንበኛ",
     "payments": "ክፍያ",
@@ -11,8 +11,8 @@
     "purchase_orders": "የግዢ ትዕዛዝ",
     "team": "ቡድን",
     "reports": "ሪፖርት",
+    "kitchen": "ኩሽና",
     "store": "ማከማቻ",
-    "materials": "ጥሬ ዕቃ",
     "stock_movements": "የስቶክ ልውውጥ",
     "efficiency": "ውጤታማነት",
     "settings": "ማስተካከያ",
@@ -33,6 +33,7 @@
     "today_sales": "የዛሬ ሽያጭ",
     "today_sales_note": "ዛሬ የተገኘ ገቢ።",
     "total_costs": "ጠቅላላ ወጪ",
+    "costs_breakdown": "ወጪ + ግዢ + ብክነት በአጠቃላይ።",
     "total_costs_note": "ወጪ + ግዢ + ብክነት በአጠቃላይ።",
     "net_profit": "ንጹህ ትርፍ",
     "net_profit_note": "ገቢ ቀሪ ከጠቅላላ ወጪ በኋላ።",
@@ -258,6 +259,7 @@
     "low_stock_items": "ዝቅተኛ ስቶክ ዕቃ",
     "low_stock_note": "ወደ ዝቅተኛ መጠን የደረሱ።",
     "category_share": "የምድር አጋጣሚ",
+    "category_share_note": "በምርት ምድቦች የገቢ ክፍፍል።",
     "quick_view": "ፈጣን ዕይታ",
     "top_category": "ምርጥ ምድር",
     "top_product": "ምርጥ ምርት",
@@ -280,14 +282,17 @@
   },
   "materials": {
     "title": "ጥሬ ዕቃ",
-    "subtitle": "ምርቶችዎን ለማሰራት የሚጠቀሙ ዕቃ አእምሮዎች።",
-    "csv": "📥 CSV",
-    "produce": "ምርት",
-    "add": "+ ጥሬ ዕቃ ጨምር",
+    "subtitle": "ምርቶችዎን ለማሰራት የሚጠቀሙ ዕቃ አእምሮዎች።"
+  },
+  "store": {
+    "purchase": "ግዢ",
+    "add": "+ ንጥረ እቃ ጨምር",
     "col_name": "ስም",
     "col_stock": "ስቶክ",
+    "csv": "CSV",
     "empty": "ምንም ጥሬ ዕቃ የለም።",
-    "empty_sub": "ለአብነትዎች ዕቃ አእምሮዎችን ያክሉ።"
+    "empty_sub": "ለአብነትዎች ዕቃ አእምሮዎችን ያክሉ።",
+    "low_stock_alerts": "ዝቅተኛ ስቶክ ማስጠንቀቂያ"
   },
   "movements": {
     "title": "የስቶክ ልውውጥ",
@@ -395,6 +400,8 @@
     "description": "መግለጫ",
     "category": "ምድር",
     "quantity": "መጠን",
+    "item": "ዕቃ",
+    "reason": "ምክንያት",
     "notes": "ማስታወሻ"
   },
   "product_modal": {
@@ -521,6 +528,7 @@
     "place_order": "ትዕዛዝ ያስቀምጡ",
     "ready_to_pay": "ለክፍያ ዝግጁ",
     "order_placed": "ትዕዛዝ ገብቷል — በኩሽና ውስጥ በመጠባበቅ ላይ",
+    "takeout": "ይወስዳሉ",
     "stock_insufficient": "በቂ ስቶክ የለም። ተገኝነት: {avail}",
     "stock_warning": "ዝቅተኛ ስቶክ — {avail} ብቻ ይገኛል",
     "recipe_not_allowed": "የአብነት (Recipe) ምርቶች በባች ማምረት አይቻልም። ለተመረቱ ምርቶች 'አምርት'ን ይጠቀሙ።"
@@ -537,6 +545,7 @@
     "tip": "ጉርሻ",
     "custom_tip": "የተለየ የጉርሻ መጠን",
     "back": "ተመለስ",
+    "add_method": "ክፍያ ዘዴ ጨምር",
     "complete": "ክፍያ ያስከፍሉ"
   },
   "receipt": {
@@ -584,6 +593,10 @@
     "no_active_orders": "ምንም ትዕዛዝ የለም።",
     "walk_in": "ያለ ጠረጴዛ",
     "new_items": "አዲስ ዕቃ"
+  },
+  "kitchen": {
+    "send_title": "ወደ ኩሽና ላክ",
+    "send_confirm": "ላክ"
   },
   "status": {
     "pending": "በመጠበቅ ላይ",

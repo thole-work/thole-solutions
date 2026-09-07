@@ -156,7 +156,19 @@ export async function handleCrud(env: Env, ctx: Ctx, url: URL, req: Request): Pr
       }
     }
 
-    for (const id of ids) await db.update(table, id, prepared);
+    // Batch update all matched IDs in a single statement
+    const parts: string[] = [];
+    const vals: unknown[] = [];
+    for (const [k, v] of Object.entries(prepared)) {
+      if (k === 'id') continue;
+      parts.push(`${k} = ?`);
+      vals.push(v);
+    }
+    if (parts.length && ids.length) {
+      const placeholders = ids.map(() => '?').join(',');
+      vals.push(...ids);
+      await env.DB.prepare(`UPDATE ${table} SET ${parts.join(', ')} WHERE id IN (${placeholders})`).bind(...vals).run();
+    }
     const rows = await db.select(table, selectStr, { filters: { [`in.id`]: ids.join(',') }, order, asc, limit: null, offset: 0 });
     return new Response(JSON.stringify(rows.length === 1 ? rows[0] : rows), { status: 200, headers: { 'content-type': 'application/json' } });
   }
@@ -164,7 +176,10 @@ export async function handleCrud(env: Env, ctx: Ctx, url: URL, req: Request): Pr
   if (method === 'DELETE') {
     const matched = await db.select(table, 'id', { filters, order, asc, limit, offset });
     const ids = matched.map((r) => r['id'] as string);
-    for (const id of ids) await db.del(table, id);
+    if (ids.length) {
+      const placeholders = ids.map(() => '?').join(',');
+      await env.DB.prepare(`DELETE FROM ${table} WHERE id IN (${placeholders})`).bind(...ids).run();
+    }
     return new Response(JSON.stringify({ count: ids.length }), { status: 200, headers: { 'content-type': 'application/json' } });
   }
 

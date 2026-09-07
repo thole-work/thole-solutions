@@ -57,8 +57,18 @@ export interface JwtClaims {
   [k: string]: unknown;
 }
 
+let _hmacKeyCache: CryptoKey | null = null;
+let _hmacKeySecret = '';
+
+async function getHmacKey(secret: string): Promise<CryptoKey> {
+  if (_hmacKeyCache && _hmacKeySecret === secret) return _hmacKeyCache;
+  _hmacKeyCache = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']);
+  _hmacKeySecret = secret;
+  return _hmacKeyCache;
+}
+
 async function hmacSign(data: string, secret: string): Promise<Uint8Array> {
-  const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const key = await getHmacKey(secret);
   return new Uint8Array(await crypto.subtle.sign('HMAC', key, enc.encode(data)));
 }
 

@@ -2,7 +2,7 @@
   "app_name": "Thole Solutions",
   "nav": {
     "dashboard": "Dashboard",
-    "stock": "Iddoo",
+    "products": "Abbaa Daldalaa",
     "sales": "Gurgii",
     "customers": "Maayyi",
     "payments": "Kaffaluu",
@@ -11,8 +11,8 @@
     "purchase_orders": "Ajajjii Kooftu",
     "team": "Garee",
     "reports": "Gabaasa",
+    "kitchen": "Cunqarsaa",
     "store": "Iddoo",
-    "materials": "Rakkoo Abbaa Daldalaa",
     "stock_movements": "Jijjiirama Iddoo",
     "efficiency": "Walqixa",
     "settings": "Qindoomina",
@@ -34,6 +34,7 @@
     "today_sales_note": "Har'a argame guddina.",
     "total_costs": "Hunda massini",
     "total_costs_note": "Massini + kooftu + qurii.",
+    "costs_breakdown": "Massini + kooftu + qurii.",
     "net_profit": "Qabii qulqullina",
     "net_profit_note": "Guddina hundi massini keessa.",
     "low_stock": "Iddoo gadi",
@@ -258,6 +259,7 @@
     "low_stock_items": "Iddoo gadi daldalaa",
     "low_stock_note": "Gadi argaman.",
     "category_share": "Ramaddii qoodaa",
+    "category_share_note": "Guddina ramaddii abbaa daldalaa waliin.",
     "quick_view": "Dorgomii xinsoo",
     "top_category": "Jalqabaa ramaddii",
     "top_product": "Jalqabaa abbaa daldalaa",
@@ -280,14 +282,17 @@
   },
   "materials": {
     "title": "Rakkoo Abbaa Daldalaa",
-    "subtitle": "Rakkoo abbaa daldalaa ofiin abbaa daldalaa sabsuu.",
-    "csv": "📥 CSV",
-    "produce": "Abbaa Daldalaa",
-    "add": "+ Rakkoo iddaa",
+    "subtitle": "Rakkoo abbaa daldalaa ofiin abbaa daldalaa sabsuu."
+  },
+  "store": {
+    "purchase": "Kooftu",
+    "add": "+ Daldalaa iddaa",
     "col_name": "Maqaa",
     "col_stock": "Iddoo",
+    "csv": "CSV",
     "empty": "Rakkoo hin jiru.",
-    "empty_sub": "Cunqarsuu rakkoo iddaa."
+    "empty_sub": "Cunqarsuu rakkoo iddaa.",
+    "low_stock_alerts": "Iddoo gadi agarsiisa"
   },
   "movements": {
     "title": "Jijjiirama Iddoo",
@@ -395,6 +400,8 @@
     "description": "Ibsa",
     "category": "Ramaddii",
     "quantity": "Hammaa",
+    "item": "Daldalaa",
+    "reason": "Sababa",
     "notes": "Yaadannoo"
   },
   "product_modal": {
@@ -521,6 +528,7 @@
     "place_order": "Ajajjii kaa'i",
     "ready_to_pay": "Kaffaluuf qophaa'eera",
     "order_placed": "Ajajjii kaa'ame — dabarsii fiqaa keessa eegamaa",
+    "takeout": "Fudhuu",
     "stock_insufficient": "Iddoo guutuu hin jiru. Argama: {avail}",
     "stock_warning": "Iddoo gadi — {avail} qofa hagaa",
     "recipe_not_allowed": "Abbaa daldalaa cunqarsuu abbaa daldalaa keessa hin danda'amu. Abbaa daldalaa Abskalaa irratti fayyadami."
@@ -537,6 +545,7 @@
     "tip": "Karaa",
     "custom_tip": "Karaa addaa ba'e",
     "back": "Deebi'i",
+    "add_method": "Aanguula kaffaluu iddaa",
     "complete": "Kaffaluu Cafi"
   },
   "receipt": {
@@ -584,6 +593,10 @@
     "no_active_orders": "Ajajjii active hin jiru.",
     "walk_in": "Keessatti dhufe",
     "new_items": "Haaraa"
+  },
+  "kitchen": {
+    "send_title": "Cunqarsaatti ergi",
+    "send_confirm": "Ergi"
   },
   "status": {
     "pending": "EEGALAMA",

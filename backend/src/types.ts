@@ -77,7 +77,12 @@ export const JSON_COLS: Record<string, string[]> = {
   usage_events: ['metadata'],
 };
 
+const _allColumnsCache = new Map<string, string[]>();
 export function allColumns(table: string): string[] {
+  let cached = _allColumnsCache.get(table);
+  if (cached) return cached;
   if (!COLUMNS[table]) return [];
-  return ['*', ...COLUMNS[table]];
+  cached = ['*', ...COLUMNS[table]];
+  _allColumnsCache.set(table, cached);
+  return cached;
 }

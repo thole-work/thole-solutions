@@ -15,6 +15,7 @@
     "stock_movements": "Stock Movements",
     "efficiency": "Efficiency",
     "settings": "Settings",
+    "kitchen": "Kitchen",
     "more": "More",
     "sign_out": "Sign out"
   },
@@ -32,6 +33,7 @@
     "today_sales": "Today's sales",
     "today_sales_note": "Revenue earned today.",
     "total_costs": "Total costs",
+    "costs_breakdown": "Expenses + purchases + waste.",
     "total_costs_note": "Expenses + purchases + waste.",
     "net_profit": "Net profit",
     "net_profit_note": "Revenue minus all costs.",
@@ -257,6 +259,7 @@
     "low_stock_items": "Low-stock items",
     "low_stock_note": "Items at or below the reorder threshold.",
     "category_share": "Category share",
+    "category_share_note": "Revenue breakdown across product categories.",
     "quick_view": "Quick view",
     "top_category": "Top category",
     "top_product": "Top product",
@@ -397,6 +400,8 @@
     "description": "Description",
     "category": "Category",
     "quantity": "Quantity",
+    "item": "Item",
+    "reason": "Reason",
     "notes": "Notes"
   },
   "product_modal": {
@@ -540,6 +545,7 @@
     "tip": "Tip",
     "custom_tip": "Custom tip",
     "back": "Back",
+    "add_method": "Add payment method",
     "complete": "Complete Payment"
   },
   "receipt": {
@@ -587,6 +593,10 @@
     "no_active_orders": "No active orders right now.",
     "walk_in": "Walk-in",
     "new_items": "NEW ITEMS"
+  },
+  "kitchen": {
+    "send_title": "Send to Kitchen",
+    "send_confirm": "Send"
   },
   "status": {
     "pending": "PENDING",

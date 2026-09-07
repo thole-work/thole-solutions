@@ -111,11 +111,12 @@ export class RealtimeHub {
   }
 
   private broadcast(businessId: string, payload: { table: string; event: string }): void {
+    const msg = JSON.stringify({ type: 'postgres_changes', schema: 'public', table: payload.table, eventType: payload.event, payload: { table: payload.table, schema: 'public', eventType: payload.event } });
     for (const c of this.clients.values()) {
       if (c.businessId !== businessId || c.ws.readyState !== WebSocket.OPEN) continue;
       if (c.tables.has('*') || c.tables.has(payload.table)) {
         try {
-          c.ws.send(JSON.stringify({ type: 'postgres_changes', schema: 'public', table: payload.table, eventType: payload.event, payload: { table: payload.table, schema: 'public', eventType: payload.event } }));
+          c.ws.send(msg);
         } catch {
           /* socket closed mid-send */
         }

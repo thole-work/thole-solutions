@@ -75,8 +75,9 @@ export async function handleOnboardingRpc(
   const fullName = String(body['p_full_name'] ?? '').trim();
   const biz = await env.DB.prepare('SELECT * FROM businesses WHERE invite_code = ?')
     .bind(code)
-    .first<{ id: string; name: string }>();
+    .first<{ id: string; name: string; is_active: number }>();
   if (!biz) throw new HttpError(400, `No business found with invite code "${code}"`);
+  if (!biz.is_active) throw new HttpError(400, 'This business is no longer active');
   const dup = await env.DB
     .prepare('SELECT id FROM business_members WHERE user_id = ? AND business_id = ?')
     .bind(ctx.userId, biz.id)
@@ -188,11 +189,14 @@ async function handlePlaceOrder(env: Env, ctx: Ctx, body: Record<string, unknown
         bid
       )
       .run();
-    await env.DB.prepare('DELETE FROM order_items WHERE order_id = ?').bind(orderId).run();
     vOrderId = orderId;
   }
 
   // Items — line_total computed server-side. Tolerate empty-string uuids.
+  // Batch the DELETE (for updates) + INSERTs atomically.
+  const deleteStmt = !created
+    ? [env.DB.prepare('DELETE FROM order_items WHERE order_id = ?').bind(vOrderId)]
+    : [];
   const itemStmts = items.map((it) => {
     const item = it as Record<string, unknown>;
     const pid = String(item['product_id'] ?? '').trim();
@@ -202,7 +206,7 @@ async function handlePlaceOrder(env: Env, ctx: Ctx, body: Record<string, unknown
       .prepare('INSERT INTO order_items (id, order_id, product_id, quantity, unit_price, line_total) VALUES (?, ?, ?, ?, ?, ?)')
       .bind(uuid(), vOrderId, pid, quantity, unitPrice, Math.round(quantity * unitPrice * 100) / 100);
   });
-  await env.DB.batch(itemStmts);
+  await env.DB.batch([...deleteStmt, ...itemStmts]);
 
   return new Response(
     JSON.stringify({ order_id: vOrderId, items_count: items.length, created }),

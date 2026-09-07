@@ -38,6 +38,10 @@
     return payload;
   }
   let cache = { products: [], customers: [], sales: [], payments: [], expenses: [], purchases: [], materials: [], suppliers: [], movements: [] };
+  let productMap = new Map();
+  let materialMap = new Map();
+  function rebuildProductMap() { productMap.clear(); for (const p of cache.products) productMap.set(p.id, p); }
+  function rebuildMaterialMap() { materialMap.clear(); for (const m of cache.materials) materialMap.set(m.id, m); }
   let editingRecord = null; // { table: 'products', id: '...' } — null means "adding new"
   let businessTypeKey = null;
   let pagination = { products: 0, customers: 0, sales: 0, payments: 0, expenses: 0, purchases: 0, materials: 0, suppliers: 0, movements: 0 };
@@ -154,11 +158,6 @@
     updateTopbar(activeTab);
     const langSel = document.getElementById('lang-select');
     if (langSel) langSel.value = lang;
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-      const key = el.getAttribute('data-i18n');
-      const translated = t(key);
-      if (translated !== key) el.textContent = translated;
-    });
   }
 
   // HELPER: Translates Day/Week/Month/Year inputs into Supabase time ranges
@@ -380,11 +379,52 @@
     return !error;
   }
 
-  // Fire-and-forget audit/usage logging — never awaited, never blocks or fails the user action.
-  // metadata is NOT NULL in both tables, so always send an object.
+  async function logStockMovementsBulk(entries) {
+    if (!entries.length) return;
+    const rows = entries.map(({ itemType, productId, materialId, qtyChange, reason, refType, refId, location }) => {
+      const payload = {
+        business_id: membership.business_id,
+        item_type: itemType,
+        quantity_change: qtyChange,
+        reason: reason || '',
+        reference_type: refType || null,
+        reference_id: refId || null,
+        created_by: currentUser.id,
+        location: location || 'store',
+      };
+      if (itemType === "product") payload.product_id = productId;
+      else if (itemType === "raw_material") payload.raw_material_id = materialId;
+      stampBranch(payload);
+      return payload;
+    });
+    const { error } = await sb.from("stock_movements").insert(rows);
+    if (error) console.error("bulk stock movement log failed:", error.message);
+  }
+
+  // Fire-and-forget audit/usage logging — batched and flushed periodically.
+  let _auditBuffer = [];
+  let _usageBuffer = [];
+  let _flushTimer = null;
+
+  function _flushBuffers() {
+    _flushTimer = null;
+    if (_auditBuffer.length) {
+      const batch = _auditBuffer.splice(0);
+      sb.from("audit_log").insert(batch).then(({ error }) => { if (error) console.warn("audit_log write failed:", error.message); }).catch(() => {});
+    }
+    if (_usageBuffer.length) {
+      const batch = _usageBuffer.splice(0);
+      sb.from("usage_events").insert(batch).then(({ error }) => { if (error) console.warn("usage_events write failed:", error.message); }).catch(() => {});
+    }
+  }
+
+  function _scheduleFlush() {
+    if (!_flushTimer) _flushTimer = setTimeout(_flushBuffers, 3000);
+  }
+
   function logAudit(action, entityType, entityId, beforeData = null, afterData = null, metadata = {}) {
     if (!FEATURES.eventLogging || !membership?.business_id || !currentUser?.id) return;
-    sb.from("audit_log").insert({
+    _auditBuffer.push({
       business_id: membership.business_id,
       user_id: currentUser.id,
       action,
@@ -393,13 +433,13 @@
       before_data: beforeData,
       after_data: afterData,
       metadata,
-    }).then(({ error }) => { if (error) console.warn("audit_log write failed:", error.message); })
-      .catch((e) => console.warn("audit_log write failed:", e?.message || e));
+    });
+    _scheduleFlush();
   }
 
   function logUsage(eventType, pageKey = null, entityType = null, entityId = null, metadata = {}) {
     if (!FEATURES.eventLogging || !membership?.business_id || !currentUser?.id) return;
-    sb.from("usage_events").insert({
+    _usageBuffer.push({
       business_id: membership.business_id,
       user_id: currentUser.id,
       event_type: eventType,
@@ -407,12 +447,12 @@
       entity_type: entityType,
       entity_id: entityId || null,
       metadata,
-    }).then(({ error }) => { if (error) console.warn("usage_events write failed:", error.message); })
-      .catch((e) => console.warn("usage_events write failed:", e?.message || e));
+    });
+    _scheduleFlush();
   }
 
   function getDerivedAvailability(productId) {
-    const product = (cache.products || []).find(p => p.id === productId);
+    const product = productMap.get(productId);
     if (!product) return 0;
     if (product.product_type !== 'recipe') return Number(product.stock_qty) || 0;
     return (product.stock_limit != null && product.stock_limit !== '') ? Number(product.stock_limit) : Infinity;
@@ -446,6 +486,8 @@
     if (error) { console.error(`pagedLoad(${key}) failed:`, error.message); showToast(error.message, 'error'); return null; }
     if (ver !== reqVersion[key]) return null;
     if (append) { cache[key] = [...cache[key], ...(data ?? [])]; } else { cache[key] = data ?? []; }
+    if (key === 'products') rebuildProductMap();
+    if (key === 'materials') rebuildMaterialMap();
     pagination[key] = data?.length === PAGE_SIZE ? offset + PAGE_SIZE : 0;
     return data;
   }
@@ -481,7 +523,7 @@
     setBtnLoading(btn, true);
     const insertPayload = { business_id: membership.business_id, ...payload, ...(extraInsert ? extraInsert() : {}) };
     const { error } = editingRecord
-      ? await sb.from(table).update(payload).eq('id', editingRecord.id)
+      ? await sb.from(table).update(payload).eq('id', editingRecord.id).eq('business_id', membership.business_id)
       : await sb.from(table).insert(insertPayload);
     setBtnLoading(btn, false);
     if (error) return setError(errId, error.message);
@@ -506,6 +548,7 @@
   async function posSyncOfflineQueue() {
     const queue = getOfflineQueue();
     if (queue.length === 0) return;
+    const savedPosState = { ...posState, cart: [...posState.cart] };
     for (const draft of queue) {
       try {
         // Recreate posState from draft
@@ -517,7 +560,7 @@
         posState.appliedDiscount = draft.appliedDiscount;
         posState.discountType = draft.discountType;
         
-        const { subtotal, discount, tax, total } = posCalcTotals();
+        const { subtotal, discount, tax, total, taxRate } = posCalcTotals();
         const { data: order } = await sb.from('orders').insert(stampBranch({
           business_id: membership.business_id,
           table_id: posState.tableId || null,
@@ -527,7 +570,7 @@
           subtotal,
           discount,
           discount_type: posState.discountType || 'amount',
-          tax_rate: posCalcTotals().taxRate,
+          tax_rate: taxRate,
           tax,
           total_amount: total,
           payment_method: 'cash',
@@ -572,6 +615,8 @@
     await loadProducts();
     await loadSales();
     renderDashboard();
+    Object.assign(posState, savedPosState);
+    posState.cart = savedPosState.cart;
   }
   
   // Auto-sync when online
@@ -671,7 +716,11 @@
 
   function handleKitchenChange(payload) {
     if (payload.eventType === 'DELETE') return;
-    if (payload.table === 'order_items') { playKDSSound('new'); scheduleKitchenReload(); return; }
+    if (payload.table === 'order_items') {
+      if (payload.eventType === 'INSERT') playKDSSound('new');
+      scheduleKitchenReload();
+      return;
+    }
     const order = payload.new;
     if (!order || order.business_id !== membership.business_id) return;
     if (['pending', 'preparing', 'ready'].includes(order.status)) {
@@ -874,9 +923,7 @@
           if (batchResult.error) {
             return showToast('Could not deduct stock on serve — please retry.', 'error');
           }
-          for (const item of soldItems) {
-            await logStockMovement({ itemType: 'product', productId: item.product_id, qtyChange: -item.quantity, reason: 'sale', refType: 'order', refId: order.id });
-          }
+          await logStockMovementsBulk(soldItems.map(item => ({ itemType: 'product', productId: item.product_id, qtyChange: -item.quantity, reason: 'sale', refType: 'order', refId: order.id })));
         }
       }
       await sb.from('orders').update({ status: 'served' }).eq('id', orderId).eq('business_id', membership.business_id);
@@ -1021,7 +1068,7 @@
   }
 
   function posAddProduct(productId) {
-    const product = cache.products.find(p => p.id === productId);
+    const product = productMap.get(productId);
     if (!product) return;
     if (product.product_type === 'recipe') {
       const avail = getDerivedAvailability(product.id);
@@ -1176,7 +1223,7 @@
     const types = [{ key: null, label: 'All' }, { key: 'resale', label: 'Buy & Sell' }, { key: 'recipe', label: 'Made to Order' }];
     if (businessUsesRawMaterials()) types.push({ key: 'manufactured', label: 'Manufactured' });
     catEl.innerHTML = types.map(t =>
-      `<button class="pos-cat-btn" onclick="posFilterType(${t.key ? `'${escapeAttr(t.key)}'` : 'null'})">${escapeHtml(t.label)}</button>`
+      `<button class="pos-cat-btn" data-pos-type="${t.key || ''}" onclick="posFilterType(${t.key ? `'${escapeAttr(t.key)}'` : 'null'})">${escapeHtml(t.label)}</button>`
     ).join('');
     catEl.querySelector('.pos-cat-btn').classList.add('active');
     posRenderProductList(cache.products);
@@ -1188,7 +1235,7 @@
     const searchInput = document.getElementById('pos-search-input');
     if (searchInput) searchInput.value = '';
     document.querySelectorAll('.pos-cat-btn').forEach(b => {
-      const btnType = b.getAttribute('onclick')?.includes('null') ? null : b.getAttribute('onclick')?.match(/'(\w+)'/)?.[1];
+      const btnType = b.getAttribute('data-pos-type') || null;
       b.classList.toggle('active', btnType === type);
     });
     const filtered = type ? cache.products.filter(p => p.product_type === type) : cache.products;
@@ -1277,8 +1324,14 @@
     return paymentState.baseTotal + paymentState.tip;
   }
 
+  function parseAmount(v) {
+    if (typeof v === 'number') return v;
+    const s = String(v ?? '').replace(/[,\s]/g, '');
+    return parseFloat(s) || 0;
+  }
+
   function paymentSumLines() {
-    return paymentState.lines.reduce((s, l) => s + (parseFloat(l.amount) || 0), 0);
+    return paymentState.lines.reduce((s, l) => s + parseAmount(l.amount), 0);
   }
 
   function posUpdatePaymentTotal(newTotal) {
@@ -1662,17 +1715,19 @@
   }
 
   async function posShowReceipt(orderId) {
-    const { data: order } = await sb.from('orders')
-      .select('*, customers(name), restaurant_tables!table_id(table_number, name), order_items(*, products(name))')
-      .eq('id', orderId).single();
+    const [{ data: order }, { data: orderPayments }, { data: business }] = await Promise.all([
+      sb.from('orders')
+        .select('*, customers(name), restaurant_tables!table_id(table_number, name), order_items(*, products(name))')
+        .eq('id', orderId).single(),
+      sb.from('payments')
+        .select('amount, method')
+        .eq('order_id', orderId)
+        .eq('direction', 'in'),
+      sb.from('businesses')
+        .select('name, address, phone, tax_id')
+        .eq('id', membership.business_id).single(),
+    ]);
     if (!order) return;
-    const { data: orderPayments } = await sb.from('payments')
-      .select('amount, method')
-      .eq('order_id', orderId)
-      .eq('direction', 'in');
-    const { data: business } = await sb.from('businesses')
-      .select('name, address, phone, tax_id')
-      .eq('id', membership.business_id).single();
     const biz = business || membership.businesses || {};
     const cashierName = membership.full_name || currentUser.email;
     const receiptNum = order.receipt_number ? `#${order.receipt_number}` : `#${order.id.slice(0,8).toUpperCase()}`;
@@ -1812,8 +1867,8 @@
         <div class="ledger">
           <div class="ledger-head" style="grid-template-columns: 1.5fr 1fr 1fr 1fr;"><div>Item</div><div>Qty</div><div>Reason</div><div>Date</div></div>
           ${data.map(w => {
-            const prod = w.product_id ? cache.products.find(p => p.id === w.product_id) : null;
-            const mat = w.raw_material_id ? cache.materials.find(m => m.id === w.raw_material_id) : null;
+            const prod = w.product_id ? productMap.get( w.product_id) : null;
+            const mat = w.raw_material_id ? materialMap.get( w.raw_material_id) : null;
             const itemName = prod ? escapeHtml(prod.name) : (mat ? escapeHtml(mat.name) : '—');
             return `
             <div class="ledger-row" style="grid-template-columns: 1.5fr 1fr 1fr 1fr;">
@@ -1868,7 +1923,7 @@
         <div class="ledger">
           <div class="ledger-head" style="grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr;"><div>Product</div><div>Planned</div><div>Actual</div><div>Yield</div><div>Status</div></div>
           ${data.map(b => {
-            const prod = b.product_id ? cache.products.find(p => p.id === b.product_id) : null;
+            const prod = b.product_id ? productMap.get( b.product_id) : null;
             return `
             <div class="ledger-row" style="grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr;">
               <div>${prod ? escapeHtml(prod.name) : '—'}</div>
@@ -1921,7 +1976,7 @@
       if (type === 'product') {
         getAvgProductCost(sel.value).then(c => { if (c != null) document.getElementById('waste-cost').value = c; });
       } else {
-        const item = cache.materials.find(m => m.id === sel.value);
+        const item = materialMap.get( sel.value);
         if (item && item.cost_per_unit != null) document.getElementById('waste-cost').value = item.cost_per_unit;
       }
     }
@@ -1929,7 +1984,7 @@
       if (type === 'product') {
         getAvgProductCost(sel.value).then(c => { if (c != null) document.getElementById('waste-cost').value = c; });
       } else {
-        const it = cache.materials.find(m => m.id === sel.value);
+        const it = materialMap.get( sel.value);
         if (it && it.cost_per_unit != null) document.getElementById('waste-cost').value = it.cost_per_unit;
       }
     };
@@ -1955,7 +2010,7 @@
     if (type === 'product') {
       const prodId = document.getElementById('waste-product').value;
       payload.product_id = prodId;
-      const prod = cache.products.find(p => p.id === prodId);
+      const prod = productMap.get( prodId);
       if (prod && prod.product_type === 'recipe') {
         // Recipe waste: sale-count only, no kitchen stock deduction
       } else {
@@ -2259,6 +2314,7 @@
 
   function searchCustomers(q) {
     const items = document.querySelectorAll('#cust-picker-list .ledger-row');
+    if (!q) { items.forEach(el => el.style.display = 'flex'); return; }
     const search = q.toLowerCase();
     items.forEach(el => {
       const text = el.textContent.toLowerCase();
@@ -2870,6 +2926,7 @@
   }
 
   async function handleLogout() {
+    _flushBuffers();
     teardownRealtime();
     await sb.auth.signOut();
     resetToAuthScreen();
@@ -3037,12 +3094,30 @@
   // ============================================================
   async function loadEverything() {
     try {
-      const jobs = [loadProducts(), loadCustomers(), loadSales(), loadPayments(), loadExpenses(), loadPurchases(), loadSuppliers()];
-      if (tabEnabled("materials")) jobs.push(loadMaterials()); // skip raw_materials for types without the inventory module
+      const activeTab = document.querySelector('.nav-item.active')?.dataset.tab || 'dashboard';
+      // Always load products (needed for POS/dashboard) and the active tab's data
+      const jobs = [loadProducts()];
+      if (activeTab === 'customers' || activeTab === 'sales' || activeTab === 'payments') jobs.push(loadCustomers());
+      if (activeTab === 'sales') jobs.push(loadSales());
+      if (activeTab === 'payments') jobs.push(loadPayments());
+      if (activeTab === 'expenses') jobs.push(loadExpenses());
+      if (activeTab === 'purchases') jobs.push(loadPurchases());
+      if (activeTab === 'suppliers') jobs.push(loadSuppliers());
+      if (activeTab === 'materials' && tabEnabled("materials")) jobs.push(loadMaterials());
       await Promise.all(jobs);
-      if (membership.role === "owner") await loadTeam();
-      if (membership.role === "owner" || membership.role === "manager") await loadReports();
-      if (tabEnabled("efficiency")) await Promise.all([loadWaste(), loadShifts(), loadProduceBatches()]); // waste_log/labor_shifts/produce_batches
+      // Lazy-load the rest in the background
+      const bgJobs = [];
+      if (!jobs.includes(loadCustomers())) bgJobs.push(loadCustomers());
+      if (!jobs.includes(loadSales())) bgJobs.push(loadSales());
+      if (!jobs.includes(loadPayments())) bgJobs.push(loadPayments());
+      if (!jobs.includes(loadExpenses())) bgJobs.push(loadExpenses());
+      if (!jobs.includes(loadPurchases())) bgJobs.push(loadPurchases());
+      if (!jobs.includes(loadSuppliers())) bgJobs.push(loadSuppliers());
+      if (tabEnabled("materials") && !jobs.includes(loadMaterials())) bgJobs.push(loadMaterials());
+      if (membership.role === "owner") bgJobs.push(loadTeam());
+      if (membership.role === "owner" || membership.role === "manager") bgJobs.push(loadReports());
+      if (tabEnabled("efficiency")) bgJobs.push(Promise.all([loadWaste(), loadShifts(), loadProduceBatches()]));
+      Promise.all(bgJobs).catch(() => {});
       renderDashboard();
       setupRealtimeSubscriptions();
       loadSettings();
@@ -3131,14 +3206,24 @@
   // Step 6: one-round-trip aggregates for dashboard + efficiency tab.
   // Returns null when the flag is off or the RPC is missing/fails — callers fall back
   // to the legacy full-history fetches (safety rule: keep legacy flows alive).
-  async function fetchDashboardSummary() {
+  let _dashboardSummaryCache = null;
+  let _dashboardSummaryTs = 0;
+  const DASHBOARD_CACHE_TTL = 20000; // 20 seconds
+
+  async function fetchDashboardSummary(force = false) {
     if (!FEATURES.serverAggregation) return null;
+    const now = Date.now();
+    if (!force && _dashboardSummaryCache && (now - _dashboardSummaryTs) < DASHBOARD_CACHE_TTL) {
+      return _dashboardSummaryCache;
+    }
     try {
       const { data, error } = await sb.rpc('dashboard_summary', {
         p_business_id: membership.business_id,
         p_branch_id: selectedBranchId || null,
       });
       if (error) throw error;
+      _dashboardSummaryCache = data;
+      _dashboardSummaryTs = now;
       return data;
     } catch (e) {
       console.warn('dashboard_summary RPC failed, using legacy aggregation:', e?.message || e);
@@ -3161,9 +3246,9 @@
       wasteCost = Number(summary.waste_cost || 0);
     } else {
     const [{ data: allSales }, { data: allExpenses }, { data: allPurchases }] = await Promise.all([
-      applyBranchFilter(sb.from('orders').select('total_amount, status, created_at').eq('business_id', bid), 'orders'),
-      applyBranchFilter(sb.from('expenses').select('amount').eq('business_id', bid), 'expenses'),
-      sb.from('purchase_orders').select('total_amount, status').eq('business_id', bid),
+      applyBranchFilter(sb.from('orders').select('total_amount, status, created_at').eq('business_id', bid).order('created_at', { ascending: false }).limit(500), 'orders'),
+      applyBranchFilter(sb.from('expenses').select('amount').eq('business_id', bid).order('created_at', { ascending: false }).limit(500), 'expenses'),
+      sb.from('purchase_orders').select('total_amount, status').eq('business_id', bid).order('created_at', { ascending: false }).limit(500),
     ]);
     revenue = (allSales || []).filter(o => o.status === 'completed').reduce((s, o) => s + Number(o.total_amount || 0), 0);
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -3174,7 +3259,7 @@
 
     wasteCost = 0;
     try {
-      const { data: waste } = await sb.from('waste_log').select('quantity, unit_cost').eq('business_id', bid);
+      const { data: waste } = await sb.from('waste_log').select('quantity, unit_cost').eq('business_id', bid).order('created_at', { ascending: false }).limit(500);
       wasteCost = (waste || []).reduce((s, w) => s + Number(w.quantity || 0) * Number(w.unit_cost || 0), 0);
     } catch(e) {}
     salesCount = allSales ? allSales.filter(o => o.status === 'completed').length : 0;
@@ -3391,7 +3476,7 @@
   }
 
   function openEditProduct(productId) {
-    const p = cache.products.find((x) => x.id === productId);
+    const p = productMap.get( productId);
     if (!p) return;
     editingRecord = { table: "products", id: p.id };
     document.getElementById("product-modal-title").textContent = "Edit product";
@@ -3416,7 +3501,7 @@
 
   async function duplicateProduct() {
     if (!editingRecord) return;
-    const p = cache.products.find((x) => x.id === editingRecord.id);
+    const p = productMap.get( editingRecord.id);
     if (!p) return;
     const { error } = await sb.from("products").insert({
       business_id: membership.business_id, name: `${p.name} (copy)`, category: p.category,
@@ -3451,7 +3536,7 @@
     setBtnLoading(btn, true);
 
     if (editingRecord) {
-      const original = cache.products.find((p) => p.id === editingRecord.id);
+      const original = productMap.get( editingRecord.id);
       const { error } = await sb.from("products").update(payload).eq("id", editingRecord.id).eq("business_id", membership.business_id);
       setBtnLoading(btn, false);
       if (error) return setError("product-error", error.message);
@@ -3688,11 +3773,11 @@
     for (const it of orderItems) {
       const rev = Number(it.quantity) * Number(it.unit_price);
       productAgg[it.product_id] = (productAgg[it.product_id] || 0) + rev;
-      const cat = cache.products.find(p => p.id === it.product_id)?.category || "Uncategorized";
+      const cat = productMap.get(it.product_id)?.category || "Uncategorized";
       catRev[cat] = (catRev[cat] || 0) + rev;
     }
     const topProducts = Object.entries(productAgg)
-      .map(([pid, rev]) => ({ name: cache.products.find(p => p.id === pid)?.name || "Deleted product", qty: orderItems.filter(i => i.product_id === pid).reduce((s, i) => s + Number(i.quantity), 0), rev }))
+      .map(([pid, rev]) => ({ name: productMap.get(pid)?.name || "Deleted product", qty: orderItems.filter(i => i.product_id === pid).reduce((s, i) => s + Number(i.quantity), 0), rev }))
       .sort((a, b) => b.rev - a.rev);
 
     const payTotals = {};
@@ -3755,7 +3840,7 @@
 
     lines.push(esc(`Total Revenue: ${money(totalRevenue)} · Orders: ${orderCount} · Avg: ${money(avgOrder)}`));
 
-    downloadCSV(`report_${new Date().toISOString().slice(0, 10)}.csv`, "", lines.map(l => l + "\n").join(""));
+    downloadCSV(`report_${new Date().toISOString().slice(0, 10)}.csv`, "", lines);
   }
 
   function exportExpensesCSV() {
@@ -4028,8 +4113,8 @@
     const isMaterial = businessUsesRawMaterials() && document.getElementById("po-type").value === "material";
     const itemId = isMaterial ? document.getElementById("po-material").value : document.getElementById("po-product").value;
     const item = isMaterial
-      ? cache.materials.find((m) => m.id === itemId)
-      : cache.products.find((p) => p.id === itemId);
+      ? materialMap.get( itemId)
+      : productMap.get( itemId);
 
     if (!item || isNaN(qty) || qty <= 0 || isNaN(cost)) return setError("purchase-error", `Check the ${isMaterial ? 'material' : 'product'}, quantity, and cost.`);
     if (cost < 0) return setError("purchase-error", "Cost cannot be negative.");
@@ -4344,7 +4429,7 @@
     const topProduct = Object.entries(productRevenue)
       .map(([pid, revenue]) => ({ pid, revenue }))
       .sort((a, b) => b.revenue - a.revenue)[0];
-    const topProductName = topProduct ? (cache.products.find((p) => p.id === topProduct.pid)?.name ?? "Deleted product") : "None yet";
+    const topProductName = topProduct ? (productMap.get( topProduct.pid)?.name ?? "Deleted product") : "None yet";
 
     const totalRevenueEl = document.getElementById("report-total-revenue");
     totalRevenueEl.textContent = abbreviateCurrency(totalRevenue);
@@ -4364,7 +4449,7 @@
 
     const categoryTotals = {};
     for (const item of orderItems) {
-      const product = cache.products.find((p) => p.id === item.product_id);
+      const product = productMap.get( item.product_id);
       const category = product?.category || "Uncategorized";
       categoryTotals[category] = (categoryTotals[category] || 0) + Number(item.quantity) * Number(item.unit_price);
     }
@@ -4390,7 +4475,7 @@
 
     const categoryTotals = {};
     for (const item of orderItems) {
-      const product = cache.products.find((p) => p.id === item.product_id);
+      const product = productMap.get( item.product_id);
       const category = product?.category || "Uncategorized";
       categoryTotals[category] = (categoryTotals[category] || 0) + Number(item.quantity) * Number(item.unit_price);
     }
@@ -4524,7 +4609,7 @@
     }
     const top = Object.entries(agg)
       .map(([pid, v]) => {
-        const p = cache.products.find((x) => x.id === pid);
+        const p = productMap.get( pid);
         return { name: p ? p.name : "Deleted product", category: p?.category ?? "—", ...v };
       })
       .sort((a, b) => b.revenue - a.revenue)
@@ -4571,7 +4656,7 @@
     if (!orderItems || orderItems.length === 0) { el.innerHTML = `<div class="empty-state">No sales yet.</div>`; return; }
     const catRev = {};
     for (const item of orderItems) {
-      const product = cache.products.find((p) => p.id === item.product_id);
+      const product = productMap.get( item.product_id);
       const category = product?.category || "Uncategorized";
       catRev[category] = (catRev[category] || 0) + Number(item.quantity) * Number(item.unit_price);
     }
@@ -4707,7 +4792,7 @@
   let sendToKitchenMaterialId = null;
 
   function openSendToKitchenModal(materialId) {
-    const m = cache.materials.find(x => x.id === materialId);
+    const m = materialMap.get( materialId);
     if (!m) return;
     sendToKitchenMaterialId = materialId;
     document.getElementById('send-kitchen-material-name').textContent = `${m.name} — ${m.stock_qty} ${m.unit} in Store`;
@@ -4721,7 +4806,7 @@
 
   async function submitSendToKitchen() {
     const materialId = sendToKitchenMaterialId;
-    const m = cache.materials.find(x => x.id === materialId);
+    const m = materialMap.get( materialId);
     if (!m) return;
     const qty = parseFloat(document.getElementById('send-kitchen-qty').value);
     clearError('send-kitchen-error');
@@ -4766,7 +4851,7 @@
   }
 
   function openEditMaterial(materialId) {
-    const m = cache.materials.find((x) => x.id === materialId);
+    const m = materialMap.get( materialId);
     if (!m) return;
     editingRecord = { table: "raw_materials", id: m.id };
     document.getElementById("material-modal-title").textContent = "Edit raw material";
@@ -4817,7 +4902,7 @@
   async function openRecipeModal(productId) {
     if (!businessUsesRawMaterials()) return;
     recipeProductId = productId;
-    const p = cache.products.find((x) => x.id === productId);
+    const p = productMap.get( productId);
     document.getElementById("recipe-product-name").textContent = p ? p.name : "";
     document.getElementById("ri-material").innerHTML = cache.materials.map((m) => `<option value="${m.id}">${escapeHtml(m.name)} (${escapeHtml(m.unit)})</option>`).join("");
     await renderRecipeItems();
@@ -4830,7 +4915,7 @@
     if (!data || data.length === 0) { el.innerHTML = `<div class="empty-state" style="padding:16px;">No recipe set yet.</div>`; return; }
     let totalCost = 0;
     el.innerHTML = data.map((ri) => {
-      const mat = cache.materials.find(m => m.id === ri.raw_material_id);
+      const mat = materialMap.get( ri.raw_material_id);
       const matName = mat ? escapeHtml(mat.name) : 'Unknown';
       const matUnit = mat ? escapeHtml(mat.unit) : '';
       const matCost = mat ? Number(mat.cost_per_unit || 0) : 0;
@@ -4899,7 +4984,7 @@
 
     let totalMaterialCost = 0;
     el.innerHTML = "<strong>This will use:</strong><br>" + recipe.map((ri) => {
-      const mat = cache.materials.find(m => m.id === ri.raw_material_id);
+      const mat = materialMap.get( ri.raw_material_id);
       const matName = mat ? escapeHtml(mat.name) : 'Unknown material';
       const matUnit = mat ? escapeHtml(mat.unit) : '';
       const matCost = mat ? Number(mat.cost_per_unit || 0) : 0;
@@ -4910,7 +4995,7 @@
       return `<span style="${short ? "color:var(--danger); font-weight:500;" : ""}">${matName}: ${needed} ${matUnit}${short ? ` (only ${available} available!)` : ""}</span>`;
     }).join("<br>");
 
-    const product = cache.products.find(p => p.id === productId);
+    const product = productMap.get( productId);
     const sellPrice = product ? Number(product.price) : 0;
     const costPerUnit = batchQty > 0 ? totalMaterialCost / batchQty : 0;
     const margin = sellPrice > 0 ? ((sellPrice - costPerUnit) / sellPrice * 100) : 0;
@@ -4933,14 +5018,14 @@
     const batchQty = parseFloat(document.getElementById("prod-planned-qty").value);
     const actualYield = parseFloat(document.getElementById("prod-actual-yield").value) || batchQty;
     if (isNaN(batchQty) || batchQty <= 0) return setError("produce-error", "Enter a valid batch quantity.");
-    const prodDef = cache.products.find(p => p.id === productId);
+    const prodDef = productMap.get( productId);
     const productType = prodDef ? prodDef.product_type : 'resale';
 
     const { data: recipe } = await sb.from("recipe_items").select("id, product_id, raw_material_id, quantity_required").eq("product_id", productId);
     if (!recipe || recipe.length === 0) return setError("produce-error", "This product has no recipe set yet.");
 
     for (const ri of recipe) {
-      const mat = cache.materials.find(m => m.id === ri.raw_material_id);
+      const mat = materialMap.get( ri.raw_material_id);
       const matName = mat ? mat.name : 'material';
       const needed = Number(ri.quantity_required) * batchQty;
       const available = mat ? Number(mat.stock_qty) : 0;

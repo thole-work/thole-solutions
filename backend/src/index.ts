@@ -53,11 +53,11 @@ export default {
         const ctx = await loadCtx(env, request);
         if (url.pathname.includes('/rpc/')) {
           const res = await handleRpc(env, ctx, url, request);
-          await afterRealtime(request, env, ctx, res, url.pathname);
+          afterRealtime(request, env, ctx, res, url.pathname);
           return withCors(res);
         }
         const res = await handleCrud(env, ctx, url, request);
-        await afterRealtime(request, env, ctx, res, url.pathname);
+        afterRealtime(request, env, ctx, res, url.pathname);
         return withCors(res);
       } catch (e) {
         return errorResponse(e);
@@ -70,7 +70,7 @@ export default {
 };
 
 // Forward write events to the realtime hub (best-effort).
-async function afterRealtime(request: Request, env: Env, ctx: Ctx, res: Response, pathname: string): Promise<void> {
+function afterRealtime(request: Request, env: Env, ctx: Ctx, res: Response, pathname: string): void {
   const method = request.method.toUpperCase();
   if (!(method === 'POST' || method === 'PATCH' || method === 'DELETE')) return;
   if (res.status >= 400) return;
@@ -78,10 +78,6 @@ async function afterRealtime(request: Request, env: Env, ctx: Ctx, res: Response
   const table = pathname.replace(/^\/rest\/v1\//, '').split('/')[0]!;
   if (!/^[a-z_]+$/.test(table)) return;
 
-  // RPC writes are invisible to generic table extraction (the path is
-  // /rpc/<name>). Real Supabase emits postgres_changes from the DB WAL for the
-  // tables an RPC touches, so mirror that here — the app drives its badge,
-  // sales list and dashboard from these real table events.
   let tables: string[] = [table];
   if (table === 'rpc') {
     const rpcName = (pathname.match(/\/rpc\/([a-z_]+)$/) ?? [])[1] ?? '';
@@ -97,5 +93,5 @@ async function afterRealtime(request: Request, env: Env, ctx: Ctx, res: Response
   const businessId = ctx.membership?.business_id;
   if (!businessId) return;
   const event = method === 'POST' ? 'INSERT' : method === 'PATCH' ? 'UPDATE' : 'DELETE';
-  for (const t of tables) await notifyRealtime(env, businessId, t, event);
+  void Promise.all(tables.map(t => notifyRealtime(env, businessId, t, event))).catch(() => {});
 }

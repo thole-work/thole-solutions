@@ -310,9 +310,11 @@
           p_ops: ops,
         });
         if (ok && data) return { ok: true, results: data.results || [] };
-        return { ok: false, error: error || new Error('Stock adjustment failed') };
+        console.error('adjust_stock RPC error:', error);
+        console.warn('Falling back to legacy CAS for stock adjustment');
       } catch (e) {
-        return { ok: false, error: e };
+        console.error('adjust_stock RPC exception:', e);
+        console.warn('Falling back to legacy CAS for stock adjustment');
       }
     }
     // Fallback: sequential CAS per op (keeps legacy path alive if the RPC is
@@ -917,11 +919,15 @@
         const soldItems = (order.order_items || [])
           .filter(item => item.products && item.products.product_type !== 'recipe');
         // Atomic: deduct all sold products' stock in one transaction (no lost updates).
-        const ops = soldItems.map(item => ({ table: 'products', id: item.product_id, delta: -item.quantity, column: 'stock_qty' }));
+        const ops = soldItems
+          .filter(item => item.product_id)
+          .map(item => ({ table: 'products', id: item.product_id, delta: -item.quantity, column: 'stock_qty' }));
         if (ops.length) {
           const batchResult = await adjustStockBatch(membership.business_id, ops);
           if (batchResult.error) {
-            return showToast('Could not deduct stock on serve — please retry.', 'error');
+            const msg = batchResult.error?.message || batchResult.error;
+            console.error('adjustStockBatch failed:', msg);
+            return showToast(msg.includes('Insufficient') ? msg : 'Could not deduct stock on serve — please retry.', 'error');
           }
           await logStockMovementsBulk(soldItems.map(item => ({ itemType: 'product', productId: item.product_id, qtyChange: -item.quantity, reason: 'sale', refType: 'order', refId: order.id })));
         }

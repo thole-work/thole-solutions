@@ -8,6 +8,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Thole Solutions</title>
 <link rel="icon" type="image/png" href="logo.png" />
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#C2410C" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Thole" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
@@ -15,6 +22,13 @@
 <script src="supabase-min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <link rel="stylesheet" href="styles.css" />
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  });
+}
+</script>
 <!-- Inline fallback: if styles.css fails to load, uncomment the block below
 <style>
   ... (full CSS lives in styles.css)

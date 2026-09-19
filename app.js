@@ -404,6 +404,85 @@
     if (error) console.error("bulk stock movement log failed:", error.message);
   }
 
+  // Builds the stock ops + movement log for a served order. direction:
+  //   'deduct'  — serving consumes stock
+  //   'restore' — voiding a served/completed order puts it back
+  // Non-recipe products deduct from their own stock_qty; recipe products
+  // consume their ingredients from raw_materials (kitchen stock first, then
+  // store). Missing/deleted rows are skipped instead of failing the order.
+  async function getServeStockOps(orderId, direction) {
+    const sign = direction === 'restore' ? 1 : -1;
+    const { data: order } = await sb.from('orders')
+      .select('id, order_items(id, quantity, product_id, products(id, product_type))')
+      .eq('id', orderId).eq('business_id', membership.business_id).single();
+    if (!order) return { ops: [], movements: [] };
+    const items = (order.order_items || []).filter(i => i.product_id && i.products && Number(i.quantity) > 0);
+
+    const ops = [];
+    const movements = [];
+    const refId = order.id || orderId;
+
+    for (const item of items.filter(i => i.products.product_type !== 'recipe')) {
+      const qty = Number(item.quantity);
+      ops.push({ table: 'products', id: item.product_id, delta: sign * qty, column: 'stock_qty' });
+      movements.push({ itemType: 'product', productId: item.product_id, qtyChange: sign * qty, reason: direction === 'restore' ? 'sale void' : 'sale', refType: 'order', refId });
+    }
+
+    const recipeItems = items.filter(i => i.products.product_type === 'recipe');
+    if (recipeItems.length) {
+      const productIds = [...new Set(recipeItems.map(i => i.product_id))];
+      const { data: recipeRows } = await sb.from('recipe_items')
+        .select('product_id, raw_material_id, quantity_required')
+        .in('product_id', productIds);
+      if (recipeRows && recipeRows.length) {
+        const materialIds = [...new Set(recipeRows.map(r => r.raw_material_id))];
+        const { data: mats } = await sb.from('raw_materials')
+          .select('id, stock_qty, kitchen_stock_qty')
+          .in('id', materialIds);
+        const matById = new Map((mats || []).map(m => [m.id, m]));
+
+        const needPerMaterial = new Map();
+        for (const item of recipeItems) {
+          const qty = Number(item.quantity);
+          for (const ri of recipeRows.filter(r => r.product_id === item.product_id)) {
+            const needed = Number(ri.quantity_required) * qty;
+            if (needed > 0) needPerMaterial.set(ri.raw_material_id, (needPerMaterial.get(ri.raw_material_id) || 0) + needed);
+          }
+        }
+
+        for (const [materialId, needed] of needPerMaterial) {
+          if (direction === 'restore') {
+            ops.push({ table: 'raw_materials', id: materialId, delta: needed, column: 'stock_qty' });
+          } else {
+            const mat = matById.get(materialId);
+            const kitchen = mat ? Number(mat.kitchen_stock_qty) || 0 : 0;
+            const fromKitchen = Math.min(needed, kitchen);
+            if (fromKitchen > 0) ops.push({ table: 'raw_materials', id: materialId, delta: -fromKitchen, column: 'kitchen_stock_qty' });
+            const fromStore = needed - fromKitchen;
+            if (fromStore > 0) ops.push({ table: 'raw_materials', id: materialId, delta: -fromStore, column: 'stock_qty' });
+          }
+          movements.push({ itemType: 'raw_material', materialId, qtyChange: sign * needed, reason: direction === 'restore' ? 'sale void' : 'sale', refType: 'order', refId });
+        }
+      }
+    }
+
+    return { ops, movements };
+  }
+
+  // Translates adjust_stock's "Insufficient stock for <table> <id> (<col>)"
+  // into a readable message naming the product or material.
+  function friendlyInsufficient(raw) {
+    const text = typeof raw === 'string' ? raw : (raw && raw.message ? raw.message : '');
+    const m = /Insufficient stock for (\w+) ([0-9a-f-]+) \(([a-z_]+)\)/.exec(text);
+    if (!m) return null;
+    const [, table, id, column] = m;
+    let label = id;
+    let where = 'stock';
+    if (table === 'products') label = productMap.get(id)?.name || id;
+    else if (table === 'raw_materials') { label = materialMap.get(id)?.name || id; where = column === 'kitchen_stock_qty' ? 'the kitchen' : 'the store'; }
+    return `Insufficient stock — not enough ${label} in ${where} to fill this order.`;
+  }
+
   // Fire-and-forget audit/usage logging — batched and flushed periodically.
   let _auditBuffer = [];
   let _usageBuffer = [];
@@ -913,29 +992,21 @@
   // --- Status update ---
   async function kitchenAdvanceStatus(orderId, newStatus) {
     if (newStatus === 'served') {
-      const { data: order } = await sb.from('orders')
-        .select('id, business_id, order_items(id, quantity, product_id, products(product_type))')
-        .eq('id', orderId).eq('business_id', membership.business_id).single();
-      if (order) {
-        const soldItems = (order.order_items || [])
-          .filter(item => item.products && item.products.product_type !== 'recipe');
-        // Atomic: deduct all sold products' stock in one transaction (no lost updates).
-        const ops = soldItems
-          .filter(item => item.product_id)
-          .map(item => ({ table: 'products', id: item.product_id, delta: -item.quantity, column: 'stock_qty' }));
-        if (ops.length) {
-          const batchResult = await adjustStockBatch(membership.business_id, ops);
-          if (batchResult.error) {
-            const msg = batchResult.error?.message || batchResult.error;
-            console.error('adjustStockBatch failed:', msg);
-            return showToast(msg.includes('Insufficient') ? msg : 'Could not deduct stock on serve — please retry.', 'error');
-          }
-          await logStockMovementsBulk(soldItems.map(item => ({ itemType: 'product', productId: item.product_id, qtyChange: -item.quantity, reason: 'sale', refType: 'order', refId: order.id })));
+      const { ops, movements } = await getServeStockOps(orderId, 'deduct');
+      if (ops.length) {
+        const batchResult = await adjustStockBatch(membership.business_id, ops);
+        if (batchResult.error) {
+          const msg = batchResult.error?.message || batchResult.error;
+          console.error('adjustStockBatch failed on serve:', msg);
+          const friendly = friendlyInsufficient(msg);
+          return showToast(friendly || (String(msg).includes('Insufficient') ? msg : 'Could not deduct stock on serve — check stock levels and retry.'), 'error');
         }
+        await logStockMovementsBulk(movements);
       }
       await sb.from('orders').update({ status: 'served' }).eq('id', orderId).eq('business_id', membership.business_id);
       logAudit("update", "order", orderId, null, { status: 'served' });
       loadProducts();
+      loadMaterials();
     } else {
       await sb.from('orders').update({ status: newStatus }).eq('id', orderId).eq('business_id', membership.business_id);
       logAudit("update", "order", orderId, null, { status: newStatus });
@@ -3897,16 +3968,14 @@
     // Only restore stock if the order was served or completed (stock was already deducted)
     const { data: order } = await sb.from("orders").select("status, table_id").eq("id", orderId).eq("business_id", membership.business_id).single();
     if (order && ['completed', 'served'].includes(order.status)) {
-      const { data: items } = await sb.from("order_items").select("*, products(product_type)").eq("order_id", orderId);
-      const restorable = (items ?? []).filter(i => i.products && i.products.product_type !== 'recipe');
-      if (restorable.length) {
-        const ops = restorable.map(i => ({ table: 'products', id: i.product_id, delta: Number(i.quantity), column: 'stock_qty' }));
+      const { ops, movements } = await getServeStockOps(orderId, 'restore');
+      if (ops.length) {
         const batchResult = await adjustStockBatch(membership.business_id, ops);
         if (batchResult.error) {
-          console.error('voidSale stock restore failed:', batchResult.error);
+          console.error('voidSale stock restore failed:', batchResult.error?.message || batchResult.error);
           return showToast('Could not restore stock — void cancelled.', 'error');
         }
-        await logStockMovementsBulk(restorable.map(item => ({ itemType: 'product', productId: item.product_id, qtyChange: Number(item.quantity), reason: 'sale void', refType: 'order', refId: orderId })));
+        await logStockMovementsBulk(movements);
       }
       // Free table if it was still occupied
       if (order.table_id) {

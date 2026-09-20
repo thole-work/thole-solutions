@@ -16,7 +16,6 @@
     eventLogging: true, // fire-and-forget writes to audit_log / usage_events (Step 4)
     atomicRpc: true, // place_order/record_payments SQL RPCs; falls back to legacy await-chains on error (Step 5)
     serverAggregation: true, // dashboard_summary RPC instead of full-history fetches; falls back on error (Step 6)
-    atomicStock: true, // adjust_stock SQL RPC for conflict-free stock deltas; falls back to client CAS on error
   };
 
   let currentUser = null;
@@ -295,30 +294,15 @@
   // ============================================================
   // STOCK HELPERS
   // ============================================================
-  // Atomic server-side stock adjustment. All ops in one call run inside a
-  // single D1 transaction (UPDATE ... SET col = col + delta at the SQL level),
-  // so concurrent writers can never lose an update and multi-column transfers
-  // (store <-> kitchen) are applied atomically.
+  // Sequential compare-and-set per op, applied one at a time. Each op retries
+  // on conflict (a concurrent writer between read and update makes the
+  // conditional update match 0 rows), so concurrent writers can never silently
+  // lose an update. Multi-column transfers (store <-> kitchen) are applied
+  // op-by-op with a rollback handled by the caller where needed.
   //
   // ops: [{ table:'products'|'raw_materials', id, delta, column? }]
   // Returns { ok:true, results:[...] } or { ok:false, error }.
   async function adjustStockBatch(businessId, ops) {
-    if (FEATURES.atomicStock && Array.isArray(ops) && ops.length) {
-      try {
-        const { ok, data, error } = await sb.rpc('adjust_stock', {
-          p_business_id: businessId,
-          p_ops: ops,
-        });
-        if (ok && data) return { ok: true, results: data.results || [] };
-        console.error('adjust_stock RPC error:', error);
-        console.warn('Falling back to legacy CAS for stock adjustment');
-      } catch (e) {
-        console.error('adjust_stock RPC exception:', e);
-        console.warn('Falling back to legacy CAS for stock adjustment');
-      }
-    }
-    // Fallback: sequential CAS per op (keeps legacy path alive if the RPC is
-    // not yet deployed).
     const results = [];
     for (const op of ops) {
       const r = await adjustStockColumnLegacy(op.table, op.id, op.column || 'stock_qty', op.delta, businessId);
@@ -467,20 +451,6 @@
     }
 
     return { ops, movements };
-  }
-
-  // Translates adjust_stock's "Insufficient stock for <table> <id> (<col>)"
-  // into a readable message naming the product or material.
-  function friendlyInsufficient(raw) {
-    const text = typeof raw === 'string' ? raw : (raw && raw.message ? raw.message : '');
-    const m = /Insufficient stock for (\w+) ([0-9a-f-]+) \(([a-z_]+)\)/.exec(text);
-    if (!m) return null;
-    const [, table, id, column] = m;
-    let label = id;
-    let where = 'stock';
-    if (table === 'products') label = productMap.get(id)?.name || id;
-    else if (table === 'raw_materials') { label = materialMap.get(id)?.name || id; where = column === 'kitchen_stock_qty' ? 'the kitchen' : 'the store'; }
-    return `Insufficient stock — not enough ${label} in ${where} to fill this order.`;
   }
 
   // Fire-and-forget audit/usage logging — batched and flushed periodically.
@@ -998,8 +968,7 @@
         if (batchResult.error) {
           const msg = batchResult.error?.message || batchResult.error;
           console.error('adjustStockBatch failed on serve:', msg);
-          const friendly = friendlyInsufficient(msg);
-          return showToast(friendly || (String(msg).includes('Insufficient') ? msg : 'Could not deduct stock on serve — check stock levels and retry.'), 'error');
+          return showToast(String(msg).includes('Insufficient') ? msg : 'Could not deduct stock on serve — check stock levels and retry.', 'error');
         }
         await logStockMovementsBulk(movements);
       }
@@ -4911,15 +4880,16 @@
     const btn = document.getElementById('send-kitchen-submit-btn');
     setBtnLoading(btn, true);
 
-    // Atomic store -> kitchen transfer: subtract store, add kitchen in one
-    // transaction (no window for a concurrent writer or a partial rollback).
-    const batchResult = await adjustStockBatch(membership.business_id, [
-      { table: 'raw_materials', id: materialId, delta: -qty, column: 'stock_qty' },
-      { table: 'raw_materials', id: materialId, delta: qty, column: 'kitchen_stock_qty' },
-    ]);
-    if (batchResult.error) {
+    // Subtract store, add kitchen. If the kitchen-side op fails, roll back the
+    // store deduction so stock isn't lost.
+    const { error: storeErr } = await adjustStockColumnLegacy('raw_materials', materialId, 'stock_qty', -qty, membership.business_id);
+    if (storeErr) { setBtnLoading(btn, false); return setError('send-kitchen-error', storeErr.message); }
+
+    const { error: kitchenErr } = await adjustStockColumnLegacy('raw_materials', materialId, 'kitchen_stock_qty', qty, membership.business_id);
+    if (kitchenErr) {
+      await adjustStockColumnLegacy('raw_materials', materialId, 'stock_qty', qty, membership.business_id);
       setBtnLoading(btn, false);
-      return setError('send-kitchen-error', batchResult.error.message || 'Stock changed while sending to kitchen — please try again.');
+      return setError('send-kitchen-error', kitchenErr.message);
     }
 
     await logStockMovement({ itemType: 'raw_material', materialId, qtyChange: -qty, reason: 'sent_to_kitchen', refType: 'kitchen_transfer', location: 'store' });

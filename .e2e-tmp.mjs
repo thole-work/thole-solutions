@@ -4,7 +4,7 @@ const SITE = 'http://127.0.0.1:8321/';
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-const browser = await chromium.launch();
+const browser = await chromium.launch({ channel: 'chromium' });
 const page = await browser.newPage();
 
 // No service worker interference in the test.
@@ -136,5 +136,7 @@ try {
 }
 
 results.consoleErrors = errors.slice(0, 5);
-console.log(JSON.stringify(results, null, 2));
+const outTxt = JSON.stringify(results, null, 2);
+console.log(outTxt);
+require('fs').writeFileSync('/tmp/opencode/e2e-result.json', outTxt);
 await browser.close();

@@ -6,7 +6,6 @@ const APP_SHELL = [
   './styles.css',
   './app.js',
   './config.js',
-  './supabase-min.js',
   './logo.png',
   './banner.png',
   './manifest.webmanifest',

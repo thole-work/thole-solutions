@@ -393,7 +393,9 @@
   //   'restore' — voiding a served/completed order puts it back
   // Non-recipe products deduct from their own stock_qty; recipe products
   // consume their ingredients from raw_materials (kitchen stock first, then
-  // store). Missing/deleted rows are skipped instead of failing the order.
+  // store). Restore mirrors deduction exactly (kitchen first) so a void puts
+  // stock back where it was taken from. Missing/deleted rows are skipped
+  // instead of failing the order.
   async function getServeStockOps(orderId, direction) {
     const sign = direction === 'restore' ? 1 : -1;
     const { data: order } = await sb.from('orders')
@@ -436,7 +438,14 @@
 
         for (const [materialId, needed] of needPerMaterial) {
           if (direction === 'restore') {
-            ops.push({ table: 'raw_materials', id: materialId, delta: needed, column: 'stock_qty' });
+            // Mirror the deduct — return to kitchen first (up to its current
+            // level), remainder back to store.
+            const mat = matById.get(materialId);
+            const kitchen = mat ? Number(mat.kitchen_stock_qty) || 0 : 0;
+            const toKitchen = Math.min(needed, kitchen);
+            if (toKitchen > 0) ops.push({ table: 'raw_materials', id: materialId, delta: toKitchen, column: 'kitchen_stock_qty' });
+            const toStore = needed - toKitchen;
+            if (toStore > 0) ops.push({ table: 'raw_materials', id: materialId, delta: toStore, column: 'stock_qty' });
           } else {
             const mat = matById.get(materialId);
             const kitchen = mat ? Number(mat.kitchen_stock_qty) || 0 : 0;
@@ -5124,8 +5133,9 @@
     }).select().single();
     if (batchErr) { setBtnLoading(btn, false); return setError("produce-error", batchErr.message); }
 
-    // Deduct raw materials + increment the manufactured product's stock in ONE
-    // atomic transaction (conflict-free; no read-modify-write between calls).
+    // Deduct raw materials + increment the manufactured product's stock.
+    // adjustStockBatch applies ops one at a time with CAS retries, so a
+    // concurrent writer can't be silently lost.
     const ops = recipe.map(ri => ({ table: 'raw_materials', id: ri.raw_material_id, delta: -(Number(ri.quantity_required) * batchQty), column: 'stock_qty' }));
     if (productType === 'manufactured') {
       ops.push({ table: 'products', id: productId, delta: actualYield, column: 'stock_qty' });

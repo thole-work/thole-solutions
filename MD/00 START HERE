@@ -1,0 +1,36 @@
+# Thole Solutions — Module Enforcement Workplan
+
+## Why this exists
+Module gating (retail/restaurant/salon/factory seeing only the tabs+data
+their type owns) is currently **frontend-only and partial**. There is no
+`has_module()` RLS helper anywhere in `database/*.sql`, so any authenticated
+user can write to any table regardless of their business's module list.
+Even the frontend gate (`TAB_MODULES` in `app.js`) only wires 3 of 7
+modules to tab visibility — `pos`, `crm`, `finance`, `procurement` are
+commented out.
+
+## Rules for every task file (01–04)
+1. **One task file = one session = one branch.** Do not start the next
+   numbered file until the current one is committed and verified.
+2. **Only touch the files named in that task's "Files to touch" section.**
+   If you think another file needs a change to finish the task, stop and
+   report that instead of editing it.
+3. **Do not refactor, rename, or "clean up" anything nearby.** Additive
+   changes only, exactly as scoped.
+4. **After the change, run the verification steps in that task file**
+   before considering it done. Do not move to the next task on a failed
+   verification.
+5. If a table/column named in a task doesn't match what you find in the
+   live database, **stop and report the mismatch** — don't improvise a fix.
+
+## Task order
+1. `01-has-module-function.md` — create the `has_module()` SQL helper (new, additive, nothing depends on it yet — safe first step)
+2. `02-rls-kitchen-inventory-production.md` — RLS for the 3 modules already gated in the UI (closes the biggest real hole first)
+3. `03-rls-pos-crm-finance-procurement.md` — RLS for the 4 modules not yet gated anywhere
+4. `04-uncomment-tab-modules.md` — small `app.js` change so the UI matches what task 3 just enforced in the database
+5. `05-verification-checklist.md` — the shared test script referenced by tasks 2–4
+
+## Ground truth used to write these tasks
+Pulled directly from `database/database map.txt` and `app.js` in
+`github.com/thole-work/thole-solutions` on 2026-09-25. If the schema has
+changed since, re-check before applying.

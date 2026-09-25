@@ -2802,12 +2802,10 @@
     materials: "inventory",          // raw_materials, recipe_items
     "stock-movements": "inventory",  // stock_movements
     efficiency: "production",        // produce_batches, waste_log, labor_shifts
-    // Business-growth gates — uncomment once business_type_modules is seeded
-    // for every type (the seed file already assigns them):
-    //   sales: "pos",                      // orders, order_items
-    //   customers: "crm", suppliers: "crm",// customers, suppliers
-    //   payments: "finance", expenses: "finance", reports: "finance",
-    //   purchases: "procurement",          // purchase_orders
+    sales: "pos",                      // orders, order_items
+    customers: "crm", suppliers: "crm",// customers, suppliers
+    payments: "finance", expenses: "finance", reports: "finance",
+    purchases: "procurement",          // purchase_orders
   };
 
   const LEGACY_TAB_TYPE_KEYS = {
